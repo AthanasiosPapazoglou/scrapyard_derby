@@ -105,12 +105,12 @@ abstract final class Tuning {
 
   // ---------------------------------------------------------------- Landings
   /// Max angle (deg) between robot "up" and the ground normal that still
-  /// counts as a clean two-foot landing.
-  static const double cleanLandingToleranceDeg = 25.0;
+  /// counts as a clean two-foot landing. (Balance pass: was 25.)
+  static const double cleanLandingToleranceDeg = 20.0;
 
   /// Max angle (deg) for a one-foot landing. Beyond this, a foot touching
-  /// down is a crash.
-  static const double oneFootToleranceDeg = 50.0;
+  /// down is a crash. (Balance pass: was 50.)
+  static const double oneFootToleranceDeg = 40.0;
 
   /// Minimum time in the air (s) before a touch-down counts as a landing.
   /// Stops tiny hops and rolling from triggering landings constantly.
@@ -185,15 +185,16 @@ abstract final class Tuning {
   /// 100, the right arm at 200, the left leg at 300, the right leg at 400.
   static const double limbMaxHp = 100.0;
 
-  /// Damage added by a crash landing.
-  static const double crashDamage = 45.0;
+  /// Damage added by a crash landing: one whole limb, so "crash = lose a
+  /// limb" is easy to read. (Balance pass: was 45; see docs/ROADMAP.md.)
+  static const double crashDamage = 100.0;
 
-  /// Damage added by a one-foot landing.
-  static const double oneFootDamage = 20.0;
+  /// Damage added by a one-foot landing. (Balance pass: was 20.)
+  static const double oneFootDamage = 35.0;
 
-  /// Damage added by a clean landing (wear and tear; was 3 on each of the
-  /// two legs).
-  static const double cleanLandingDamage = 6.0;
+  /// Damage added by a clean landing: wear and tear, so even a perfect run
+  /// ends after about 40 landings (~4 minutes). (Balance pass: was 6.)
+  static const double cleanLandingDamage = 10.0;
 
   /// Seconds a broken-off part stays on the track before disappearing. It
   /// fades out over this time.
@@ -212,9 +213,11 @@ abstract final class Tuning {
   /// Launch speed (m/s) = (base + robot speed × factor) × angle factor,
   /// capped at max. The angle factor is 1 when landing upright and
   /// [headLaunchMinAngleFactor] when sideways or upside down.
-  static const double headLaunchBaseSpeed = 20.0;
+  /// (Balance pass: base was 20, max 36, thrust 20; head flights were a
+  /// third of the score, now about 60-100 m.)
+  static const double headLaunchBaseSpeed = 10.0;
   static const double headLaunchSpeedFactor = 0.6;
-  static const double headLaunchMaxSpeed = 36.0;
+  static const double headLaunchMaxSpeed = 24.0;
   static const double headLaunchMinAngleFactor = 0.6;
 
   /// How strongly the launch is bent away from the ground (on top of the
@@ -224,7 +227,7 @@ abstract final class Tuning {
   /// After launch, a rocket burn keeps pushing the head along its flight
   /// for this many seconds, with this acceleration (m/s²).
   static const double headRocketBurnTime = 0.5;
-  static const double headRocketThrust = 20.0;
+  static const double headRocketThrust = 14.0;
 
   /// Ground touches in the first moments after launch don't end the run
   /// (the head starts right next to the ground). Seconds.
@@ -330,14 +333,16 @@ abstract final class Tuning {
   // ---------------------------------------------------------------- Scrap
   // Currency earned at the end of each run (see scrap_reward.dart).
 
-  /// 1 scrap per this many meters of distance.
-  static const double scrapMetersPerScrap = 10;
+  /// 1 scrap per this many meters of distance. (Balance pass: was 10, with
+  /// 2 per clean landing and 1 per 5 m of head flight. Targets: first
+  /// upgrade after 1-2 runs, a full track after ~10-20 runs.)
+  static const double scrapMetersPerScrap = 25;
 
   /// Bonus per clean (both feet) landing.
-  static const int scrapPerCleanLanding = 2;
+  static const int scrapPerCleanLanding = 1;
 
   /// 1 scrap per this many meters the launched head flies.
-  static const double scrapHeadFlightMetersPerScrap = 5;
+  static const double scrapHeadFlightMetersPerScrap = 10;
 
   /// Bonus for beating the best distance.
   static const int scrapNewBestBonus = 25;

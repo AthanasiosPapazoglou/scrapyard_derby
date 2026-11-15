@@ -22,6 +22,7 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Tuning (all numbers) | `lib/config/tuning.dart` |
 | Game loop, camera, run end, HUD data | `lib/game/derby_game.dart` (`HudInfo`, `RunEnd`) |
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
+| Bots / balance | `autopilot.dart`, `tool/simulate_runs_test.dart`, `test/balance_test.dart` |
 | Pure, tested logic | `robot_stats.dart`, `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
 | Audio | `sound.dart`, generators `art/make_sfx.py` and `art/make_music.py`, files in `assets/audio/` |
 | Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
@@ -40,6 +41,11 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 - Flame particles don't pass `lifespan` down to child particles; set it explicitly.
 - Hot restart keeps the old native music player running, so the music can
   double up in development; a full `flutter run` restart fixes it.
+- Headless runs (tests/tools): call `await game.ready()` after every
+  `game.update(...)`, or async loads (new hill chunks) never finish and the
+  robot falls through the world.
+- Never touch a removed part's `body`: after the head launch the torso is
+  debris and gets destroyed; reading it crashes natively (segfault).
 - A `CustomPaint` without a child is zero-sized; give it `size: Size.infinite`.
 - Simulator: `flutter run` runs in a Terminal tab; `kill -USR1 <flutter_tools pid>`
   hot-reloads, `-USR2` hot-restarts. Simulator screenshots arrive a few seconds
@@ -192,7 +198,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   Ducked to `Tuning.musicDuckShare` during the head-launch slow motion.
   One track for now; a separate menu track could come later.
 
-### Step 6 — Balance pass  ☐
+### Step 6 — Balance pass  ☑
 - First make landings less forgiving (unassisted runs currently reach
   1000 m+): e.g. tighter `cleanLandingToleranceDeg`, a bit faster
   `spinSpeed`, more crash damage. Target: no-input runs end early; skilled
@@ -200,6 +206,44 @@ passing, a check in the Simulator, and a commit command for the developer.
 - Then tune scrap rewards and upgrade prices together: first upgrade after
   1–2 runs, a full track after many runs.
 - Record the targets and results here.
+
+**How to measure:** `flutter test tool/simulate_runs_test.dart` plays full
+headless runs of the real game (physics and all, ~10 s for the whole report)
+with `Autopilot` bots (`lib/game/autopilot.dart`: looks ahead to touchdown
+under hold / release and picks the more upright one; `skill` adds judgement
+noise and slower reactions). Set `upgrades` at the top of the file to test an
+upgraded robot. `test/balance_test.dart` guards the main targets in CI-style
+runs (`test/support/run_simulator.dart` is the shared runner).
+
+**Targets:** no input ends early with little scrap; skill matters a lot; a
+perfect run ends in ~4 min; head flight is a finish, not a third of the
+score; first upgrade after 1-2 runs, a full track after ~10-20 runs.
+
+**Changes:** clean tolerance 25→20°, one-foot tolerance 50→40°, damage
+crash 45→100 (one crash = one limb), one foot 20→35, clean 6→10; head launch
+base 20→10, max 36→24, rocket thrust 20→14; scrap 1 per 10 m→25 m, clean
+bonus 2→1, head flight 1 per 5 m→10 m. Spin speed and jump feel unchanged.
+
+**Results** (avg of 6 seeds; scrap includes the +25 new-best bonus, since
+every simulated run starts from a fresh profile):
+
+| bot | before: dist / scrap / time | after: dist / scrap / time |
+|---|---|---|
+| no input | 496 m / 107 / 43 s | 433 m / 44 / 44 s |
+| skill 0.0 | 2083 m / 303 / 141 s | 787 m / 68 / 61 s |
+| skill 0.4 | 3640 m / 495 / 239 s | 1469 m / 102 / 104 s |
+| skill 0.7 | 5231 m / 695 / 341 s | 2807 m / 172 / 191 s |
+| skill 1.0 | 6588 m / 866 / 434 s | 3462 m / 209 / 231 s |
+
+Head flights went from ~150-250 m to ~60-100 m. With every upgrade maxed:
+sloppy 2220 m, good 7282 m (runs ~8.5 min, mostly from Plating; revisit if
+end-game runs feel too long). No input could not go much below ~430 m
+without changing the bounce physics; it is ~1/3 of a casual run.
+
+**Head flight "0 m" finding:** the launch replaces the head's velocity with
+one along the facing direction (spec), so launching while facing uphill
+fires the head backwards. That's a "bad launch" by design; the summary now
+shows the signed value (e.g. -6 m) and the scrap bonus never goes negative.
 
 ## Later (not in this roadmap)
 - Android build and phone check (phase 2 item, do soon: native Box2D,

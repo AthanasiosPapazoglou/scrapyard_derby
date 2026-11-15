@@ -31,6 +31,16 @@ void main() {
     );
   });
 
+  test('a backwards head flight earns no bonus', () {
+    final stats = RunStats()
+      ..distance = 100
+      ..headLaunchedAt(120)
+      ..headLandedAt(100);
+    final lines = scrapReward(stats, newBest: false);
+    expect(lines.map((l) => l.label), isNot(contains(startsWith('Head'))));
+    expect(scrapTotal(lines), greaterThanOrEqualTo(0));
+  });
+
   test('empty bonuses are left out, distance always shows', () {
     final stats = RunStats()..distance = 3;
     final lines = scrapReward(stats, newBest: false);

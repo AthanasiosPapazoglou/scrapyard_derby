@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
@@ -27,7 +29,8 @@ class ScrapLine {
 /// Lines worth nothing are left out, except distance, which always shows.
 List<ScrapLine> scrapReward(RunStats stats, {required bool newBest}) {
   final clean = stats.landingsOf(LandingType.clean);
-  final headFlight = stats.headFlight ?? 0;
+  // A backwards head launch earns nothing (but costs nothing either).
+  final headFlight = math.max(0.0, stats.headFlight ?? 0);
   final lines = [
     ScrapLine(
       'Distance',

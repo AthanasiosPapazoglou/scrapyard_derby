@@ -32,6 +32,13 @@ void main() {
     expect(stats.headFlight, closeTo(37.5, 1e-9));
   });
 
+  test('a backwards head launch is negative', () {
+    final stats = RunStats()
+      ..headLaunchedAt(400)
+      ..headLandedAt(388);
+    expect(stats.headFlight, closeTo(-12, 1e-9));
+  });
+
   test('a landing without a launch records no head flight', () {
     final stats = RunStats()..headLandedAt(100);
     expect(stats.headFlight, isNull);

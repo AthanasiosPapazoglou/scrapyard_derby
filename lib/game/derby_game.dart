@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
 import '../profile/player_profile.dart';
+import 'autopilot.dart';
 import 'background.dart';
 import 'camera_framing.dart';
 import 'damage.dart';
@@ -109,6 +110,10 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   /// Saved player data; the best distance is recorded here at run end.
   final PlayerProfile profile;
+
+  /// When set, a bot plays instead of the player's finger (used by the
+  /// balance simulator in `tool/`; could drive AI rivals later).
+  Autopilot? autopilot;
 
   final HillGeometry hillGeometry = HillGeometry();
   late Robot robot;
@@ -222,7 +227,23 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (!robot.isLoaded) {
       return;
     }
-    robot.holding = _result == null && _heldPointers.isNotEmpty;
+    final pilot = autopilot;
+    final bool wantsHold;
+    if (pilot == null) {
+      wantsHold = _heldPointers.isNotEmpty;
+    } else if (robot.headLaunched) {
+      // Nothing left to steer (and the torso may already be removed).
+      wantsHold = false;
+    } else {
+      wantsHold = pilot.decide(
+        robot.flightState,
+        hillGeometry,
+        dt: dt * Tuning.gameSpeed * _slowMoFactor,
+        onGround: robot.isOnGround,
+        stats: robot.stats,
+      );
+    }
+    robot.holding = _result == null && wantsHold;
     if (_result == null) {
       _checkRunEnd(dt);
     }

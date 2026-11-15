@@ -17,7 +17,8 @@ class RunStats {
   int limbsLost = 0;
 
   /// Horizontal meters the launched head flew, or null if the head was
-  /// never launched (or hasn't landed yet).
+  /// never launched (or hasn't landed yet). Negative when it was fired
+  /// backwards (the robot faced uphill at the launch).
   double? headFlight;
 
   /// Horizontal meters covered (the score), set when the run ends.
@@ -42,7 +43,7 @@ class RunStats {
   void headLandedAt(double x) {
     final from = _headLaunchX;
     if (from != null) {
-      headFlight = math.max(0, x - from);
+      headFlight = x - from;
     }
   }
 }

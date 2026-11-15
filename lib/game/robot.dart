@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/tuning.dart';
+import 'autopilot.dart';
 import 'damage.dart';
 import 'derby_game.dart';
 import 'head_launch.dart';
@@ -140,6 +141,19 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   final Map<RobotPart, int> _groundContacts = {};
 
   bool get _isOnGround => _groundContacts.values.any((count) => count > 0);
+
+  /// True while any attached part touches the ground.
+  bool get isOnGround => _isOnGround;
+
+  /// Torso position, motion and spin, for the autopilot. Only valid before
+  /// the head launch (the torso is removed as debris after it).
+  FlightState get flightState => FlightState(
+    position: torso.body.position.clone(),
+    velocity: torso.body.linearVelocity.clone(),
+    angle: torso.body.angle,
+    spinControl: spinControl,
+    feetBelowTorso: _feetBelowTorso,
+  );
 
   /// The body the game follows: the torso, or the head once launched.
   Body get _trackedBody => headLaunched ? head.body : torso.body;
