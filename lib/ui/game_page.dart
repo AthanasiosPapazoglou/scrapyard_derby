@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
 import '../game/palette.dart';
+import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'derby_button.dart';
 import 'hud.dart';
@@ -31,6 +32,12 @@ class _GamePageState extends State<GamePage> {
     profile: widget.profile,
     level: widget.level,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    Sound.musicForLevel(widget.level);
+  }
 
   void _pause() {
     _game.pauseEngine();
@@ -66,21 +73,31 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GameWidget<DerbyGame>(
-        game: _game,
-        overlayBuilderMap: {
-          Hud.overlayKey: (context, game) => Hud(
-            game: game,
-            onMenu: _toMenu,
-            onPause: _pause,
-            onWorkshop: _openWorkshop,
-            onNextLevel: _nextLevel,
-          ),
-          _pauseKey: (context, game) =>
-              _PauseMenu(onResume: _resume, onMenu: _toMenu),
-        },
-        initialActiveOverlays: const [Hud.overlayKey],
+    // Leaving for the level select (Levels button or system back) switches
+    // back to the menu music. "Next level" replaces this page instead, so it
+    // keeps the new level's music.
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          Sound.menuMusic();
+        }
+      },
+      child: Scaffold(
+        body: GameWidget<DerbyGame>(
+          game: _game,
+          overlayBuilderMap: {
+            Hud.overlayKey: (context, game) => Hud(
+              game: game,
+              onMenu: _toMenu,
+              onPause: _pause,
+              onWorkshop: _openWorkshop,
+              onNextLevel: _nextLevel,
+            ),
+            _pauseKey: (context, game) =>
+                _PauseMenu(onResume: _resume, onMenu: _toMenu),
+          },
+          initialActiveOverlays: const [Hud.overlayKey],
+        ),
       ),
     );
   }

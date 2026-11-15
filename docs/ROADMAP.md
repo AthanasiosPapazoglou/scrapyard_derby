@@ -403,9 +403,34 @@ commit command for the developer.
 - Robot, props, flags and HUD keep their colours on every level (checked
   on level 6, the darkest: the robot still stands out).
 
-### P6 — Level music  ☐
+### P6 — Level music  ☑
 - `make_music.py` writes one loop per level, darker as levels go up;
   `Sound` switches tracks per level.
+- Done: `art/make_music.py` now has a `TRACKS` table (tempo, chords,
+  melody, voice styles; `DEFAULTS` = the level 1 sound, which is still
+  byte-identical). Six 16-bar loops, ~12.8 MB of WAV in total:
+
+  | Level | File | BPM | Key / feel |
+  |---|---|---|---|
+  | 1 | scrapyard_dusk.wav | 88 | A minor, warm lo-fi (unchanged) |
+  | 2 | cinder_wind.wav | 84 | D minor, darker chords, same groove |
+  | 3 | smog_lanterns.wav | 76 | E phrygian, drone bass, sparse kick, wavering lead |
+  | 4 | crusher_storm.wav | 96 | C minor, driving 8th bass, hard snare, metal clanks, square lead |
+  | 5 | furnace_heart.wav | 74 | F# minor with flat 2nd, gritty clipped bass, toms, metal hits |
+  | 6 | obsidian_maw.wav | 66 | B minor + tritone, heartbeat kick, bells, very dark |
+
+  Brightness (zero crossings/s) falls 646 → 282 from level 1 to 6 (storm
+  stays bright on purpose); all have similar loudness and clean seams.
+- `lib/game/sound.dart`: `levelMusic`, `musicPathFor(level)`,
+  `Sound.musicForLevel(level)` (switches only when the track changes) and
+  `Sound.menuMusic()` (furthest unlocked level). `GamePage` starts its
+  level's track; leaving it (Levels button or system back, via `PopScope`)
+  goes back to the menu track. "Next level" replaces the page, so it keeps
+  the new track.
+- Checked in the Simulator after a full `flutter run` restart: startup and
+  track switches run without errors. Not listened to (no audio from here):
+  the developer should listen and judge each track.
+- If app size matters later: convert the loops to AAC/OGG (about 10× smaller).
 
 ### P7 — Progression balance  ☐
 - Simulator per level and upgrade set: a skill ~0.4 bot with every slot at
