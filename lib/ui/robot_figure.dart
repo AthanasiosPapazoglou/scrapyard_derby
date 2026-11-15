@@ -10,14 +10,14 @@ import '../game/robot_sprites.dart';
 /// (same joint pivots), for menus. No physics.
 class RobotFigurePainter extends CustomPainter {
   RobotFigurePainter({
-    required this.sprites,
+    required this.look,
     required this.angle,
     this.armSwing = 0,
     this.legSwing = 0,
     this.metersTall = 4.2,
   });
 
-  final RobotSprites sprites;
+  final RobotLook look;
 
   /// Rotation of the whole robot (radians, clockwise).
   final double angle;
@@ -38,12 +38,13 @@ class RobotFigurePainter extends CustomPainter {
       ..scale(pixelsPerMeter)
       ..rotate(angle);
     // Same draw order as the game: back arm, legs, torso, head, front arm.
-    _part(canvas, sprites.arm, Robot.leftShoulderPivot, -armSwing);
-    _part(canvas, sprites.leg, Robot.leftHipPivot, legSwing);
-    _part(canvas, sprites.leg, Robot.rightHipPivot, -legSwing);
-    sprites.torso.render(canvas);
-    _part(canvas, sprites.head, Robot.neckPivot, 0);
-    _part(canvas, sprites.arm, Robot.rightShoulderPivot, armSwing);
+    _part(canvas, look.arm, Robot.leftShoulderPivot, -armSwing);
+    _part(canvas, look.leg, Robot.leftHipPivot, legSwing);
+    _part(canvas, look.leg, Robot.rightHipPivot, -legSwing);
+    look.torso.render(canvas);
+    look.core.render(canvas);
+    _part(canvas, look.head, Robot.neckPivot, 0);
+    _part(canvas, look.arm, Robot.rightShoulderPivot, armSwing);
     canvas.restore();
   }
 
@@ -61,15 +62,15 @@ class RobotFigurePainter extends CustomPainter {
       old.angle != angle ||
       old.armSwing != armSwing ||
       old.legSwing != legSwing ||
-      old.sprites != sprites;
+      old.look != look;
 }
 
 /// The robot slowly spinning and bobbing in the air, like at the top of a
 /// floaty jump. [time] is seconds since the menu opened.
 class IdleRobot extends StatelessWidget {
-  const IdleRobot({super.key, required this.sprites, required this.time});
+  const IdleRobot({super.key, required this.look, required this.time});
 
-  final RobotSprites sprites;
+  final RobotLook look;
   final double time;
 
   /// Seconds per full idle turn.
@@ -84,7 +85,7 @@ class IdleRobot extends StatelessWidget {
       child: CustomPaint(
         size: Size.infinite,
         painter: RobotFigurePainter(
-          sprites: sprites,
+          look: look,
           angle: time / turnTime * 2 * math.pi,
           armSwing: math.sin(time * 1.7) * 0.35,
           legSwing: math.sin(time * 1.7 + 1) * 0.2,

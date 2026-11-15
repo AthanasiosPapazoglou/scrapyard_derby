@@ -38,7 +38,9 @@ void main() {
     });
   });
 
-  testWidgets('Workshop lists the tracks and buys with scrap', (tester) async {
+  testWidgets('Workshop shows the parts per slot and buys in order', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2400, 1100);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -47,22 +49,44 @@ void main() {
     final profile = PlayerProfile(scrap: price + 10);
     await tester.pumpWidget(MaterialApp(home: WorkshopPage(profile: profile)));
 
+    // A tab per slot; the first slot (legs) shows its six parts.
     for (final track in UpgradeTrack.values) {
-      expect(find.text(track.name.toUpperCase()), findsWidgets);
+      expect(find.text(track.name.toUpperCase()), findsOneWidget);
     }
-    expect(find.text('${price + 10} SCRAP'), findsOneWidget);
-    expect(find.text('BUY $price'), findsNWidgets(UpgradeTrack.values.length));
+    final legs = UpgradeTrack.springLegs;
+    for (final name in legs.partNames) {
+      expect(find.text(name), findsWidgets, reason: name);
+    }
+    // The next part is shown first, with its price. (Header text is
+    // outlined: drawn twice.)
+    expect(find.text('${price + 10} Scrap'), findsNWidgets(2));
+    expect(find.text('BUY $price'), findsOneWidget);
+    expect(find.text('TRYING ON: ${legs.partName(1)}'), findsOneWidget);
 
-    await tester.tap(find.text('BUY $price').first);
+    await tester.tap(find.text('BUY $price'));
     await tester.pump();
 
-    expect(profile.upgradeLevel(UpgradeTrack.values.first.id), 1);
-    expect(find.text('10 SCRAP'), findsOneWidget);
-    expect(find.bySemanticsLabel('Level 1 of 5'), findsOneWidget);
-
-    // Now nothing is affordable: tapping another Buy does nothing.
-    await tester.tap(find.text('BUY $price').first);
-    await tester.pump();
+    expect(profile.tierOf(legs), 1);
     expect(profile.scrap, 10);
+    expect(find.text('10 Scrap'), findsNWidgets(2));
+    expect(find.text('INSTALLED'), findsWidgets);
+
+    // Switch to the arms: their parts, and the next one is unaffordable.
+    await tester.tap(find.bySemanticsLabel('Arms, tier 0'));
+    await tester.pump();
+    expect(find.text(UpgradeTrack.gyroArms.partName(0)), findsOneWidget);
+    await tester.tap(find.text('BUY $price'));
+    await tester.pump();
+    expect(profile.tierOf(UpgradeTrack.gyroArms), 0);
+    expect(profile.scrap, 10);
+
+    // A part further up is locked until the ones before it are bought.
+    final locked = UpgradeTrack.gyroArms.partName(3);
+    await tester.tap(find.bySemanticsLabel(RegExp('^$locked, tier 3')));
+    await tester.pump();
+    expect(
+      find.text('BUY ${UpgradeTrack.gyroArms.partName(1).toUpperCase()} FIRST'),
+      findsOneWidget,
+    );
   });
 }

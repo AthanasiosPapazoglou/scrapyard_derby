@@ -95,6 +95,9 @@ class PlayerProfile extends ChangeNotifier {
     return true;
   }
 
+  /// The installed part tier in [track]'s slot (0 = the scrap part).
+  int tierOf(UpgradeTrack track) => upgradeLevel(track.id);
+
   /// The robot's numbers with this profile's upgrades.
   RobotStats get robotStats => RobotStats.fromLevelOf(upgradeLevel);
 

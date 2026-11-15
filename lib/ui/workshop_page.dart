@@ -4,14 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/tuning.dart';
-import '../game/sound.dart';
+import '../game/palette.dart';
+import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
+import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
+import 'derby_button.dart';
+import 'outlined_text.dart';
+import 'robot_figure.dart';
 
-/// Spend scrap on robot upgrades. A green CRT screen like the robot status
-/// panel: a robot schematic on the left (lighting up the part of the
-/// selected track) and the five upgrade tracks on the right.
+/// The garage: swap the robot's parts for better ones with scrap.
+///
+/// Left, the robot under a spotlight, wearing its installed parts (or
+/// trying on the part card you tapped). Right, the five slots (legs, arms,
+/// body, head, core), each with six parts from scrap (tier 0) to obsidian
+/// (tier 5), and the details and Buy button for the chosen part. Parts are
+/// bought in order: the next tier up in a slot is the one for sale.
 class WorkshopPage extends StatefulWidget {
   const WorkshopPage({super.key, required this.profile});
 
@@ -22,87 +31,162 @@ class WorkshopPage extends StatefulWidget {
 }
 
 class _WorkshopPageState extends State<WorkshopPage> {
-  UpgradeTrack _selected = UpgradeTrack.values.first;
+  late final Future<RobotSprites> _sprites = RobotSprites.load();
+
+  UpgradeTrack _slot = UpgradeTrack.values.first;
+
+  /// The tier being looked at in the current slot (tried on in the bay).
+  late int _viewTier = _nextTier(_slot);
 
   PlayerProfile get _profile => widget.profile;
 
-  void _buy(UpgradeTrack track) {
-    setState(() => _selected = track);
-    if (!_profile.buyUpgrade(track)) {
+  int _installed(UpgradeTrack track) => _profile.tierOf(track);
+
+  /// The part worth showing first: the next one to buy, or the installed
+  /// one when the slot is maxed.
+  int _nextTier(UpgradeTrack track) =>
+      (_installed(track) + 1).clamp(0, Tuning.upgradeMaxLevel);
+
+  void _selectSlot(UpgradeTrack track) {
+    Sound.play(Sfx.uiClick);
+    setState(() {
+      _slot = track;
+      _viewTier = _nextTier(track);
+    });
+  }
+
+  void _viewPart(int tier) {
+    Sound.play(Sfx.uiClick);
+    setState(() => _viewTier = tier);
+  }
+
+  void _buy() {
+    if (!_profile.buyUpgrade(_slot)) {
       return;
     }
     Sound.play(Sfx.uiBuy);
     if (_profile.hapticsOn) {
       unawaited(HapticFeedback.mediumImpact());
     }
+    // Show the new part installed.
+    setState(() => _viewTier = _installed(_slot));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07110A),
-      body: SafeArea(
-        child: DefaultTextStyle(
-          style: const TextStyle(
-            color: Crt.green,
-            fontFamily: Crt.font,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+      backgroundColor: _Garage.floor,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_Garage.wall, _Garage.floor],
           ),
-          child: ListenableBuilder(
-            listenable: _profile,
-            builder: (context, _) => Column(
-              children: [
-                _Header(
-                  scrap: _profile.scrap,
-                  onBack: () => Navigator.of(context).pop(),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: 190,
-                          child: _Screen(
-                            child: _Schematic(
-                              track: _selected,
-                              level: _profile.upgradeLevel(_selected.id),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _Screen(
-                            child: ListView(
-                              padding: const EdgeInsets.all(8),
-                              children: [
-                                for (final track in UpgradeTrack.values)
-                                  _TrackRow(
-                                    track: track,
-                                    level: _profile.upgradeLevel(track.id),
-                                    canBuy: _profile.canBuy(track),
-                                    selected: track == _selected,
-                                    onSelect: () =>
-                                        setState(() => _selected = track),
-                                    onBuy: () => _buy(track),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+        ),
+        child: SafeArea(
+          child: FutureBuilder<RobotSprites>(
+            future: _sprites,
+            builder: (context, snapshot) => ListenableBuilder(
+              listenable: _profile,
+              builder: (context, _) => _layout(snapshot.data),
             ),
           ),
         ),
       ),
     );
   }
+
+  Widget _layout(RobotSprites? sprites) {
+    // The robot in the bay wears its installed parts, except the slot
+    // being browsed, which shows the part you're looking at.
+    int tryOn(UpgradeTrack track) =>
+        track == _slot ? _viewTier : _installed(track);
+    return Column(
+      children: [
+        _Header(
+          scrap: _profile.scrap,
+          onBack: () => Navigator.of(context).pop(),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: _RobotBay(
+                    look: sprites?.look(tryOn),
+                    tryingOn: _viewTier == _installed(_slot)
+                        ? null
+                        : _slot.partName(_viewTier),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _SlotTabs(
+                        selected: _slot,
+                        installedOf: _installed,
+                        onSelect: _selectSlot,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 124,
+                        child: Row(
+                          children: [
+                            for (
+                              var tier = 0;
+                              tier <= Tuning.upgradeMaxLevel;
+                              tier++
+                            )
+                              Expanded(
+                                child: _PartCard(
+                                  sprite: sprites?.part(_slot, tier),
+                                  name: _slot.partName(tier),
+                                  tier: tier,
+                                  installed: _installed(_slot),
+                                  selected: tier == _viewTier,
+                                  onTap: () => _viewPart(tier),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: _PartDetails(
+                          slot: _slot,
+                          tier: _viewTier,
+                          installed: _installed(_slot),
+                          canBuy: _profile.canBuy(_slot),
+                          onBuy: _buy,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Garage colours: dark workshop wall and floor, a warm spotlight.
+abstract final class _Garage {
+  static const wall = Color(0xFF2A2E3B);
+  static const floor = Color(0xFF181A22);
+  static const panel = Color(0xFF242833);
+  static const panelEdge = Color(0xFF3A4050);
+  static const card = Color(0xFFF3E9DC);
+  static const spotlight = Color(0x66FCD98A);
 }
 
 class _Header extends StatelessWidget {
@@ -114,24 +198,86 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 2, 16, 6),
+      padding: const EdgeInsets.fromLTRB(4, 2, 16, 4),
       child: Row(
         children: [
           IconButton(
             onPressed: onBack,
             tooltip: 'Back',
-            icon: const Icon(Icons.arrow_back, color: Crt.green, size: 28),
+            icon: const Icon(Icons.arrow_back, color: Palette.cream, size: 28),
           ),
-          const Text(
-            '> WORKSHOP_',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-          ),
+          const OutlinedText('WORKSHOP', fontSize: 28, color: Palette.hazard),
           const Spacer(),
-          const Icon(Icons.settings, color: Crt.amber, size: 20),
+          const Icon(Icons.settings, color: Palette.hazard, size: 22),
           const SizedBox(width: 6),
-          Text(
-            '$scrap SCRAP',
-            style: const TextStyle(color: Crt.amber, fontSize: 20),
+          OutlinedText('$scrap Scrap', fontSize: 22, color: Palette.cream),
+        ],
+      ),
+    );
+  }
+}
+
+/// The robot standing in a spotlight, with a caption when trying a part on.
+class _RobotBay extends StatelessWidget {
+  const _RobotBay({required this.look, required this.tryingOn});
+
+  final RobotLook? look;
+
+  /// Name of the part being tried on, or null when showing what's installed.
+  final String? tryingOn;
+
+  @override
+  Widget build(BuildContext context) {
+    final art = look;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: _Garage.panelEdge, width: 2),
+        borderRadius: BorderRadius.circular(14),
+        gradient: const RadialGradient(
+          center: Alignment(0, -0.2),
+          radius: 0.8,
+          colors: [_Garage.spotlight, _Garage.panel],
+        ),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // The floor shadow under the robot.
+                Align(
+                  alignment: const Alignment(0, 0.92),
+                  child: FractionallySizedBox(
+                    widthFactor: 0.6,
+                    child: Container(
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ),
+                if (art != null)
+                  CustomPaint(
+                    size: Size.infinite,
+                    painter: RobotFigurePainter(
+                      look: art,
+                      angle: 0,
+                      armSwing: 0.25,
+                      metersTall: 4.3,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _Pill(
+              text: tryingOn == null ? 'INSTALLED' : 'TRYING ON: $tryingOn',
+              color: tryingOn == null ? Crt.green : Palette.hazard,
+            ),
           ),
         ],
       ),
@@ -139,299 +285,395 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// A rounded CRT screen with a green edge and scanlines on top.
-class _Screen extends StatelessWidget {
-  const _Screen({required this.child});
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.color});
 
-  final Widget child;
+  final String text;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: Crt.background,
-        border: Border.all(color: Crt.green.withValues(alpha: 0.7), width: 2),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.black.withValues(alpha: 0.4),
+        border: Border.all(color: color, width: 1.5),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CustomPaint(foregroundPainter: _Scanlines(), child: child),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
 }
 
-class _Scanlines extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Crt.scanline;
-    for (var y = 0.0; y < size.height; y += 3) {
-      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1), paint);
-    }
-  }
+/// One tab per slot, with the installed tier under the name.
+class _SlotTabs extends StatelessWidget {
+  const _SlotTabs({
+    required this.selected,
+    required this.installedOf,
+    required this.onSelect,
+  });
+
+  final UpgradeTrack selected;
+  final int Function(UpgradeTrack) installedOf;
+  final ValueChanged<UpgradeTrack> onSelect;
 
   @override
-  bool shouldRepaint(_Scanlines oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final track in UpgradeTrack.values)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: _SlotTab(
+                track: track,
+                tier: installedOf(track),
+                selected: track == selected,
+                onTap: () => onSelect(track),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-/// One upgrade track: name, part, level pips, description, now → next,
-/// and the Buy button with its price.
-class _TrackRow extends StatelessWidget {
-  const _TrackRow({
+class _SlotTab extends StatelessWidget {
+  const _SlotTab({
     required this.track,
-    required this.level,
-    required this.canBuy,
+    required this.tier,
     required this.selected,
-    required this.onSelect,
-    required this.onBuy,
+    required this.onTap,
   });
 
   final UpgradeTrack track;
-  final int level;
-  final bool canBuy;
+  final int tier;
   final bool selected;
-  final VoidCallback onSelect;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = selected ? Palette.outline : Palette.cream;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${track.name}, tier $tier',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? Palette.hazard : _Garage.panel,
+            border: Border.all(
+              color: selected ? Palette.outline : _Garage.panelEdge,
+              width: selected ? 3 : 2,
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            children: [
+              Text(
+                track.name.toUpperCase(),
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+              _TierPips(tier: tier, color: fg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small pips: filled up to the installed tier.
+class _TierPips extends StatelessWidget {
+  const _TierPips({required this.tier, required this.color});
+
+  final int tier;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 1; i <= Tuning.upgradeMaxLevel; i++)
+          Container(
+            width: 7,
+            height: 7,
+            margin: const EdgeInsets.only(top: 3, right: 2, left: 2),
+            decoration: BoxDecoration(
+              color: i <= tier ? color : null,
+              border: Border.all(color: color, width: 1.2),
+              shape: BoxShape.circle,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// What a card shows about its part.
+enum _CardState { owned, installed, forSale, locked }
+
+/// A part in the current slot: its art, name and state.
+class _PartCard extends StatelessWidget {
+  const _PartCard({
+    required this.sprite,
+    required this.name,
+    required this.tier,
+    required this.installed,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final PartSprite? sprite;
+  final String name;
+  final int tier;
+  final int installed;
+  final bool selected;
+  final VoidCallback onTap;
+
+  _CardState get _state {
+    if (tier < installed) {
+      return _CardState.owned;
+    }
+    if (tier == installed) {
+      return _CardState.installed;
+    }
+    return tier == installed + 1 ? _CardState.forSale : _CardState.locked;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = _state;
+    final locked = state == _CardState.locked;
+    final art = sprite;
+    final (label, labelColor) = switch (state) {
+      _CardState.owned => ('OWNED', Palette.steel),
+      _CardState.installed => ('INSTALLED', const Color(0xFF2F9E5B)),
+      _CardState.forSale => (
+        '${Tuning.upgradePrices[tier - 1]}',
+        Palette.rustShadow,
+      ),
+      _CardState.locked => ('LOCKED', Palette.steel),
+    };
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$name, tier $tier, $label',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
+          decoration: BoxDecoration(
+            color: _Garage.card,
+            border: Border.all(
+              color: selected ? Palette.hazard : Palette.outline,
+              width: selected ? 4 : 2.5,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Palette.hazard.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
+              Text(
+                'T$tier',
+                style: const TextStyle(
+                  color: Palette.steelDark,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Expanded(
+                child: Opacity(
+                  opacity: locked ? 0.35 : 1,
+                  child: art == null
+                      ? const SizedBox.expand()
+                      : CustomPaint(
+                          size: Size.infinite,
+                          painter: _PartPainter(art),
+                        ),
+                ),
+              ),
+              Text(
+                name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Palette.outline,
+                  fontSize: 10,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (state == _CardState.forSale)
+                    const Icon(
+                      Icons.settings,
+                      size: 11,
+                      color: Palette.rustShadow,
+                    ),
+                  if (locked)
+                    const Icon(Icons.lock, size: 11, color: Palette.steel),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PartPainter extends CustomPainter {
+  _PartPainter(this.sprite);
+
+  final PartSprite sprite;
+
+  @override
+  void paint(Canvas canvas, Size size) => sprite.renderFitted(canvas, size);
+
+  @override
+  bool shouldRepaint(_PartPainter oldDelegate) => oldDelegate.sprite != sprite;
+}
+
+/// Name, what the slot does, a CRT readout of the numbers, and the action.
+class _PartDetails extends StatelessWidget {
+  const _PartDetails({
+    required this.slot,
+    required this.tier,
+    required this.installed,
+    required this.canBuy,
+    required this.onBuy,
+  });
+
+  final UpgradeTrack slot;
+  final int tier;
+  final int installed;
+  final bool canBuy;
   final VoidCallback onBuy;
 
   @override
   Widget build(BuildContext context) {
-    final price = track.priceAfter(level);
-    final maxed = price == null;
-    final now = RobotStats.fromLevels({track: level}).summary(track);
-    final next = maxed
-        ? null
-        : RobotStats.fromLevels({track: level + 1}).summary(track);
-    return GestureDetector(
-      onTap: onSelect,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
-        decoration: BoxDecoration(
-          color: selected ? Crt.green.withValues(alpha: 0.12) : null,
-          border: Border.all(
-            color: selected ? Crt.green : Crt.dim,
-            width: selected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(6),
+    final now = RobotStats.fromLevels({slot: installed}).summary(slot);
+    final then = RobotStats.fromLevels({slot: tier}).summary(slot);
+    final Widget action;
+    if (tier == installed) {
+      action = const _Pill(text: 'INSTALLED', color: Crt.green);
+    } else if (tier < installed) {
+      action = const _Pill(text: 'UPGRADED PAST', color: Palette.steelLight);
+    } else if (tier == installed + 1) {
+      action = DerbyButton(
+        label: 'BUY ${Tuning.upgradePrices[tier - 1]}',
+        icon: Icons.settings,
+        primary: true,
+        onPressed: canBuy ? onBuy : null,
+        disabledNote: 'NOT ENOUGH SCRAP',
+      );
+    } else {
+      action = SizedBox(
+        width: 140,
+        child: _Pill(
+          text: 'BUY ${slot.partName(installed + 1).toUpperCase()} FIRST',
+          color: Palette.steelLight,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        track.name.toUpperCase(),
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '[${track.part.toUpperCase()}]',
-                        style: TextStyle(
-                          color: Crt.green.withValues(alpha: 0.55),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _LevelPips(level: level),
-                    ],
-                  ),
-                  Text(
-                    track.description,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  Text(
-                    maxed ? '$now  (MAX)' : '$now  →  $next',
-                    style: const TextStyle(color: Crt.amber, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            _BuyButton(price: price, enabled: canBuy, onPressed: onBuy),
-          ],
-        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: _Garage.panel,
+        border: Border.all(color: _Garage.panelEdge, width: 2),
+        borderRadius: BorderRadius.circular(12),
       ),
-    );
-  }
-}
-
-/// Filled pips for bought levels, hollow ones for the rest.
-class _LevelPips extends StatelessWidget {
-  const _LevelPips({required this.level});
-
-  final int level;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: 'Level $level of ${Tuning.upgradeMaxLevel}',
       child: Row(
         children: [
-          for (var i = 0; i < Tuning.upgradeMaxLevel; i++)
-            Container(
-              width: 10,
-              height: 10,
-              margin: const EdgeInsets.only(right: 3),
-              decoration: BoxDecoration(
-                color: i < level ? Crt.green : null,
-                border: Border.all(color: Crt.green, width: 1.5),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BuyButton extends StatelessWidget {
-  const _BuyButton({
-    required this.price,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  /// Null when the track is maxed.
-  final int? price;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = price == null ? 'MAX' : 'BUY ${price!}';
-    return SizedBox(
-      width: 96,
-      child: OutlinedButton(
-        onPressed: enabled ? onPressed : null,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Crt.ink,
-          backgroundColor: Crt.green,
-          disabledForegroundColor: Crt.dim,
-          disabledBackgroundColor: Colors.transparent,
-          side: BorderSide(color: enabled ? Crt.green : Crt.dim, width: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          textStyle: const TextStyle(
-            fontFamily: Crt.font,
-            fontWeight: FontWeight.w900,
-            fontSize: 13,
-          ),
-        ),
-        child: Text(label),
-      ),
-    );
-  }
-}
-
-/// The robot figure on the CRT screen; the parts the selected track
-/// upgrades are lit up, the rest are dim.
-class _Schematic extends StatelessWidget {
-  const _Schematic({required this.track, required this.level});
-
-  final UpgradeTrack track;
-  final int level;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        children: [
           Expanded(
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _SchematicPainter(track),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  slot.partName(tier),
+                  style: const TextStyle(
+                    color: Palette.cream,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  slot.description,
+                  style: const TextStyle(
+                    color: Palette.steelLight,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Crt.background,
+                    border: Border.all(color: Crt.dim, width: 1.5),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    tier == installed ? now : '$now  →  $then',
+                    style: const TextStyle(
+                      color: Crt.green,
+                      fontFamily: Crt.font,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(track.name.toUpperCase(), style: const TextStyle(fontSize: 15)),
-          Text(
-            'LEVEL $level/${Tuning.upgradeMaxLevel}',
-            style: const TextStyle(color: Crt.amber),
-          ),
+          const SizedBox(width: 10),
+          action,
         ],
       ),
     );
   }
-}
-
-class _SchematicPainter extends CustomPainter {
-  _SchematicPainter(this.track);
-
-  final UpgradeTrack track;
-
-  // The same figure as the status panel, in a 96 × 116 box.
-  static const _head = Rect.fromLTWH(34, 0, 28, 22);
-  static const _body = Rect.fromLTWH(30, 26, 36, 44);
-  static const _leftArm = Rect.fromLTWH(15, 28, 11, 42);
-  static const _rightArm = Rect.fromLTWH(70, 28, 11, 42);
-  static const _leftLeg = Rect.fromLTWH(33, 74, 12, 40);
-  static const _rightLeg = Rect.fromLTWH(51, 74, 12, 40);
-  static const _figure = Size(96, 116);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = (size.height / _figure.height).clamp(
-      0.0,
-      size.width / _figure.width,
-    );
-    canvas
-      ..save()
-      ..translate(
-        (size.width - _figure.width * scale) / 2,
-        (size.height - _figure.height * scale) / 2,
-      )
-      ..scale(scale);
-
-    final lit = switch (track) {
-      UpgradeTrack.plating => {_body},
-      UpgradeTrack.springLegs => {_leftLeg, _rightLeg},
-      UpgradeTrack.gyroArms => {_leftArm, _rightArm},
-      UpgradeTrack.energyCore => <Rect>{},
-      UpgradeTrack.rocketHead => {_head},
-    };
-    for (final rect in [
-      _head,
-      _body,
-      _leftArm,
-      _rightArm,
-      _leftLeg,
-      _rightLeg,
-    ]) {
-      final on = lit.contains(rect);
-      final shape = RRect.fromRectAndRadius(rect, const Radius.circular(3));
-      canvas
-        ..drawRRect(
-          shape,
-          Paint()..color = Crt.green.withValues(alpha: on ? 0.75 : 0.08),
-        )
-        ..drawRRect(
-          shape,
-          Paint()
-            ..color = on ? Crt.green : Crt.dim
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2,
-        );
-    }
-    // The energy core: a glowing circle in the middle of the body.
-    final coreOn = track == UpgradeTrack.energyCore;
-    canvas.drawCircle(
-      _body.center,
-      8,
-      Paint()..color = coreOn ? Crt.amber : Crt.dim,
-    );
-    // The head's eye.
-    canvas
-      ..drawCircle(const Offset(54, 11), 4, Paint()..color = Crt.ink)
-      ..restore();
-  }
-
-  @override
-  bool shouldRepaint(_SchematicPainter oldDelegate) =>
-      oldDelegate.track != track;
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -20 60 124" width="60" height="124">
+<g id="arms">
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#2B1D16" stroke-width="26" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#B4C0CB" stroke-width="15" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#6B7B8C" stroke-width="15" stroke-dasharray="4 7"/>
+  <path d="M-8,70 l-8,22 l9,2 l8,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M8,70 l6,22 l-9,2 l-6,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="0" cy="66" r="11" fill="#F2B233" stroke="#2B1D16" stroke-width="5"/>
+  <circle cx="0" cy="66" r="3" fill="#2B1D16"/>
+</g></svg>

@@ -159,7 +159,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     // Upgrades bought in the Workshop apply from the next robot on.
     robot = Robot(
       hill: hillGeometry,
-      sprites: _sprites,
+      look: _sprites?.look(profile.tierOf),
       stats: profile.robotStats,
     )..priority = 5;
     world.add(robot);

@@ -31,11 +31,7 @@ double _rad(double degrees) => degrees * math.pi / 180;
 /// landing type; the robot's velocity changes to match and its limbs take
 /// damage (see landing.dart). Limbs at 0 HP break off and become debris.
 class Robot extends Component with HasGameReference<DerbyGame> {
-  Robot({
-    required HillGeometry hill,
-    this.sprites,
-    this.stats = RobotStats.base,
-  }) {
+  Robot({required HillGeometry hill, this.look, this.stats = RobotStats.base}) {
     // Drop the robot from high above the slope, tilted to match it and not
     // spinning yet, so the first touch-down is a clean landing.
     final x = Tuning.startX;
@@ -50,8 +46,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         groundNormal * (feetBelowTorso + Tuning.startDropHeight);
   }
 
-  /// Artwork for the parts; null draws the plain placeholder shapes.
-  final RobotSprites? sprites;
+  /// Artwork for the installed parts; null draws the plain placeholder
+  /// shapes.
+  final RobotLook? look;
 
   /// Effective numbers after Workshop upgrades.
   final RobotStats stats;
@@ -198,7 +195,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     torso.slot = RobotSlot.body;
     head.slot = RobotSlot.head;
 
-    final art = sprites;
+    final art = look;
     if (art != null) {
       for (final part in parts) {
         part.sprite = switch (part.kind) {
@@ -208,6 +205,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
           PartKind.leg => art.leg,
         };
       }
+      torso.overlay = art.core;
     }
 
     for (final part in parts) {

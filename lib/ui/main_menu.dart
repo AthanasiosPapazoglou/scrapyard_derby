@@ -98,8 +98,10 @@ class _MainMenuState extends State<MainMenu>
                         }
                         return ValueListenableBuilder<double>(
                           valueListenable: _time,
-                          builder: (context, t, _) =>
-                              IdleRobot(sprites: sprites, time: t),
+                          builder: (context, t, _) => IdleRobot(
+                            look: sprites.look(widget.profile.tierOf),
+                            time: t,
+                          ),
                         );
                       },
                     ),

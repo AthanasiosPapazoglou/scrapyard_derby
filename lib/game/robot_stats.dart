@@ -4,51 +4,107 @@ import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
 
-/// The five Workshop upgrade tracks, one per robot part.
+/// The five Workshop slots. Each one has six parts (tier 0 = the scrap
+/// robot's own, tiers 1-5 to buy); a better part looks more high-tech and
+/// improves the robot (see [RobotStats]). The art comes from
+/// `art/make_parts.py` as `assets/robot/<art>_<tier>.svg`.
 enum UpgradeTrack {
-  plating(
-    id: 'plating',
-    name: 'Plating',
-    part: 'Body',
-    description: 'Tougher parts: more damage before each limb breaks.',
-  ),
   springLegs(
     id: 'springLegs',
-    name: 'Spring legs',
-    part: 'Legs',
+    name: 'Legs',
+    art: 'legs',
     description: 'Bouncier clean landings, and a wider angle counts as clean.',
+    partNames: [
+      'Scrap Springs',
+      'Coil Hoppers',
+      'Racer Springs',
+      'Piston Striders',
+      'Mag Shocks',
+      'Obsidian Steps',
+    ],
   ),
   gyroArms(
     id: 'gyroArms',
-    name: 'Gyro arms',
-    part: 'Arms',
+    name: 'Arms',
+    art: 'arms',
     description: 'Faster spin control when you hold and let go.',
+    partNames: [
+      'Hose Claws',
+      'Pipe Grippers',
+      'Racer Mitts',
+      'Hydraulic Pincers',
+      'Gyro Claws',
+      'Obsidian Hands',
+    ],
   ),
-  energyCore(
-    id: 'energyCore',
-    name: 'Energy core',
-    part: 'Core',
-    description: 'More energy per spin, and a bigger energy tank.',
+  plating(
+    id: 'plating',
+    name: 'Body',
+    art: 'body',
+    description: 'Tougher frame: more damage before each limb breaks.',
+    partNames: [
+      'Rust Barrel',
+      'Riveted Drum',
+      'Racer Chassis',
+      'Iron Works Frame',
+      'Neon Hull',
+      'Obsidian Frame',
+    ],
   ),
   rocketHead(
     id: 'rocketHead',
-    name: 'Rocket head',
-    part: 'Head',
+    name: 'Head',
+    art: 'head',
     description: 'A faster head launch and a longer rocket burn.',
+    partNames: [
+      'Paint Can',
+      'Lantern Box',
+      'Racer Helmet',
+      'Foreman',
+      'Neon Visor',
+      'Obsidian Grin',
+    ],
+  ),
+  energyCore(
+    id: 'energyCore',
+    name: 'Core',
+    art: 'core',
+    description: 'More energy per spin, and a bigger energy tank.',
+    partNames: [
+      'Patch Battery',
+      'Car Battery',
+      'Tube Amp',
+      'Turbine Core',
+      'Plasma Cell',
+      'Ember Heart',
+    ],
   );
 
   const UpgradeTrack({
     required this.id,
     required this.name,
-    required this.part,
+    required this.art,
     required this.description,
+    required this.partNames,
   });
 
   /// Key in the saved profile. Never change it, or saves lose the level.
   final String id;
+
+  /// The slot's name, e.g. "Legs".
   final String name;
-  final String part;
+
+  /// Art file prefix: `assets/robot/<art>_<tier>.svg`.
+  final String art;
+
+  /// What better parts in this slot do.
   final String description;
+
+  /// The part at each tier (0 = the starting scrap part).
+  final List<String> partNames;
+
+  /// The part installed at [level].
+  String partName(int level) => partNames[level.clamp(0, partNames.length - 1)];
 
   /// Scrap price of the next level after [level], or null when maxed.
   int? priceAfter(int level) =>

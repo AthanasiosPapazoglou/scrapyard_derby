@@ -41,6 +41,9 @@ class RobotPart extends BodyComponent with ContactCallbacks {
 
   /// The part's artwork; when null, the plain placeholder shapes are drawn.
   PartSprite? sprite;
+
+  /// Drawn over [sprite] (the core on the torso's chest).
+  PartSprite? overlay;
   final List<PartShape> shapes;
   final double density;
 
@@ -146,12 +149,14 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   void _renderSprite(Canvas canvas, PartSprite art, double opacity) {
     if (opacity >= 1) {
       art.render(canvas);
+      overlay?.render(canvas);
       return;
     }
     // Fading debris: draw the sprite into a see-through layer.
     _fadePaint.color = Palette.outline.withValues(alpha: opacity);
     canvas.saveLayer(null, _fadePaint);
     art.render(canvas);
+    overlay?.render(canvas);
     canvas.restore();
   }
 
