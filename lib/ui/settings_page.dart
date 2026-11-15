@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/palette.dart';
+import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'derby_button.dart';
 import 'outlined_text.dart';
@@ -46,6 +47,8 @@ class SettingsPage extends StatelessWidget {
                                   icon: Icons.volume_up,
                                   value: profile.sfxVolume,
                                   onChanged: (v) => profile.sfxVolume = v,
+                                  // A sample at the new volume.
+                                  onChangeEnd: (_) => Sound.play(Sfx.landClean),
                                 ),
                               ],
                             ),
@@ -224,6 +227,7 @@ class _VolumeRow extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.onChanged,
+    this.onChangeEnd,
     this.note,
   });
 
@@ -231,6 +235,7 @@ class _VolumeRow extends StatelessWidget {
   final IconData icon;
   final double value;
   final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
   final String? note;
 
   @override
@@ -257,6 +262,7 @@ class _VolumeRow extends StatelessWidget {
           child: Slider(
             value: value,
             onChanged: onChanged,
+            onChangeEnd: onChangeEnd,
             label: label,
             activeColor: Palette.rust,
             inactiveColor: Palette.steelLight,

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'game/sound.dart';
 import 'profile/player_profile.dart';
 import 'profile/profile_store.dart';
 import 'ui/main_menu.dart';
@@ -15,11 +18,13 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   // Saved data is loaded before the first page, so the menu shows it at once.
   final store = await ProfileStore.load();
+  // Sounds load in the background; the menu doesn't wait for them.
+  unawaited(Sound.init(store.profile));
   runApp(ScrapyardDerbyApp(profile: store.profile));
 }
 
 /// The app shell: a plain Navigator starting at the main menu.
-/// Pages: Menu → Game (later: Run summary, Workshop, Settings).
+/// Pages: Menu → Game (with pause and run summary), Workshop, Settings.
 class ScrapyardDerbyApp extends StatelessWidget {
   const ScrapyardDerbyApp({super.key, required this.profile});
 

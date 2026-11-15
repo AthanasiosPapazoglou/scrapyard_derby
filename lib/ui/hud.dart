@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
 import '../game/palette.dart';
+import '../game/sound.dart';
 import 'debug_overlay.dart';
 import 'outlined_text.dart';
 import 'run_summary.dart';
@@ -60,7 +61,10 @@ class Hud extends StatelessWidget {
                   children: [
                     if (onPause != null && info.result == null) ...[
                       IconButton.filled(
-                        onPressed: onPause,
+                        onPressed: () {
+                          Sound.play(Sfx.uiClick);
+                          onPause!();
+                        },
                         tooltip: 'Pause',
                         icon: const Icon(Icons.pause),
                         style: IconButton.styleFrom(
@@ -71,7 +75,10 @@ class Hud extends StatelessWidget {
                       const SizedBox(width: 8),
                     ],
                     FilledButton.icon(
-                      onPressed: game.restart,
+                      onPressed: () {
+                        Sound.play(Sfx.uiClick);
+                        game.restart();
+                      },
                       icon: const Icon(Icons.replay),
                       label: const Text('Restart'),
                       style: FilledButton.styleFrom(

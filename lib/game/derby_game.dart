@@ -18,6 +18,7 @@ import 'robot.dart';
 import 'robot_sprites.dart';
 import 'run_stats.dart';
 import 'scrap_reward.dart';
+import 'sound.dart';
 
 /// Why a run ended.
 enum RunEnd {
@@ -251,6 +252,13 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     final isNewBest = profile.recordRun(stats.distance);
     final scrap = scrapReward(stats, newBest: isNewBest);
     profile.addScrap(scrapTotal(scrap));
+    if (isNewBest) {
+      // A beat after the landing sound, so the two don't blur together.
+      Future<void>.delayed(
+        Tuning.newBestSoundDelay,
+        () => Sound.play(Sfx.newBest),
+      );
+    }
     _result = RunResult(
       end: end,
       distance: stats.distance,

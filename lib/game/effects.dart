@@ -10,9 +10,10 @@ import '../config/tuning.dart';
 import 'derby_game.dart';
 import 'landing.dart';
 import 'palette.dart';
+import 'sound.dart';
 
-/// Visual and touch feedback ("juice"): sparks, dust, smoke, screen shake
-/// and phone vibration. None of it affects the physics.
+/// Feedback ("juice"): sparks, dust, smoke, screen shake, phone vibration
+/// and sound effects. None of it affects the physics.
 ///
 /// Particles live in the world, in meters, so they move with the scene.
 class Effects extends Component with HasGameReference<DerbyGame> {
@@ -25,6 +26,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// A landing at [point] on ground facing [normal] (unit, pointing up).
   void landing(LandingType type, Vector2 point, Vector2 normal) {
+    Sound.play(Sfx.forLanding(type));
     switch (type) {
       case LandingType.clean:
         _burst(
@@ -64,6 +66,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// A limb broke off at [point].
   void limbLost(Vector2 point) {
+    Sound.play(Sfx.limbBreak);
     _burst(
       point,
       Vector2(0, -1),
@@ -81,6 +84,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// The head was fired off from [point], flying along [direction].
   void headLaunch(Vector2 point, Vector2 direction) {
+    Sound.play(Sfx.rocketLaunch);
     _burst(
       point,
       -direction,
@@ -99,6 +103,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// The launched head hit the ground at [point]: the attempt is over.
   void headLanded(Vector2 point) {
+    Sound.play(Sfx.headDown);
     _dust(point, Vector2(0, -1), Tuning.dustCount * 2);
     _addShake(Tuning.shakeCrash);
     _haptic(HapticFeedback.heavyImpact);

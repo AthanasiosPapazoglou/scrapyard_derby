@@ -313,6 +313,9 @@ abstract final class Tuning {
   static const double smokeIntervalCoast = 0.09;
   static const double smokeLifetime = 0.9;
 
+  /// Wait after the run ends before the "new best" jingle plays.
+  static const Duration newBestSoundDelay = Duration(milliseconds: 600);
+
   /// Phone vibration on landings, limb loss and launch (no effect in the
   /// iOS Simulator). Only the default: the player's Settings decide.
   static const bool hapticsEnabled = true;

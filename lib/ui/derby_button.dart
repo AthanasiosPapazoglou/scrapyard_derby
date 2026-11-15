@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/palette.dart';
+import '../game/sound.dart';
 
 /// The chunky cutout-style button used in menus: flat fill, thick ink
 /// outline. [primary] buttons are hazard yellow, others are ink.
@@ -34,8 +35,14 @@ class DerbyButton extends StatelessWidget {
         ? Palette.steelLight
         : (primary ? Palette.outline : Palette.hazard);
     final fontSize = big ? 24.0 : 17.0;
+    final action = onPressed;
     return FilledButton(
-      onPressed: onPressed,
+      onPressed: action == null
+          ? null
+          : () {
+              Sound.play(Sfx.uiClick);
+              action();
+            },
       style: FilledButton.styleFrom(
         backgroundColor: fill,
         foregroundColor: text,

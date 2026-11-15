@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/tuning.dart';
+import '../game/sound.dart';
 import '../game/robot_stats.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
@@ -27,7 +28,11 @@ class _WorkshopPageState extends State<WorkshopPage> {
 
   void _buy(UpgradeTrack track) {
     setState(() => _selected = track);
-    if (_profile.buyUpgrade(track) && _profile.hapticsOn) {
+    if (!_profile.buyUpgrade(track)) {
+      return;
+    }
+    Sound.play(Sfx.uiBuy);
+    if (_profile.hapticsOn) {
       unawaited(HapticFeedback.mediumImpact());
     }
   }

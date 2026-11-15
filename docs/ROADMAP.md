@@ -23,6 +23,7 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Game loop, camera, run end, HUD data | `lib/game/derby_game.dart` (`HudInfo`, `RunEnd`) |
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
 | Pure, tested logic | `robot_stats.dart`, `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
+| Audio | `sound.dart`, generator `art/make_sfx.py`, files `assets/audio/sfx/` |
 | Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
 | Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `settings_page.dart`, `workshop_page.dart`, `crt.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
 | Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
@@ -157,7 +158,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   robot's own max. Workshop: `lib/ui/workshop_page.dart`, CRT colours
   shared via `lib/ui/crt.dart`. Opened from the menu and the run summary.
 
-### Step 5 — Audio  ☐
+### Step 5 — Audio  ◐ (sound effects done; music waits for D4)
 - Dependency: `flame_audio`. Volumes from the profile settings.
 - `art/make_sfx.py`: generates original WAV effects (simple synth: noise
   bursts, pitch sweeps) into `assets/audio/sfx/`: land_clean, land_onefoot,
@@ -168,6 +169,18 @@ passing, a check in the Simulator, and a commit command for the developer.
 - Music: only once D4 is decided (menu track + gameplay loop, looping,
   ducked during head-launch slow-mo).
 - Check on the Simulator (audio works there) and later on the phone.
+- Done (effects): `python3 art/make_sfx.py` writes 9 WAVs (22 kHz mono,
+  ~200 KB total; rocket_loop was folded into rocket_launch, which lasts
+  about the burn). `lib/game/sound.dart`: `Sfx` enum + `Sound.play(sfx)`,
+  a no-op until `Sound.init(profile)` runs in `main.dart` (so tests stay
+  silent). Volume = profile sfx volume. Audio session: iOS ambient
+  (respects the silent switch, mixes with the player's music), Android
+  game usage without audio focus. Played from `Effects` (landing types,
+  limb break, launch, head down), `DerbyGame._finishRun` (new best, after
+  `Tuning.newBestSoundDelay`), `DerbyButton` + HUD buttons (click),
+  Workshop (buy), Settings (sample on releasing the sfx slider).
+  `test/sound_test.dart` checks every `Sfx` has a file and a generator entry.
+- Not verified by ear yet: the developer should listen in the Simulator.
 
 ### Step 6 — Balance pass  ☐
 - First make landings less forgiving (unassisted runs currently reach
