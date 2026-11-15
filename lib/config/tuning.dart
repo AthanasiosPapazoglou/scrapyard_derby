@@ -136,8 +136,8 @@ abstract final class Tuning {
   static const double maxRobotSpeed = 28.0;
 
   // ---------------------------------------------------------------- Hill
-  /// Overall slope of the hill in degrees.
-  static const double hillSlopeDeg = 35.0;
+  // Each level's slope and bump size are in [levels] below; the numbers
+  // here are shared by every level.
 
   /// The hill is endless: it is built in chunks of this many meters
   /// (horizontal), a few ahead of the robot, and removed once passed.
@@ -160,7 +160,8 @@ abstract final class Tuning {
   /// is on a smooth slope.
   static const double bumpFadeIn = 12.0;
 
-  /// Random seed for bump phases: same seed = same hill every run.
+  /// Random seed for bump phases: same seed = same hill every run. Level n
+  /// uses hillSeed + n - 1, so every level has its own hill.
   static const int hillSeed = 7;
 
   /// Ground friction for the hill.
@@ -347,6 +348,75 @@ abstract final class Tuning {
   /// Bonus for beating the best distance.
   static const int scrapNewBestBonus = 25;
 
+  /// Every star earned (on any level) adds this share to all scrap rewards,
+  /// for good: 18 stars = +54%.
+  static const double scrapBonusPerStar = 0.03;
+
+  /// One-off bonus for each star earned for the first time.
+  static const int scrapPerNewStar = 50;
+
+  // ---------------------------------------------------------------- Levels
+  // Six levels, each an endless hill with a distance goal and three star
+  // distances. 1 star (the goal) unlocks the next level. Later levels are
+  // steeper and bumpier, so landing angles vary more, and pay more scrap.
+  // Part tier N can be bought once level N is unlocked.
+  // Star distances are placeholders until the progression balance pass
+  // (docs/ROADMAP.md, P7).
+  //
+  // Bump scale check: the ground must never go uphill. The bumps' steepest
+  // possible slope is about 0.51 × bumpScale; keep it below tan(slopeDeg)
+  // (test/hill_test.dart checks every level).
+  static const List<LevelTuning> levels = [
+    LevelTuning(
+      name: 'Rust Hollow',
+      slopeDeg: 35,
+      bumpScale: 1.0,
+      starDistances: [1000, 1800, 2800],
+      scrapMultiplier: 1.0,
+      partTier: 1,
+    ),
+    LevelTuning(
+      name: 'Cinder Flats',
+      slopeDeg: 36,
+      bumpScale: 1.2,
+      starDistances: [1300, 2300, 3400],
+      scrapMultiplier: 1.2,
+      partTier: 2,
+    ),
+    LevelTuning(
+      name: 'Smog Ridge',
+      slopeDeg: 38,
+      bumpScale: 1.4,
+      starDistances: [1600, 2800, 4000],
+      scrapMultiplier: 1.4,
+      partTier: 3,
+    ),
+    LevelTuning(
+      name: 'Crusher Pass',
+      slopeDeg: 40,
+      bumpScale: 1.55,
+      starDistances: [1900, 3200, 4600],
+      scrapMultiplier: 1.6,
+      partTier: 4,
+    ),
+    LevelTuning(
+      name: 'Furnace Drop',
+      slopeDeg: 42,
+      bumpScale: 1.7,
+      starDistances: [2200, 3600, 5200],
+      scrapMultiplier: 1.8,
+      partTier: 5,
+    ),
+    LevelTuning(
+      name: 'Obsidian Maw',
+      slopeDeg: 44,
+      bumpScale: 1.85,
+      starDistances: [2600, 4200, 6000],
+      scrapMultiplier: 2.0,
+      partTier: 5,
+    ),
+  ];
+
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
   // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every
@@ -394,4 +464,34 @@ abstract final class Tuning {
 
   /// Scrap props lying on the slope: average spacing (m) between them.
   static const double propSpacing = 9.0;
+}
+
+/// One level's numbers (see [Tuning.levels]).
+class LevelTuning {
+  const LevelTuning({
+    required this.name,
+    required this.slopeDeg,
+    required this.bumpScale,
+    required this.starDistances,
+    required this.scrapMultiplier,
+    required this.partTier,
+  });
+
+  final String name;
+
+  /// Overall slope of the hill in degrees.
+  final double slopeDeg;
+
+  /// Multiplier on [Tuning.bumpAmplitudes]: bigger = rougher ground.
+  final double bumpScale;
+
+  /// Meters for 1, 2 and 3 stars. The first is the goal that unlocks the
+  /// next level.
+  final List<double> starDistances;
+
+  /// Scrap from runs on this level is multiplied by this.
+  final double scrapMultiplier;
+
+  /// Unlocking this level lets the Workshop sell parts up to this tier.
+  final int partTier;
 }

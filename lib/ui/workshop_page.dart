@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/tuning.dart';
+import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
@@ -164,6 +165,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                           tier: _viewTier,
                           installed: _installed(_slot),
                           canBuy: _profile.canBuy(_slot),
+                          maxTier: _profile.maxPartTier,
                           onBuy: _buy,
                         ),
                       ),
@@ -575,6 +577,16 @@ class _PartPainter extends CustomPainter {
   bool shouldRepaint(_PartPainter oldDelegate) => oldDelegate.sprite != sprite;
 }
 
+/// The first level that unlocks part [tier].
+int _levelFor(int tier) {
+  for (var level = 1; level <= Levels.count; level++) {
+    if (Levels.of(level).partTier >= tier) {
+      return level;
+    }
+  }
+  return Levels.count;
+}
+
 /// Name, what the slot does, a CRT readout of the numbers, and the action.
 class _PartDetails extends StatelessWidget {
   const _PartDetails({
@@ -582,6 +594,7 @@ class _PartDetails extends StatelessWidget {
     required this.tier,
     required this.installed,
     required this.canBuy,
+    required this.maxTier,
     required this.onBuy,
   });
 
@@ -589,6 +602,9 @@ class _PartDetails extends StatelessWidget {
   final int tier;
   final int installed;
   final bool canBuy;
+
+  /// Best tier for sale (tier N opens with level N).
+  final int maxTier;
   final VoidCallback onBuy;
 
   @override
@@ -600,6 +616,14 @@ class _PartDetails extends StatelessWidget {
       action = const _Pill(text: 'INSTALLED', color: Crt.green);
     } else if (tier < installed) {
       action = const _Pill(text: 'UPGRADED PAST', color: Palette.steelLight);
+    } else if (tier > maxTier) {
+      action = SizedBox(
+        width: 140,
+        child: _Pill(
+          text: 'UNLOCKS WITH LEVEL ${_levelFor(tier)}',
+          color: Palette.steelLight,
+        ),
+      );
     } else if (tier == installed + 1) {
       action = DerbyButton(
         label: 'BUY ${Tuning.upgradePrices[tier - 1]}',

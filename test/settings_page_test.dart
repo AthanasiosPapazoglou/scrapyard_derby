@@ -16,7 +16,7 @@ void main() {
 
   setUp(() {
     profile = PlayerProfile(
-      bestDistance: 640,
+      levelBest: {1: 640},
       scrap: 90,
       upgradeLevels: {'plating': 2},
     );
@@ -73,6 +73,6 @@ void main() {
     expect(profile.scrap, 0);
     expect(profile.upgradeLevel('plating'), 0);
     expect(profile.hapticsOn, isFalse);
-    expect(find.text('Best 0 m  ·  0 Scrap'), findsOneWidget);
+    expect(find.text('0 stars  ·  Best 0 m  ·  0 Scrap'), findsOneWidget);
   });
 }

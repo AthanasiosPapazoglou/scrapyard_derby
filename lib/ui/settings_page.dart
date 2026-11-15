@@ -80,7 +80,8 @@ class SettingsPage extends StatelessWidget {
                               title: 'PROGRESS',
                               children: [
                                 Text(
-                                  'Best ${profile.bestDistance.toStringAsFixed(0)} m'
+                                  '${profile.totalStars} stars'
+                                  '  ·  Best ${profile.bestDistance.toStringAsFixed(0)} m'
                                   '  ·  ${profile.scrap} Scrap',
                                 ),
                                 const SizedBox(height: 8),
@@ -124,9 +125,9 @@ Future<bool> confirmResetProgress(
       backgroundColor: Palette.hazard,
       title: const Text('Reset progress?'),
       content: Text(
-        'This wipes your best distance '
-        '(${profile.bestDistance.toStringAsFixed(0)} m), '
-        '${profile.scrap} Scrap and all upgrades. Settings are kept.\n\n'
+        'This wipes your best distances and ${profile.totalStars} stars '
+        '(levels lock again), ${profile.scrap} Scrap and all upgrades. '
+        'Settings are kept.\n\n'
         "This can't be undone.",
       ),
       actions: [

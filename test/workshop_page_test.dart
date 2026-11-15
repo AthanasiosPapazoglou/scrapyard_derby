@@ -80,12 +80,34 @@ void main() {
     expect(profile.tierOf(UpgradeTrack.gyroArms), 0);
     expect(profile.scrap, 10);
 
-    // A part further up is locked until the ones before it are bought.
+    // A part further up opens with its level (tier N with level N).
     final locked = UpgradeTrack.gyroArms.partName(3);
     await tester.tap(find.bySemanticsLabel(RegExp('^$locked, tier 3')));
     await tester.pump();
+    expect(find.text('UNLOCKS WITH LEVEL 3'), findsOneWidget);
+  });
+
+  testWidgets('an unlocked part further up needs the ones before it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(2400, 1100);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    // Level 1's goal reached: level 2 and tier 2 are open.
+    final profile = PlayerProfile(
+      levelBest: {1: Tuning.levels[0].starDistances[0]},
+    );
+    await tester.pumpWidget(MaterialApp(home: WorkshopPage(profile: profile)));
+    final arms = UpgradeTrack.gyroArms;
+    await tester.tap(find.bySemanticsLabel('Arms, tier 0'));
+    await tester.pump();
+    await tester.tap(
+      find.bySemanticsLabel(RegExp('^${arms.partName(2)}, tier 2')),
+    );
+    await tester.pump();
     expect(
-      find.text('BUY ${UpgradeTrack.gyroArms.partName(1).toUpperCase()} FIRST'),
+      find.text('BUY ${arms.partName(1).toUpperCase()} FIRST'),
       findsOneWidget,
     );
   });

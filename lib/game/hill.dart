@@ -5,27 +5,35 @@ import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/tuning.dart';
+import 'levels.dart';
 import 'palette.dart';
 import 'scrap_props.dart';
 
 /// The shape of the endless hill, as plain math (no physics), so it can be
 /// unit tested.
 ///
-/// The ground height is a formula of x: a straight 35° slope plus a few sine
-/// waves for bumps. Because it works for any x, the hill can be built in
+/// The ground height is a formula of x: a straight slope (35° on level 1)
+/// plus a few sine waves for bumps, bigger on later levels. Because it works for any x, the hill can be built in
 /// chunks just ahead of the robot, forever.
 class HillGeometry {
-  HillGeometry({int seed = Tuning.hillSeed}) {
-    final random = math.Random(seed);
+  /// The hill of [level] (1-based, see [Tuning.levels]): its own seed,
+  /// slope and bump size.
+  HillGeometry({this.level = 1})
+    : _slope = math.tan(Levels.of(level).slopeDeg * math.pi / 180),
+      _bumpScale = Levels.of(level).bumpScale {
+    final random = math.Random(Tuning.hillSeed + level - 1);
     _phases = [
       for (var i = 0; i < Tuning.bumpAmplitudes.length; i++)
         random.nextDouble() * 2 * math.pi,
     ];
   }
 
+  final int level;
+
   late final List<double> _phases;
 
-  static final double _slope = math.tan(Tuning.hillSlopeDeg * math.pi / 180);
+  final double _slope;
+  final double _bumpScale;
 
   /// Ground height (y, pointing down) at horizontal position [x], in meters.
   ///
@@ -36,7 +44,8 @@ class HillGeometry {
     var bumps = 0.0;
     for (var i = 0; i < _phases.length; i++) {
       final k = 2 * math.pi / Tuning.bumpWavelengths[i];
-      bumps += Tuning.bumpAmplitudes[i] * math.sin(k * x + _phases[i]);
+      bumps +=
+          Tuning.bumpAmplitudes[i] * _bumpScale * math.sin(k * x + _phases[i]);
     }
     return x * _slope + bumps * fade;
   }

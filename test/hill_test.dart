@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
 import 'package:scrapyard_derby/game/hill.dart';
+import 'package:scrapyard_derby/game/levels.dart';
 import 'package:scrapyard_derby/game/scrap_props.dart';
 
 void main() {
@@ -15,28 +16,62 @@ void main() {
     }
   });
 
-  test('the hill averages the tuned slope angle over a long stretch', () {
-    const length = 2000.0;
-    final drop = hill.heightAt(length) - hill.heightAt(0);
-    final angle = math.atan(drop / length) * 180 / math.pi;
-    expect(angle, closeTo(Tuning.hillSlopeDeg, 0.5));
-  });
+  for (var level = 1; level <= Levels.count; level++) {
+    final levelHill = HillGeometry(level: level);
+    final slopeDeg = Levels.of(level).slopeDeg;
 
-  test('there is no flat start: the hill is already steep at the start', () {
-    final angleDeg = hill.slopeAngleAt(Tuning.startX) * 180 / math.pi;
-    expect(angleDeg, greaterThan(Tuning.hillSlopeDeg - 10));
-  });
+    test('level $level averages its slope angle over a long stretch', () {
+      const length = 2000.0;
+      final drop = levelHill.heightAt(length) - levelHill.heightAt(0);
+      final angle = math.atan(drop / length) * 180 / math.pi;
+      expect(angle, closeTo(slopeDeg, 0.5));
+    });
 
-  test('the ground always goes downhill, so the robot cannot get stuck', () {
-    // Check far down the hill too, since it never ends.
-    const step = Tuning.hillPointSpacing;
-    for (var x = 0.0; x < 5000; x += step) {
-      expect(
-        hill.heightAt(x + step),
-        greaterThan(hill.heightAt(x)),
-        reason: 'at x=$x',
-      );
+    test('level $level has no flat start', () {
+      final angleDeg = levelHill.slopeAngleAt(Tuning.startX) * 180 / math.pi;
+      expect(angleDeg, greaterThan(slopeDeg - 10));
+    });
+
+    test(
+      'level $level always goes downhill, so the robot cannot get stuck',
+      () {
+        // Check far down the hill too, since it never ends.
+        const step = Tuning.hillPointSpacing;
+        for (var x = 0.0; x < 5000; x += step) {
+          expect(
+            levelHill.heightAt(x + step),
+            greaterThan(levelHill.heightAt(x)),
+            reason: 'at x=$x',
+          );
+        }
+      },
+    );
+  }
+
+  test('later levels are rougher: landing angles vary more', () {
+    double spreadDeg(HillGeometry h) {
+      var lo = double.infinity, hi = -double.infinity;
+      for (var x = 20.0; x < 2000; x += 0.5) {
+        final a = h.slopeAngleAt(x) * 180 / math.pi;
+        lo = math.min(lo, a);
+        hi = math.max(hi, a);
+      }
+      return hi - lo;
     }
+
+    final first = spreadDeg(HillGeometry());
+    final last = spreadDeg(HillGeometry(level: Levels.count));
+    expect(last, greaterThan(first + 10));
+  });
+
+  test('every level has its own hill', () {
+    final a =
+        HillGeometry(level: 1).heightAt(100) -
+        100 * math.tan(35 * math.pi / 180);
+    final b =
+        HillGeometry(level: 2).heightAt(100) -
+        100 * math.tan(36 * math.pi / 180);
+    expect(a, isNot(closeTo(b, 1e-3)));
   });
 
   test('chunk points go left to right so the chain faces upward', () {

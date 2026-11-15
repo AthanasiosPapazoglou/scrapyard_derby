@@ -69,7 +69,11 @@ class _MainMenuState extends State<MainMenu>
   void _play() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => GamePage(profile: widget.profile),
+        // Until the level select (docs/ROADMAP.md P2): the furthest level.
+        builder: (_) => GamePage(
+          profile: widget.profile,
+          level: widget.profile.highestUnlockedLevel,
+        ),
       ),
     );
   }
@@ -163,8 +167,10 @@ class _MenuPanel extends StatelessWidget {
             children: [
               _Stat(
                 icon: Icons.flag,
-                text: 'Best ${profile.bestDistance.toStringAsFixed(0)} m',
+                text: 'Level ${profile.highestUnlockedLevel}',
               ),
+              const SizedBox(width: 20),
+              _Stat(icon: Icons.star, text: '${profile.totalStars} Stars'),
               const SizedBox(width: 20),
               _Stat(icon: Icons.settings, text: '${profile.scrap} Scrap'),
             ],

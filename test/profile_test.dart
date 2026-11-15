@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scrapyard_derby/config/tuning.dart';
+import 'package:scrapyard_derby/game/levels.dart';
+import 'package:scrapyard_derby/game/robot_stats.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
 import 'package:scrapyard_derby/profile/profile_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +23,7 @@ void main() {
 
     test('JSON round trip keeps every value', () {
       final p = PlayerProfile(
-        bestDistance: 812.5,
+        levelBest: {1: 1812.5, 2: 300},
         scrap: 340,
         upgradeLevels: {'plating': 2, 'rocketHead': 5},
         musicVolume: 0.2,
@@ -39,12 +42,15 @@ void main() {
       final p = PlayerProfile.fromJson({
         'version': 1,
         'bestDistance': 'far',
+        'levelBest': {'2': 50.0, 'x': 3.0, '3': 'far'},
         'scrap': -5,
         'upgrades': {'plating': 3, 'bogus': 'x'},
         'settings': {'sfxVolume': 0.5, 'hapticsOn': 'yes'},
         'somethingNew': true,
       });
-      expect(p.bestDistance, 0);
+      expect(p.bestOn(1), 0);
+      expect(p.bestOn(2), 50);
+      expect(p.bestOn(3), 0);
       expect(p.scrap, 0);
       expect(p.upgradeLevels, {'plating': 3});
       expect(p.sfxVolume, 0.5);
@@ -53,23 +59,85 @@ void main() {
       expect(PlayerProfile.fromJson({}).toJson(), PlayerProfile().toJson());
     });
 
-    test('recordRun only keeps a better distance', () {
-      final p = PlayerProfile(bestDistance: 100);
-      expect(p.recordRun(80), isFalse);
-      expect(p.bestDistance, 100);
-      expect(p.recordRun(150), isTrue);
+    test('recordRun only keeps a better distance, per level', () {
+      final p = PlayerProfile(levelBest: {1: 100});
+      expect(p.recordRun(1, 80).isNewBest, isFalse);
+      expect(p.bestOn(1), 100);
+      expect(p.recordRun(1, 150).isNewBest, isTrue);
+      expect(p.bestOn(1), 150);
+      expect(p.bestOn(2), 0);
       expect(p.bestDistance, 150);
+    });
+
+    test(
+      'stars come from the best distance; the goal unlocks the next level',
+      () {
+        final stars = Tuning.levels[0].starDistances;
+        final p = PlayerProfile();
+        expect(p.isUnlocked(1), isTrue);
+        expect(p.isUnlocked(2), isFalse);
+        expect(p.highestUnlockedLevel, 1);
+
+        var record = p.recordRun(1, stars[0] - 1);
+        expect(record.newStars, 0);
+        expect(record.unlockedLevel, isNull);
+
+        record = p.recordRun(1, stars[1]);
+        expect(record.starsBefore, 0);
+        expect(record.starsAfter, 2);
+        expect(record.newStars, 2);
+        expect(record.unlockedLevel, 2);
+        expect(p.isUnlocked(2), isTrue);
+        expect(p.highestUnlockedLevel, 2);
+
+        // Beating the best without a new star unlocks nothing new.
+        record = p.recordRun(1, stars[1] + 10);
+        expect(record.newStars, 0);
+        expect(record.unlockedLevel, isNull);
+
+        p.recordRun(1, stars[2] + 1);
+        expect(p.starsOn(1), Levels.maxStars);
+        expect(p.totalStars, 3);
+        expect(p.starScrapBonus, closeTo(3 * Tuning.scrapBonusPerStar, 1e-9));
+        expect(p.isUnlocked(Levels.count + 1), isFalse);
+      },
+    );
+
+    test('part tiers unlock with levels', () {
+      final p = PlayerProfile(scrap: 100000);
+      expect(p.maxPartTier, 1);
+      expect(p.buyUpgrade(UpgradeTrack.plating), isTrue);
+      // Tier 2 needs level 2.
+      expect(p.isNextTierUnlocked(UpgradeTrack.plating), isFalse);
+      expect(p.buyUpgrade(UpgradeTrack.plating), isFalse);
+      p.recordRun(1, Tuning.levels[0].starDistances[0]);
+      expect(p.maxPartTier, 2);
+      expect(p.buyUpgrade(UpgradeTrack.plating), isTrue);
+      expect(p.tierOf(UpgradeTrack.plating), 2);
+    });
+
+    test('a version 1 save keeps its best distance as level 1', () {
+      final p = PlayerProfile.fromJson({
+        'version': 1,
+        'bestDistance': 1234.0,
+        'scrap': 10,
+      });
+      expect(p.bestOn(1), 1234);
+      expect(p.bestOn(2), 0);
+      expect(p.toJson()['version'], 2);
     });
 
     test('resetProgress wipes progress and keeps settings', () {
       final p = PlayerProfile(
-        bestDistance: 300,
+        levelBest: {1: 3000, 2: 300},
         scrap: 80,
         upgradeLevels: {'plating': 1},
         sfxVolume: 0.3,
         showDebugInfo: true,
       )..resetProgress();
       expect(p.bestDistance, 0);
+      expect(p.totalStars, 0);
+      expect(p.isUnlocked(2), isFalse);
       expect(p.scrap, 0);
       expect(p.upgradeLevels, isEmpty);
       expect(p.sfxVolume, 0.3);
@@ -91,13 +159,13 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final store = await ProfileStore.load();
       store.profile
-        ..recordRun(420)
+        ..recordRun(1, 420)
         ..addScrap(25)
         ..hapticsOn = false;
       await Future<void>.delayed(Duration.zero);
 
       final again = await ProfileStore.load();
-      expect(again.profile.bestDistance, 420);
+      expect(again.profile.bestOn(1), 420);
       expect(again.profile.scrap, 25);
       expect(again.profile.hapticsOn, isFalse);
     });

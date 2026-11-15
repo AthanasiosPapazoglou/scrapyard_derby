@@ -40,6 +40,10 @@ class RunResult {
     required this.isNewBest,
     required this.stats,
     required this.scrap,
+    this.level = 1,
+    this.starsBefore = 0,
+    this.starsAfter = 0,
+    this.unlockedLevel,
   });
 
   final RunEnd end;
@@ -48,6 +52,13 @@ class RunResult {
   final double distance;
   final bool isNewBest;
   final RunStats stats;
+
+  /// The level played, its stars before and after this run, and the level
+  /// this run unlocked (null if none).
+  final int level;
+  final int starsBefore;
+  final int starsAfter;
+  final int? unlockedLevel;
 
   /// Scrap earned, line by line; already added to the profile.
   final List<ScrapLine> scrap;
@@ -85,7 +96,7 @@ class HudInfo {
   final double spinEnergyMax;
   final LandingType? lastLanding;
 
-  /// Horizontal meters covered this run, and the best ever (saved).
+  /// Horizontal meters covered this run, and the best on this level.
   final double distance;
   final double bestDistance;
 
@@ -102,11 +113,15 @@ class HudInfo {
   final RunResult? result;
 }
 
-/// The game: an endless hill, one robot, a following camera, hold to
-/// counter-spin. The run lasts until the robot breaks down or gets stuck.
+/// The game: one level's endless hill, one robot, a following camera, hold
+/// to counter-spin. The run lasts until the robot breaks down or gets stuck.
 class DerbyGame extends Forge2DGame with TapCallbacks {
-  DerbyGame({required this.profile})
-    : super(gravity: Vector2(0, Tuning.gravity));
+  DerbyGame({required this.profile, this.level = 1})
+    : hillGeometry = HillGeometry(level: level),
+      super(gravity: Vector2(0, Tuning.gravity));
+
+  /// The level being played (1-based, see [Tuning.levels]).
+  final int level;
 
   /// Saved player data; the best distance is recorded here at run end.
   final PlayerProfile profile;
@@ -115,12 +130,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// balance simulator in `tool/`; could drive AI rivals later).
   Autopilot? autopilot;
 
-  final HillGeometry hillGeometry = HillGeometry();
+  final HillGeometry hillGeometry;
   late Robot robot;
 
   /// Updated a few times per second for the Flutter overlays.
   late final ValueNotifier<HudInfo> hud = ValueNotifier(
-    HudInfo(bestDistance: profile.bestDistance),
+    HudInfo(bestDistance: profile.bestOn(level)),
   );
 
   RunResult? _result;
@@ -189,7 +204,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
-    hud.value = HudInfo(bestDistance: profile.bestDistance);
+    hud.value = HudInfo(bestDistance: profile.bestOn(level));
   }
 
   /// Runs the world (physics, robot spin and hold response, hill) at
@@ -271,12 +286,21 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     }
   }
 
-  /// Records the run in the profile (best distance, scrap; once per run)
-  /// and publishes the result for the run summary.
+  /// Records the run in the profile (best distance, stars, scrap; once per
+  /// run) and publishes the result for the run summary.
   void _finishRun(RunEnd end) {
     final stats = robot.runStats..distance = robot.distance;
-    final isNewBest = profile.recordRun(stats.distance);
-    final scrap = scrapReward(stats, newBest: isNewBest);
+    // The star bonus counts the stars held before this run.
+    final starBonus = profile.starScrapBonus;
+    final record = profile.recordRun(level, stats.distance);
+    final isNewBest = record.isNewBest;
+    final scrap = scrapReward(
+      stats,
+      newBest: isNewBest,
+      level: level,
+      starBonus: starBonus,
+      newStars: record.newStars,
+    );
     profile.addScrap(scrapTotal(scrap));
     if (isNewBest) {
       // A beat after the landing sound, so the two don't blur together.
@@ -291,6 +315,10 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       isNewBest: isNewBest,
       stats: stats,
       scrap: scrap,
+      level: level,
+      starsBefore: record.starsBefore,
+      starsAfter: record.starsAfter,
+      unlockedLevel: record.unlockedLevel,
     );
     _publishHud();
   }
@@ -335,7 +363,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       lastLanding: robot.lastLanding,
       // Frozen once the run is over, even if the wreck keeps sliding.
       distance: _result?.distance ?? robot.distance,
-      bestDistance: profile.bestDistance,
+      bestDistance: profile.bestOn(level),
       limbsLeft: robot.limbsLeft,
       headLaunched: robot.headLaunched,
       partHp: robot.partHp,

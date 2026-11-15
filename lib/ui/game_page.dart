@@ -12,9 +12,12 @@ import 'workshop_page.dart';
 /// One play session: a fresh [DerbyGame] with the HUD on top. Opened from
 /// the menu with Play; "Play again" restarts inside the same game.
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, required this.profile});
+  const GamePage({super.key, required this.profile, this.level = 1});
 
   final PlayerProfile profile;
+
+  /// The level to play (1-based).
+  final int level;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -24,7 +27,10 @@ class _GamePageState extends State<GamePage> {
   static const _pauseKey = 'pause';
 
   // Created once per page, so hot reload doesn't restart the run.
-  late final DerbyGame _game = DerbyGame(profile: widget.profile);
+  late final DerbyGame _game = DerbyGame(
+    profile: widget.profile,
+    level: widget.level,
+  );
 
   void _pause() {
     _game.pauseEngine();

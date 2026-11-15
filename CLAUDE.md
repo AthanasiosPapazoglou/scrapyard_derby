@@ -17,6 +17,13 @@ The feel is calm and floaty ("flow"): the whole game runs slightly slowed down (
 Bad landings break limbs off; with no limbs left the head is launched like a rocket and the attempt ends where it lands. The goal is to cover as much distance as possible.
 The score is horizontal distance in meters; the best distance is shown after each run.
 
+## Progression (Nov 2026 scope change)
+Not a single endless level anymore: 6 levels, each still an endless hill but with a distance goal and 1-3 stars
+(1 star unlocks the next level; 2-3 stars need longer distances). Each level is rougher (steeper slope, bigger bumps),
+with its own scenery and darker music. Stars permanently boost scrap. Part tier N is buyable once level N is unlocked,
+and a robot with every slot at tier N should clear level N with normal effort. Extra "gadgets" help weaker players.
+A robot stats screen shows current vs max stats. Details, numbers and steps: `docs/ROADMAP.md`, "Block 2: Progression".
+
 ## Mechanics spec
 1. **Spin**: clockwise at a constant speed by default. Holding a finger down is a counter-spin force: the clockwise spin quickly (but not instantly) slows to zero, then builds up counter-clockwise until it reaches the same speed the other way. Releasing returns gradually to full clockwise. No instant flips. Holding is the only correction mechanism.
 2. **Spin energy**: every airtime gathers energy from the turns made in the air (either direction), capped (currently 2 turns = +8 m/s bounce, jumps at most ~21 m). On every landing, whatever the type, ALL of it is released into that bounce and the next airtime starts from zero. Shown as an energy bar under the distance.
@@ -67,7 +74,7 @@ The score is horizontal distance in meters; the best distance is shown after eac
    (biomes / difficulty ramping with distance), full art set.
 4. **Launch**: Play closed testing, iOS build, store listings, final name/app IDs/icon, optional online leaderboard.
 
-**Current work plan: `docs/ROADMAP.md`** (menus, settings, Workshop, audio, balance), with steps, decisions,
+**Current work plan: `docs/ROADMAP.md`**, Block 2: Progression (levels, stars, stats screen, gadgets, level scenery/music), with steps, decisions,
 code map and known gotchas. Read it before starting; tick steps off there as they land.
 
 ## Working rules

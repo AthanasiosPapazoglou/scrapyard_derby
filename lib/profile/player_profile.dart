@@ -3,31 +3,58 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import '../game/levels.dart';
 import '../game/robot_stats.dart';
 
-/// Everything the game remembers between launches: best distance, scrap,
-/// upgrade levels and settings.
+/// What a finished run changed on its level (see [PlayerProfile.recordRun]).
+@immutable
+class RunRecord {
+  const RunRecord({
+    required this.isNewBest,
+    required this.starsBefore,
+    required this.starsAfter,
+    required this.unlockedLevel,
+  });
+
+  final bool isNewBest;
+
+  /// The level's stars before and after this run (0-3).
+  final int starsBefore;
+  final int starsAfter;
+
+  /// The level this run unlocked (its first star), or null.
+  final int? unlockedLevel;
+
+  /// Stars earned for the first time by this run.
+  int get newStars => starsAfter - starsBefore;
+}
+
+/// Everything the game remembers between launches: best distance per
+/// level (stars and unlocks follow from it), scrap, upgrade levels and
+/// settings.
 ///
 /// Every change calls [notifyListeners]; the [ProfileStore] listens and
 /// saves, so callers never have to remember to save.
 class PlayerProfile extends ChangeNotifier {
   PlayerProfile({
-    this._bestDistance = 0,
+    Map<int, double> levelBest = const {},
     this._scrap = 0,
     Map<String, int> upgradeLevels = const {},
     this._musicVolume = defaultMusicVolume,
     this._sfxVolume = defaultSfxVolume,
     this._hapticsOn = Tuning.hapticsEnabled,
     this._showDebugInfo = false,
-  }) : _upgradeLevels = Map.of(upgradeLevels);
+  }) : _levelBest = Map.of(levelBest),
+       _upgradeLevels = Map.of(upgradeLevels);
 
   /// Bump this when the JSON layout changes, and migrate in [fromJson].
-  static const int jsonVersion = 1;
+  /// v2: best distance per level (v1 had one best, now level 1's).
+  static const int jsonVersion = 2;
 
   static const double defaultMusicVolume = 0.7;
   static const double defaultSfxVolume = 0.8;
 
-  double _bestDistance;
+  final Map<int, double> _levelBest;
   int _scrap;
   final Map<String, int> _upgradeLevels;
   double _musicVolume;
@@ -35,8 +62,42 @@ class PlayerProfile extends ChangeNotifier {
   bool _hapticsOn;
   bool _showDebugInfo;
 
-  /// Best distance ever, in meters.
-  double get bestDistance => _bestDistance;
+  /// Best distance on [level], in meters (0 = never played).
+  double bestOn(int level) => _levelBest[level] ?? 0;
+
+  /// Best distance on any level, in meters.
+  double get bestDistance => _levelBest.values.fold(0, math.max);
+
+  /// Stars (0-3) earned on [level], from its best distance.
+  int starsOn(int level) => Levels.starsFor(level, bestOn(level));
+
+  /// Stars earned on all levels together.
+  int get totalStars =>
+      [for (var level = 1; level <= Levels.count; level++) starsOn(level)]
+          .fold(0, (a, b) => a + b);
+
+  /// Level 1 is always open; every other level opens with the first star
+  /// of the level before it.
+  bool isUnlocked(int level) =>
+      level == 1 ||
+      (level > 1 && level <= Levels.count && starsOn(level - 1) > 0);
+
+  /// The furthest level the player can play.
+  int get highestUnlockedLevel {
+    var level = 1;
+    while (level < Levels.count && isUnlocked(level + 1)) {
+      level++;
+    }
+    return level;
+  }
+
+  /// The best part tier the Workshop sells right now (set by the furthest
+  /// unlocked level).
+  int get maxPartTier => Levels.of(highestUnlockedLevel).partTier;
+
+  /// Extra share of scrap from stars, e.g. 0.12 = +12% (see
+  /// [Tuning.scrapBonusPerStar]).
+  double get starScrapBonus => totalStars * Tuning.scrapBonusPerStar;
 
   /// Currency earned from runs, spent in the Workshop.
   int get scrap => _scrap;
@@ -57,14 +118,23 @@ class PlayerProfile extends ChangeNotifier {
 
   // ---------------------------------------------------------------- Changes
 
-  /// Records a finished run. Returns true if [distance] is a new best.
-  bool recordRun(double distance) {
-    if (distance <= _bestDistance) {
-      return false;
+  /// Records a finished run on [level]: keeps the best distance and
+  /// reports what it changed (new best, stars, unlocks).
+  RunRecord recordRun(int level, double distance) {
+    final starsBefore = starsOn(level);
+    final wasUnlocked = isUnlocked(level + 1);
+    final isNewBest = distance > bestOn(level);
+    if (isNewBest) {
+      _levelBest[level] = distance;
+      notifyListeners();
     }
-    _bestDistance = distance;
-    notifyListeners();
-    return true;
+    final unlocks = !wasUnlocked && isUnlocked(level + 1);
+    return RunRecord(
+      isNewBest: isNewBest,
+      starsBefore: starsBefore,
+      starsAfter: starsOn(level),
+      unlockedLevel: unlocks ? level + 1 : null,
+    );
   }
 
   void addScrap(int amount) {
@@ -75,10 +145,17 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Is the next part of [track] for sale yet? Tier N opens with level N
+  /// (see [maxPartTier]). False when the slot is maxed.
+  bool isNextTierUnlocked(UpgradeTrack track) {
+    final next = upgradeLevel(track.id) + 1;
+    return next <= Tuning.upgradeMaxLevel && next <= maxPartTier;
+  }
+
   /// Can the next level of [track] be bought right now?
   bool canBuy(UpgradeTrack track) {
     final price = track.priceAfter(upgradeLevel(track.id));
-    return price != null && price <= _scrap;
+    return price != null && isNextTierUnlocked(track) && price <= _scrap;
   }
 
   /// Buys the next level of [track]: takes its price in scrap and raises
@@ -106,9 +183,10 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Wipes best distance, scrap and upgrades. Settings are kept.
+  /// Wipes best distances (so stars and unlocks), scrap and upgrades.
+  /// Settings are kept.
   void resetProgress() {
-    _bestDistance = 0;
+    _levelBest.clear();
     _scrap = 0;
     _upgradeLevels.clear();
     notifyListeners();
@@ -138,7 +216,9 @@ class PlayerProfile extends ChangeNotifier {
 
   Map<String, Object?> toJson() => {
     'version': jsonVersion,
-    'bestDistance': _bestDistance,
+    'levelBest': {
+      for (final MapEntry(:key, :value) in _levelBest.entries) '$key': value,
+    },
     'scrap': _scrap,
     'upgrades': Map.of(_upgradeLevels),
     'settings': {
@@ -155,8 +235,17 @@ class PlayerProfile extends ChangeNotifier {
     final settings = json['settings'];
     final s = settings is Map ? settings : const {};
     final upgrades = json['upgrades'];
+    final levelBest = json['levelBest'];
     return PlayerProfile(
-      bestDistance: _double(json['bestDistance'], 0),
+      levelBest: {
+        // v1 saves had one best distance: it was played on level 1.
+        if (json['bestDistance'] case final num v1Best when v1Best > 0)
+          1: v1Best.toDouble(),
+        if (levelBest is Map)
+          for (final MapEntry(:key, :value) in levelBest.entries)
+            if (key is String && int.tryParse(key) != null && value is num)
+              int.parse(key): value.toDouble(),
+      },
       scrap: math.max(0, _int(json['scrap'], 0)),
       upgradeLevels: {
         if (upgrades is Map)

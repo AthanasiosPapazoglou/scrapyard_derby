@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
 import 'landing.dart';
+import 'levels.dart';
 import 'run_stats.dart';
 
 /// One line of the scrap breakdown on the run summary, e.g. "Distance +41".
@@ -27,11 +28,22 @@ class ScrapLine {
 
 /// The scrap a finished run earns, line by line (numbers in [Tuning]).
 /// Lines worth nothing are left out, except distance, which always shows.
-List<ScrapLine> scrapReward(RunStats stats, {required bool newBest}) {
+///
+/// On top of the run's own lines: the [level]'s multiplier and the
+/// permanent [starBonus] (share, e.g. 0.12) both add a share of that
+/// subtotal, and every star earned for the first time ([newStars]) pays a
+/// flat bonus.
+List<ScrapLine> scrapReward(
+  RunStats stats, {
+  required bool newBest,
+  int level = 1,
+  double starBonus = 0,
+  int newStars = 0,
+}) {
   final clean = stats.landingsOf(LandingType.clean);
   // A backwards head launch earns nothing (but costs nothing either).
   final headFlight = math.max(0.0, stats.headFlight ?? 0);
-  final lines = [
+  final runLines = [
     ScrapLine(
       'Distance',
       (stats.distance / Tuning.scrapMetersPerScrap).floor(),
@@ -42,6 +54,20 @@ List<ScrapLine> scrapReward(RunStats stats, {required bool newBest}) {
       (headFlight / Tuning.scrapHeadFlightMetersPerScrap).floor(),
     ),
     ScrapLine('New best', newBest ? Tuning.scrapNewBestBonus : 0),
+  ];
+  final subtotal = scrapTotal(runLines);
+  final multiplier = Levels.of(level).scrapMultiplier;
+  final lines = [
+    ...runLines,
+    ScrapLine(
+      'Level $level x${multiplier.toStringAsFixed(1)}',
+      (subtotal * (multiplier - 1)).round(),
+    ),
+    ScrapLine(
+      'Stars +${(starBonus * 100).round()}%',
+      (subtotal * starBonus).round(),
+    ),
+    ScrapLine('New star x$newStars', newStars * Tuning.scrapPerNewStar),
   ];
   return [lines.first, ...lines.skip(1).where((line) => line.amount > 0)];
 }

@@ -23,10 +23,14 @@ const seedsPerBot = 6;
 /// {'plating': 5, ...} to see a fully upgraded robot.
 const upgrades = <String, int>{};
 
+/// Level to play (1-based, see Tuning.levels).
+const level = 1;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('balance report', () async {
+    print('level $level, upgrades $upgrades');
     print(
       'bot       | dist avg  min   max | clean% 1foot crash | jump  head  | '
       'scrap avg | time s',
@@ -39,6 +43,7 @@ void main() {
           await simulateRun(
             pilot: skill == null ? null : Autopilot(skill: skill, seed: seed),
             profile: PlayerProfile(upgradeLevels: upgrades),
+            level: level,
           ),
         );
       }

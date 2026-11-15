@@ -21,11 +21,12 @@ class SimulatedRun {
 Future<SimulatedRun> simulateRun({
   Autopilot? pilot,
   PlayerProfile? profile,
+  int level = 1,
   double maxSeconds = 900,
   double frame = 1 / 60,
 }) async {
   final game = await initializeGame(
-    () => DerbyGame(profile: profile ?? PlayerProfile()),
+    () => DerbyGame(profile: profile ?? PlayerProfile(), level: level),
   );
   game.autopilot = pilot;
   await game.ready();

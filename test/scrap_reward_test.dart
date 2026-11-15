@@ -47,4 +47,26 @@ void main() {
     expect(lines, [const ScrapLine('Distance', 0)]);
     expect(scrapTotal(lines), 0);
   });
+
+  test('level multiplier, star bonus and new stars add their lines', () {
+    final stats = RunStats()..distance = 1000;
+    final base = (1000 / Tuning.scrapMetersPerScrap).floor();
+    final multiplier = Tuning.levels[2].scrapMultiplier;
+    final lines = scrapReward(
+      stats,
+      newBest: false,
+      level: 3,
+      starBonus: 0.12,
+      newStars: 2,
+    );
+    expect(lines, [
+      ScrapLine('Distance', base),
+      ScrapLine(
+        'Level 3 x${multiplier.toStringAsFixed(1)}',
+        (base * (multiplier - 1)).round(),
+      ),
+      ScrapLine('Stars +12%', (base * 0.12).round()),
+      const ScrapLine('New star x2', 2 * Tuning.scrapPerNewStar),
+    ]);
+  });
 }
