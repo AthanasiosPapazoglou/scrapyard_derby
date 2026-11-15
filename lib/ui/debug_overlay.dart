@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config/tuning.dart';
 import '../game/derby_game.dart';
 import '../game/landing.dart';
 
@@ -45,7 +44,7 @@ class DebugOverlay extends StatelessWidget {
             Text('spin   ${_spinLabel(info.spin)}'),
             Text(
               'energy ${info.spinEnergy.toStringAsFixed(1)}/'
-              '${Tuning.spinEnergyMaxTurns.toStringAsFixed(0)} turns',
+              '${info.spinEnergyMax.toStringAsFixed(1)} turns',
             ),
             Text(
               'land   ${landing?.label ?? '-'}',

@@ -60,6 +60,7 @@ class HudInfo {
     this.speed = 0,
     this.spin = 1,
     this.spinEnergy = 0,
+    this.spinEnergyMax = Tuning.spinEnergyMaxTurns,
     this.lastLanding,
     this.distance = 0,
     this.bestDistance = 0,
@@ -75,8 +76,11 @@ class HudInfo {
   /// Spin control: 1 = full clockwise, -1 = full counter-clockwise.
   final double spin;
 
-  /// Stored spin energy in turns (0 to Tuning.spinEnergyMaxTurns).
+  /// Stored spin energy in turns (0 to [spinEnergyMax]).
   final double spinEnergy;
+
+  /// The most spin energy the robot can hold (raised by the Energy core).
+  final double spinEnergyMax;
   final LandingType? lastLanding;
 
   /// Horizontal meters covered this run, and the best ever (saved).
@@ -146,7 +150,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   void _spawnRobot() {
     // Priority 5: drawn in front of the hill (1), behind particles (6).
-    robot = Robot(hill: hillGeometry, sprites: _sprites)..priority = 5;
+    // Upgrades bought in the Workshop apply from the next robot on.
+    robot = Robot(
+      hill: hillGeometry,
+      sprites: _sprites,
+      stats: profile.robotStats,
+    )..priority = 5;
     world.add(robot);
     _cameraCenter = robot.start.clone();
     camera.viewfinder.position = _cameraCenter.clone();
@@ -238,7 +247,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// Records the run in the profile (best distance, scrap; once per run)
   /// and publishes the result for the run summary.
   void _finishRun(RunEnd end) {
-    final stats = robot.stats..distance = robot.distance;
+    final stats = robot.runStats..distance = robot.distance;
     final isNewBest = profile.recordRun(stats.distance);
     final scrap = scrapReward(stats, newBest: isNewBest);
     profile.addScrap(scrapTotal(scrap));
@@ -288,6 +297,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       speed: robot.speed,
       spin: robot.spinControl,
       spinEnergy: robot.spinEnergy,
+      spinEnergyMax: robot.stats.spinEnergyMaxTurns,
       lastLanding: robot.lastLanding,
       // Frozen once the run is over, even if the wreck keeps sliding.
       distance: _result?.distance ?? robot.distance,

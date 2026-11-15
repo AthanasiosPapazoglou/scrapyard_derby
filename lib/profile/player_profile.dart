@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import '../game/robot_stats.dart';
 
 /// Everything the game remembers between launches: best distance, scrap,
 /// upgrade levels and settings.
@@ -73,6 +74,29 @@ class PlayerProfile extends ChangeNotifier {
     _scrap = math.max(0, _scrap + amount);
     notifyListeners();
   }
+
+  /// Can the next level of [track] be bought right now?
+  bool canBuy(UpgradeTrack track) {
+    final price = track.priceAfter(upgradeLevel(track.id));
+    return price != null && price <= _scrap;
+  }
+
+  /// Buys the next level of [track]: takes its price in scrap and raises
+  /// the level by one. Returns false (and changes nothing) if it is maxed
+  /// or the player can't afford it.
+  bool buyUpgrade(UpgradeTrack track) {
+    if (!canBuy(track)) {
+      return false;
+    }
+    final level = upgradeLevel(track.id);
+    _scrap -= track.priceAfter(level)!;
+    _upgradeLevels[track.id] = level + 1;
+    notifyListeners();
+    return true;
+  }
+
+  /// The robot's numbers with this profile's upgrades.
+  RobotStats get robotStats => RobotStats.fromLevelOf(upgradeLevel);
 
   void setUpgradeLevel(String track, int level) {
     _upgradeLevels[track] = level;

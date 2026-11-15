@@ -36,15 +36,20 @@ final List<RobotSlot> limbOrder = destructionOrder.sublist(0, 4);
 ///
 /// Every landing adds to one shared damage [total]. Each part has its own
 /// breaking point: the n-th part in [destructionOrder] breaks at
-/// n × [Tuning.limbMaxHp]. A part's HP is `1 - total / breakingPoint`, so
+/// n × [limbMaxHp] (from [Tuning], raised by the Plating upgrade). A part's HP is `1 - total / breakingPoint`, so
 /// all parts lose HP together, but the next one to break loses it fastest.
 class RobotDamage {
+  RobotDamage({this.limbMaxHp = Tuning.limbMaxHp});
+
+  /// Damage between one part breaking and the next.
+  final double limbMaxHp;
+
   /// Damage taken so far this run.
   double total = 0;
 
   /// Damage at which [slot] breaks.
-  static double breakingPoint(RobotSlot slot) =>
-      (destructionOrder.indexOf(slot) + 1) * Tuning.limbMaxHp;
+  double breakingPoint(RobotSlot slot) =>
+      (destructionOrder.indexOf(slot) + 1) * limbMaxHp;
 
   /// Remaining HP of [slot], from 1 (full) to 0 (broken).
   double hpOf(RobotSlot slot) =>
@@ -52,7 +57,7 @@ class RobotDamage {
 
   /// How many limbs have broken off at the current damage (0 to 4).
   int get limbsBroken =>
-      math.min(limbOrder.length, (total / Tuning.limbMaxHp).floor());
+      math.min(limbOrder.length, (total / limbMaxHp).floor());
 
   /// Adds [amount] of damage and returns the limbs that broke because of
   /// it, in order (usually none, sometimes one, rarely more).

@@ -332,6 +332,43 @@ abstract final class Tuning {
   /// Bonus for beating the best distance.
   static const int scrapNewBestBonus = 25;
 
+  // ---------------------------------------------------------------- Upgrades
+  // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
+  // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every
+  // effect also has a hard cap, so no upgrade can break the physics.
+
+  static const int upgradeMaxLevel = 5;
+
+  /// Scrap price of each level (index 0 = buying level 1).
+  static const List<int> upgradePrices = [50, 120, 250, 450, 750];
+
+  /// Plating (body): limb HP (damage between part breaks) +15% per level.
+  static const double platingHpPerLevel = 0.15;
+  static const double platingHpMax = 180.0;
+
+  /// Spring legs: clean bounce +6% and clean-landing tolerance +2° per level.
+  static const double springBouncePerLevel = 0.06;
+  static const double springBounceMax = 18.0;
+  static const double springTolerancePerLevel = 2.0;
+  static const double springToleranceMax = 36.0;
+
+  /// Gyro arms: counter-spin and release times −10% per level (faster
+  /// control), never below this share of the base times.
+  static const double gyroTimePerLevel = 0.10;
+  static const double gyroTimeMinShare = 0.5;
+
+  /// Energy core: spin energy per turn +10% and energy cap +0.25 turn per
+  /// level. The total extra bounce from spin energy is capped (m/s).
+  static const double corePerTurnPerLevel = 0.10;
+  static const double coreCapPerLevel = 0.25;
+  static const double coreMaxExtraBounce = 16.0;
+
+  /// Rocket head: launch speed +8% and rocket burn +0.08 s per level.
+  static const double rocketSpeedPerLevel = 0.08;
+  static const double rocketSpeedMaxScale = 1.4;
+  static const double rocketBurnPerLevel = 0.08;
+  static const double rocketBurnMax = 0.9;
+
   // ---------------------------------------------------------------- Background
   /// Parallax layers of distant scrap heaps, far to near: how much each
   /// moves with the camera (0 = not at all, 1 = like the ground).

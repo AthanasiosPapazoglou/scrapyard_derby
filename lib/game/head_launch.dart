@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart' show Vector2;
 
 import '../config/tuning.dart';
+import 'robot_stats.dart';
 
 /// The velocity the head is fired with, like a rocket, when the robot
 /// (down to just its torso and head) lands.
@@ -14,10 +15,12 @@ import '../config/tuning.dart';
 ///   robot lands upright (facing along [groundNormal]).
 ///
 /// [groundNormal] must be a unit vector pointing away from the ground.
+/// [stats] scales the power and its cap (Rocket head upgrade).
 Vector2 headLaunchVelocity({
   required Vector2 facing,
   required Vector2 groundNormal,
   required double speed,
+  RobotStats stats = RobotStats.base,
 }) {
   var direction = facing.normalized() + groundNormal * Tuning.headLaunchUpBias;
   if (direction.length2 < 1e-6) {
@@ -32,7 +35,8 @@ Vector2 headLaunchVelocity({
       (1 - Tuning.headLaunchMinAngleFactor) * alignment;
   final power =
       ((Tuning.headLaunchBaseSpeed + speed * Tuning.headLaunchSpeedFactor) *
-              anglePower)
-          .clamp(0.0, Tuning.headLaunchMaxSpeed);
+              anglePower *
+              stats.headLaunchScale)
+          .clamp(0.0, Tuning.headLaunchMaxSpeed * stats.headLaunchScale);
   return direction * power;
 }

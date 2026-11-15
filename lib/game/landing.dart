@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart' show Vector2;
 
 import '../config/tuning.dart';
+import 'robot_stats.dart';
 
 /// The robot's body parts. Used to decide what kind of landing happened.
 enum PartKind { torso, head, arm, leg }
@@ -28,12 +29,17 @@ double signedAngleBetween(Vector2 from, Vector2 to) {
 
 /// Decides the landing type from which part touched the ground first and
 /// how far the robot's "up" was from the ground normal (radians).
-LandingType classifyLanding(PartKind firstPart, double angleError) {
+/// [stats] gives the clean-landing tolerance (Spring legs upgrade).
+LandingType classifyLanding(
+  PartKind firstPart,
+  double angleError, {
+  RobotStats stats = RobotStats.base,
+}) {
   if (firstPart != PartKind.leg) {
     return LandingType.crash;
   }
   final errorDeg = angleError.abs() * 180 / math.pi;
-  if (errorDeg <= Tuning.cleanLandingToleranceDeg) {
+  if (errorDeg <= stats.cleanToleranceDeg) {
     return LandingType.clean;
   }
   if (errorDeg <= Tuning.oneFootToleranceDeg) {
@@ -53,11 +59,13 @@ LandingType classifyLanding(PartKind firstPart, double angleError) {
 /// - away from the ground (normal): replaced with a fixed bounce speed.
 ///
 /// [extraBounce] (m/s) is added to the bounce, e.g. from spin energy.
+/// [stats] gives the clean bounce (Spring legs upgrade).
 Vector2 velocityAfterLanding(
   LandingType type,
   Vector2 velocity,
   Vector2 groundNormal, {
   double extraBounce = 0,
+  RobotStats stats = RobotStats.base,
 }) {
   // Tangent pointing "forward" (to the right / downhill) along the ground.
   final tangent = Vector2(-groundNormal.y, groundNormal.x);
@@ -65,7 +73,7 @@ Vector2 velocityAfterLanding(
 
   final (bounce, multiplier, bonus) = switch (type) {
     LandingType.clean => (
-      Tuning.cleanBounce,
+      stats.cleanBounce,
       Tuning.cleanSpeedMultiplier,
       Tuning.cleanSpeedBonus,
     ),
@@ -99,10 +107,17 @@ double landingDamage(LandingType type) => switch (type) {
 // of landing it is. Then the next airtime starts gathering from zero.
 
 /// Energy after spinning [turns] more full turns (either direction counts),
-/// capped at [Tuning.spinEnergyMaxTurns].
-double addSpinEnergy(double energy, double turns) =>
-    math.min(energy + turns.abs(), Tuning.spinEnergyMaxTurns);
+/// capped at [RobotStats.spinEnergyMaxTurns] (Energy core upgrade).
+double addSpinEnergy(
+  double energy,
+  double turns, {
+  RobotStats stats = RobotStats.base,
+}) => math.min(energy + turns.abs(), stats.spinEnergyMaxTurns);
 
-/// Extra bounce (m/s) the gathered [energy] adds to the next jump.
-double spinEnergyBounce(double energy) =>
-    math.min(energy, Tuning.spinEnergyMaxTurns) * Tuning.spinEnergyPerTurn;
+/// Extra bounce (m/s) the gathered [energy] adds to the next jump, never
+/// more than [RobotStats.maxEnergyBounce].
+double spinEnergyBounce(double energy, {RobotStats stats = RobotStats.base}) =>
+    math.min(
+      math.min(energy, stats.spinEnergyMaxTurns) * stats.spinEnergyPerTurn,
+      stats.maxEnergyBounce,
+    );

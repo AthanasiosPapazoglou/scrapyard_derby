@@ -1,4 +1,4 @@
-import '../config/tuning.dart';
+import 'robot_stats.dart';
 
 /// The spin "control" value, from 1 (full clockwise, the default) to
 /// -1 (full counter-clockwise).
@@ -11,12 +11,13 @@ double nextSpinControl(
   double control, {
   required bool holding,
   required double dt,
+  RobotStats stats = RobotStats.base,
 }) {
   if (holding) {
     // Covering the full range (2) takes counterSpinTime seconds.
-    final step = 2 * dt / Tuning.counterSpinTime;
+    final step = 2 * dt / stats.counterSpinTime;
     return (control - step).clamp(-1.0, 1.0);
   }
-  final step = 2 * dt / Tuning.releaseSpinTime;
+  final step = 2 * dt / stats.releaseSpinTime;
   return (control + step).clamp(-1.0, 1.0);
 }

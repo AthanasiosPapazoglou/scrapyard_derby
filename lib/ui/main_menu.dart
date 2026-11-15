@@ -10,6 +10,7 @@ import 'game_page.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
 import 'settings_page.dart';
+import 'workshop_page.dart';
 
 /// The first screen: the dusk scrapyard drifting by, the robot idling in
 /// the air, the title, best distance, scrap, and Play / Workshop / Settings.
@@ -47,6 +48,14 @@ class _MainMenuState extends State<MainMenu>
     _ticker.dispose();
     _time.dispose();
     super.dispose();
+  }
+
+  void _openWorkshop() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WorkshopPage(profile: widget.profile),
+      ),
+    );
   }
 
   void _openSettings() {
@@ -107,6 +116,7 @@ class _MainMenuState extends State<MainMenu>
                           profile: widget.profile,
                           onPlay: _play,
                           onSettings: _openSettings,
+                          onWorkshop: _openWorkshop,
                         ),
                       ),
                     ),
@@ -127,11 +137,13 @@ class _MenuPanel extends StatelessWidget {
     required this.profile,
     required this.onPlay,
     required this.onSettings,
+    required this.onWorkshop,
   });
 
   final PlayerProfile profile;
   final VoidCallback onPlay;
   final VoidCallback onSettings;
+  final VoidCallback onWorkshop;
 
   @override
   Widget build(BuildContext context) {
@@ -167,12 +179,10 @@ class _MenuPanel extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Wired up in roadmap step 4 (Workshop).
-              const DerbyButton(
+              DerbyButton(
                 label: 'Workshop',
                 icon: Icons.build,
-                onPressed: null,
-                disabledNote: 'SOON',
+                onPressed: onWorkshop,
               ),
               const SizedBox(width: 12),
               DerbyButton(

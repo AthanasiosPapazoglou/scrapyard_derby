@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/damage.dart';
+import 'crt.dart';
 
 /// A small retro "robot status" screen: a green CRT-style panel with a robot
 /// figure lit per part by its health, and a list of HP bars.
@@ -37,11 +38,11 @@ class _StatusPainter extends CustomPainter {
   final Map<RobotSlot, double> partHp;
 
   // CRT greens, plus warning colours for damaged parts.
-  static const _background = Color(0xE00B1A10);
-  static const _green = Color(0xFF5CFF9A);
-  static const _dim = Color(0xFF1E5A35);
-  static const _amber = Color(0xFFF2B233);
-  static const _red = Color(0xFFFF5A4A);
+  static const _background = Crt.background;
+  static const _green = Crt.green;
+  static const _dim = Crt.dim;
+  static const _amber = Crt.amber;
+  static const _red = Crt.red;
 
   double _hp(RobotSlot slot) => (partHp[slot] ?? 1).clamp(0.0, 1.0);
 

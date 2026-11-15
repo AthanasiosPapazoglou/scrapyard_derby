@@ -7,6 +7,7 @@ import '../profile/player_profile.dart';
 import 'derby_button.dart';
 import 'hud.dart';
 import 'outlined_text.dart';
+import 'workshop_page.dart';
 
 /// One play session: a fresh [DerbyGame] with the HUD on top. Opened from
 /// the menu with Play; "Play again" restarts inside the same game.
@@ -37,14 +38,27 @@ class _GamePageState extends State<GamePage> {
 
   void _toMenu() => Navigator.of(context).pop();
 
+  /// From the run summary. Coming back, "Play again" uses the new upgrades.
+  void _openWorkshop() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WorkshopPage(profile: widget.profile),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GameWidget<DerbyGame>(
         game: _game,
         overlayBuilderMap: {
-          Hud.overlayKey: (context, game) =>
-              Hud(game: game, onMenu: _toMenu, onPause: _pause),
+          Hud.overlayKey: (context, game) => Hud(
+            game: game,
+            onMenu: _toMenu,
+            onPause: _pause,
+            onWorkshop: _openWorkshop,
+          ),
           _pauseKey: (context, game) =>
               _PauseMenu(onResume: _resume, onMenu: _toMenu),
         },

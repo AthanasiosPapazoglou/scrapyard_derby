@@ -22,9 +22,9 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Tuning (all numbers) | `lib/config/tuning.dart` |
 | Game loop, camera, run end, HUD data | `lib/game/derby_game.dart` (`HudInfo`, `RunEnd`) |
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
-| Pure, tested logic | `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
+| Pure, tested logic | `robot_stats.dart`, `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
 | Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
-| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `settings_page.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
+| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `settings_page.dart`, `workshop_page.dart`, `crt.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
 | Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
 
 ### Gotchas learned so far
@@ -123,7 +123,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   panel unless `showDebugInfo` is on. Music slider is saved but labelled
   "No music yet" until D4 is decided. Credits link to Flutter's license page.
 
-### Step 4 — Upgrade stats layer + Workshop  ☐
+### Step 4 — Upgrade stats layer + Workshop  ☑
 - `lib/game/robot_stats.dart` (pure): the robot's effective values =
   `Tuning` base values modified by upgrade levels. Robot, damage, spin,
   landing and head-launch code read `RobotStats` for the upgradeable values
@@ -145,6 +145,17 @@ passing, a check in the Simulator, and a commit command for the developer.
   (disabled if not enough scrap / maxed). Robot figure highlights the part.
 - Tests: stats at level 0 equal Tuning; each level moves the right value;
   caps hold; purchase deducts scrap and saves; can't overspend.
+- Done: `lib/game/robot_stats.dart` has `UpgradeTrack` (ids are save keys,
+  never rename) and `RobotStats` (`base` = Tuning; `fromLevels` applies the
+  per-level effects and caps from the Upgrades section of `tuning.dart`).
+  The pure functions take an optional `stats:` (default `RobotStats.base`),
+  `RobotDamage` takes `limbMaxHp`, and `Robot.stats` holds them (the run
+  stats field is now `Robot.runStats`). New robots read
+  `profile.robotStats`, so purchases apply from the next run / Play again.
+  `PlayerProfile.buyUpgrade` / `canBuy` do the purchase. Energy core's total
+  extra bounce is capped (`coreMaxExtraBounce`); the HUD energy bar uses the
+  robot's own max. Workshop: `lib/ui/workshop_page.dart`, CRT colours
+  shared via `lib/ui/crt.dart`. Opened from the menu and the run summary.
 
 ### Step 5 — Audio  ☐
 - Dependency: `flame_audio`. Volumes from the profile settings.

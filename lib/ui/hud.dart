@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config/tuning.dart';
 import '../game/derby_game.dart';
 import '../game/palette.dart';
 import 'debug_overlay.dart';
@@ -11,7 +10,13 @@ import 'status_panel.dart';
 /// Everything drawn on top of the game: distance, energy, status panel,
 /// debug info, pause and restart buttons, and the run summary.
 class Hud extends StatelessWidget {
-  const Hud({super.key, required this.game, this.onMenu, this.onPause});
+  const Hud({
+    super.key,
+    required this.game,
+    this.onMenu,
+    this.onPause,
+    this.onWorkshop,
+  });
 
   static const overlayKey = 'hud';
 
@@ -19,6 +24,9 @@ class Hud extends StatelessWidget {
 
   /// Leaves the run for the main menu (hidden when null).
   final VoidCallback? onMenu;
+
+  /// Opens the Workshop from the run summary (greyed out when null).
+  final VoidCallback? onWorkshop;
 
   /// Pauses the run (button hidden when null or once the run is over).
   final VoidCallback? onPause;
@@ -94,7 +102,7 @@ class Hud extends StatelessWidget {
                       else
                         _MeterBar(
                           icon: Icons.bolt,
-                          fraction: info.spinEnergy / Tuning.spinEnergyMaxTurns,
+                          fraction: info.spinEnergy / info.spinEnergyMax,
                           color: Palette.hazard,
                           fullColor: Palette.eyeGlow,
                         ),
@@ -120,6 +128,7 @@ class Hud extends StatelessWidget {
                         totalScrap: game.profile.scrap,
                         onPlayAgain: game.restart,
                         onMenu: onMenu,
+                        onWorkshop: onWorkshop,
                       ),
                     ),
                   ),

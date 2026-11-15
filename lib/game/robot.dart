@@ -12,6 +12,7 @@ import 'landing.dart';
 import 'palette.dart';
 import 'robot_part.dart';
 import 'robot_sprites.dart';
+import 'robot_stats.dart';
 import 'run_stats.dart';
 import 'spin.dart';
 
@@ -29,7 +30,11 @@ double _rad(double degrees) => degrees * math.pi / 180;
 /// landing type; the robot's velocity changes to match and its limbs take
 /// damage (see landing.dart). Limbs at 0 HP break off and become debris.
 class Robot extends Component with HasGameReference<DerbyGame> {
-  Robot({required HillGeometry hill, this.sprites}) {
+  Robot({
+    required HillGeometry hill,
+    this.sprites,
+    this.stats = RobotStats.base,
+  }) {
     // Drop the robot from high above the slope, tilted to match it and not
     // spinning yet, so the first touch-down is a clean landing.
     final x = Tuning.startX;
@@ -47,6 +52,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Artwork for the parts; null draws the plain placeholder shapes.
   final RobotSprites? sprites;
 
+  /// Effective numbers after Workshop upgrades.
+  final RobotStats stats;
+
   /// World position of the torso center at the start of the run.
   late final Vector2 start;
 
@@ -57,7 +65,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   late final double _feetBelowTorso;
 
   /// Landings, highest jump, limbs lost and head flight for this run.
-  final RunStats stats = RunStats();
+  final RunStats runStats = RunStats();
 
   // Joint pivots in torso-local coordinates (meters), from CLAUDE.md.
   static final Vector2 neckPivot = Vector2(_m(0), _m(-72));
@@ -78,7 +86,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   Iterable<RobotPart> get attachedParts => parts.where((p) => !p.detached);
 
   /// Shared damage that decides which part breaks next (see damage.dart).
-  final RobotDamage damage = RobotDamage();
+  late final RobotDamage damage = RobotDamage(limbMaxHp: stats.limbMaxHp);
 
   /// How many arms and legs are still attached.
   int get limbsLeft => limbs.where((p) => !p.detached).length;
@@ -123,7 +131,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   double _airTime = 0;
 
   /// Spin energy gathered during the current airtime, in turns (0 to
-  /// Tuning.spinEnergyMaxTurns). All of it is released into the next
+  /// stats.spinEnergyMaxTurns). All of it is released into the next
   /// bounce on landing, then it starts again from 0. See landing.dart.
   double spinEnergy = 0;
 
@@ -327,7 +335,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       if (_hasTouchedDown) {
         _reportJumpHeight();
         final turns = torso.body.angularVelocity.abs() * dt / (2 * math.pi);
-        spinEnergy = addSpinEnergy(spinEnergy, turns);
+        spinEnergy = addSpinEnergy(spinEnergy, turns, stats: stats);
       }
     }
     // Down to torso + head but just sliding along? Launch the head anyway.
@@ -341,12 +349,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
   }
 
-  /// Tells [stats] how high the feet are above the ground right now.
+  /// Tells [runStats] how high the feet are above the ground right now.
   void _reportJumpHeight() {
     final torsoPosition = torso.body.position;
     final groundY = game.hillGeometry.heightAt(torsoPosition.x);
     // y points down: ground y - torso y is the torso's height.
-    stats.reportHeight(groundY - torsoPosition.y - _feetBelowTorso);
+    runStats.reportHeight(groundY - torsoPosition.y - _feetBelowTorso);
   }
 
   /// The head phase: the head flies free. For a short moment after launch
@@ -375,7 +383,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Moves the spin control (hold = counter-spin) and turns the torso
   /// toward the matching spin speed. The limbs follow through their joints.
   void _updateSpin(double dt) {
-    spinControl = nextSpinControl(spinControl, holding: holding, dt: dt);
+    spinControl = nextSpinControl(
+      spinControl,
+      holding: holding,
+      dt: dt,
+      stats: stats,
+    );
     final target = spinControl * Tuning.spinSpeed;
 
     final body = torso.body;
@@ -440,9 +453,13 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       return;
     }
     final up = torso.body.rotation.rotate(Vector2(0, -1));
-    final type = classifyLanding(part.kind, signedAngleBetween(up, normal));
+    final type = classifyLanding(
+      part.kind,
+      signedAngleBetween(up, normal),
+      stats: stats,
+    );
     lastLanding = type;
-    stats.addLanding(type);
+    runStats.addLanding(type);
     final points = contact.points;
     final contactPoint = (points != null && points.isNotEmpty)
         ? points.first.point
@@ -456,7 +473,8 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       type,
       oldVelocity,
       normal,
-      extraBounce: spinEnergyBounce(spinEnergy),
+      extraBounce: spinEnergyBounce(spinEnergy, stats: stats),
+      stats: stats,
     );
     // All gathered energy went into this bounce; the next airtime starts
     // gathering from zero.
@@ -505,7 +523,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   void _breakOff(RobotPart limb) {
     limb.joint?.destroy();
     limb.joint = null;
-    stats.addLimbLost();
+    runStats.addLimbLost();
     game.effects.limbLost(limb.body.worldCenterOfMass);
     _makeDebris(limb);
   }
@@ -536,6 +554,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       facing: facing,
       groundNormal: groundNormal,
       speed: torso.body.linearVelocity.length,
+      stats: stats,
     );
     _neckJoint.destroy();
     headLaunched = true;
@@ -546,9 +565,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     head.body.linearVelocity = launch;
     head.body.angularVelocity = 8;
     _rocketDirection = launch.normalized();
-    rocketBurnLeft = Tuning.headRocketBurnTime;
+    rocketBurnLeft = stats.headRocketBurnTime;
     _headFlightTime = 0;
-    stats.headLaunchedAt(head.body.position.x);
+    runStats.headLaunchedAt(head.body.position.x);
     game.effects.headLaunch(head.body.worldCenterOfMass, _rocketDirection);
     game.startHeadLaunchSlowMo();
     // Leave the torso where it is; it slows and fades like other debris.
@@ -562,7 +581,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
     headLanded = true;
     rocketBurnLeft = 0;
-    stats.headLandedAt(head.body.position.x);
+    runStats.headLandedAt(head.body.position.x);
     game.effects.headLanded(head.body.worldCenterOfMass);
     head.body
       ..linearVelocity = Vector2.zero()

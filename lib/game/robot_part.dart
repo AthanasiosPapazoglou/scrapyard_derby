@@ -198,7 +198,7 @@ class RobotPart extends BodyComponent with ContactCallbacks {
     final side = Vector2(-back.y, back.x);
     final radius = Tuning.headRadius / Tuning.artPixelsPerMeter;
     final center = Vector2(0, -Tuning.headOffset / Tuning.artPixelsPerMeter);
-    final burnShare = robot.rocketBurnLeft / Tuning.headRocketBurnTime;
+    final burnShare = robot.rocketBurnLeft / robot.stats.headRocketBurnTime;
     final length = radius * (1.5 + 2.5 * burnShare);
 
     Path flame(double widthScale, double lengthScale) {
