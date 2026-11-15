@@ -33,6 +33,11 @@ void main() {
       expect(script, contains('"${path.split('/').last}"'), reason: path);
     }
     expect(musicPathFor(1), endsWith('scrapyard_dusk.wav'));
+    // The happy menu track is separate from every level's.
+    final menu = File('assets/audio/$menuMusicPath');
+    expect(menu.readAsBytesSync().take(4), 'RIFF'.codeUnits);
+    expect(levelMusic, isNot(contains(menuMusicPath)));
+    expect(script, contains('"${menuMusicPath.split('/').last}"'));
     expect(musicPathFor(99), levelMusic.last);
   });
 

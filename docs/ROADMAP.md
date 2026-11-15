@@ -431,6 +431,11 @@ commit command for the developer.
   track switches run without errors. Not listened to (no audio from here):
   the developer should listen and judge each track.
 - If app size matters later: convert the loops to AAC/OGG (about 10× smaller).
+- Follow-up (developer request): the menus now have a happy baseline
+  instead of the furthest level's mood: their own track, "Scrap Sunshine"
+  (`MENU_TRACK` in make_music.py: 100 BPM, C major, bouncy "oom-pah" bass;
+  `menuMusicPath`), and level 1's dusk scenery on the main menu and level
+  select. The robot there still wears its installed parts.
 
 ### P7 — Progression balance  ☑
 - Simulator per level and upgrade set: a skill ~0.4 bot with every slot at

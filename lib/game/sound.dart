@@ -47,20 +47,23 @@ const List<String> levelMusic = [
   'music/obsidian_maw.wav',
 ];
 
+/// The happy menu loop, "Scrap Sunshine" (also by `art/make_music.py`).
+const String menuMusicPath = 'music/scrap_sunshine.wav';
+
 /// The music of [level] (1-based; clamped).
 String musicPathFor(int level) =>
     levelMusic[(level - 1).clamp(0, levelMusic.length - 1)];
 
 /// The one place that plays sounds: effects at the player's sound-effects
 /// volume, and the looping background music at the music volume. The music
-/// is the level's track during a run ([musicForLevel]) and the furthest
-/// unlocked level's track in the menus ([menuMusic]).
+/// is the level's track during a run ([musicForLevel]) and the happy menu
+/// track everywhere else ([menuMusic]).
 ///
 /// [Sound.init] is called once at startup. Until then (e.g. in tests)
 /// [Sound.play] and [Sound.duckMusic] do nothing, so game and UI code can
 /// call them freely.
 class Sound {
-  Sound._(this._profile) : _track = musicPathFor(_profile.highestUnlockedLevel);
+  Sound._(this._profile);
 
   static Sound? _instance;
 
@@ -70,7 +73,7 @@ class Sound {
   double? _musicLevel;
 
   /// The track that should play, and the one loaded in the player.
-  String _track;
+  String _track = menuMusicPath;
   String? _loadedTrack;
 
   /// True while the music is turned down (head-launch slow motion).
@@ -144,26 +147,19 @@ class Sound {
 
   /// Plays [level]'s music (from the start if it changes). Does nothing
   /// before [init], or when that track is already the one.
-  static void musicForLevel(int level) {
+  static void musicForLevel(int level) => _switchTo(musicPathFor(level));
+
+  /// Plays the happy menu track (from the start if it changes).
+  static void menuMusic() => _switchTo(menuMusicPath);
+
+  static void _switchTo(String track) {
     final sound = _instance;
-    if (sound == null) {
-      return;
-    }
-    final track = musicPathFor(level);
-    if (track == sound._track) {
+    if (sound == null || track == sound._track) {
       return;
     }
     sound._track = track;
     sound._musicLevel = null; // Force an update.
     unawaited(sound._updateMusic());
-  }
-
-  /// The menus play the furthest unlocked level's music.
-  static void menuMusic() {
-    final sound = _instance;
-    if (sound != null) {
-      musicForLevel(sound._profile.highestUnlockedLevel);
-    }
   }
 
   /// Turns the music down for [duration] (the head-launch slow motion),

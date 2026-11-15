@@ -90,16 +90,8 @@ class _MainMenuState extends State<MainMenu>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // The scenery of the furthest level reached.
-          ListenableBuilder(
-            listenable: widget.profile,
-            builder: (context, _) => CustomPaint(
-              painter: _DriftingScene(
-                _time,
-                LevelTheme.of(widget.profile.highestUnlockedLevel),
-              ),
-            ),
-          ),
+          // The happy baseline: level 1's dusk, whatever level is reached.
+          CustomPaint(painter: _DriftingScene(_time, LevelTheme.of(1))),
           SafeArea(
             child: Row(
               children: [

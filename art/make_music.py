@@ -1,8 +1,8 @@
 """Scrapyard Derby - background music generator.
 
-Composes and synthesizes the game's music from scratch: one original loop
-per level, from the calm "dusk over the scrapyard" of level 1 to the slow,
-menacing drone of level 6. Standard library only; the same script always
+Composes and synthesizes the game's music from scratch: a happy loop for
+the menus, and one original loop per level, from the calm "dusk over the
+scrapyard" of level 1 to the slow, menacing drone of level 6. Standard library only; the same script always
 writes the same files.
 
     python3 art/make_music.py [out_dir]     (default: assets/audio/music)
@@ -173,6 +173,28 @@ OBSIDIAN_MELODY = [
     (14, 0, 2, 72), (14, 2, 2, 65), (15, 0, 4, 71),
 ]
 
+# Menus: "Scrap Sunshine", 100 BPM, C major, bright and bouncy.
+SUNSHINE_CHORDS = [
+    (48, [60, 64, 67, 72]),  # C
+    (47, [59, 62, 67, 71]),  # G over B
+    (45, [57, 60, 64, 69]),  # Am
+    (41, [53, 57, 60, 65]),  # F
+    (48, [60, 64, 67, 72]),  # C
+    (43, [55, 59, 62, 67]),  # G
+    (41, [53, 57, 60, 65]),  # F
+    (43, [55, 59, 62, 67]),  # G
+] * 2
+SUNSHINE_MELODY = [
+    (8, 0, 1, 72), (8, 1, 1, 76), (8, 2, 1, 79), (8, 3, 1, 76),
+    (9, 0, 1.5, 74), (9, 1.5, 0.5, 72), (9, 2, 2, 71),
+    (10, 0, 1, 69), (10, 1, 1, 72), (10, 2, 1, 76), (10, 3, 1, 77),
+    (11, 0, 3, 79),
+    (12, 0, 1, 72), (12, 1, 1, 76), (12, 2, 1, 79), (12, 3, 1, 84),
+    (13, 0, 1.5, 83), (13, 1.5, 0.5, 81), (13, 2, 2, 79),
+    (14, 0, 1, 77), (14, 1, 1, 76), (14, 2, 1, 74), (14, 3, 1, 71),
+    (15, 0, 3, 72),
+]
+
 # One track per level, in order. Missing keys use DEFAULTS (level 1).
 DEFAULTS = {
     "seed": 11,
@@ -180,12 +202,19 @@ DEFAULTS = {
     "arp_steps": 8,          # arpeggio notes per bar
     "arp_voice": "pluck",    # pluck | triangle | bell
     "lead_voice": "flute",   # flute | square | bell | low
-    "bass_style": "push",    # push | pulse | drone | grit
+    "bass_style": "push",    # push | pulse | drone | grit | bounce
     "drums": "lofi",         # lofi | sparse | driving | toms | heartbeat
     "pad_cutoff": 1400,
     "pad_attack": 0.7,
     "warmth": 5000,          # final low-pass over the whole mix
 }
+MENU_TRACK = {
+    "file": "scrap_sunshine.wav", "bpm": 100, "seed": 21,
+    "chords": SUNSHINE_CHORDS, "melody": SUNSHINE_MELODY,
+    "arp_pattern": [0, 2, 1, 3, 0, 2, 3, 2], "bass_style": "bounce",
+    "pad_cutoff": 1800, "warmth": 6500,
+}
+
 TRACKS = [
     {"file": "scrapyard_dusk.wav", "bpm": 88,
      "chords": DUSK_CHORDS, "melody": DUSK_MELODY},
@@ -477,6 +506,11 @@ def add_bass(basses, t0, root, style):
                 0.42 if step % 2 == 0 else 0.3)
     elif style == "drone":
         add(basses, t0, bass(root, BAR * 1.02), 0.45)
+    elif style == "bounce":
+        # A happy oom-pah: root on the beat, octave up on the "and".
+        for beat in range(4):
+            add(basses, t0 + beat * BEAT, bass(root, BEAT * 0.45), 0.45)
+            add(basses, t0 + (beat + 0.5) * BEAT, bass(root + 12, BEAT * 0.4), 0.28)
     else:  # grit: a held, clipped root with a stab on beat 3
         add(basses, t0, bass(root, BEAT * 2.2, grit=True), 0.45)
         add(basses, t0 + 2 * BEAT, bass(root, BEAT * 1.8, grit=True), 0.35)
@@ -537,7 +571,7 @@ def write(path, samples):
 def main():
     out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join("assets", "audio", "music")
     os.makedirs(out_dir, exist_ok=True)
-    for track in TRACKS:
+    for track in [MENU_TRACK, *TRACKS]:
         path = os.path.join(out_dir, track["file"])
         samples = compose(track)
         write(path, samples)

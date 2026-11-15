@@ -31,9 +31,8 @@ class LevelSelectPage extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(
-            painter: _StillScene(LevelTheme.of(profile.highestUnlockedLevel)),
-          ),
+          // The menus' happy baseline; the cards show each level's look.
+          CustomPaint(painter: _StillScene(LevelTheme.of(1))),
           SafeArea(
             // Rebuilds when a run (from this page) earns stars or unlocks.
             child: ListenableBuilder(
