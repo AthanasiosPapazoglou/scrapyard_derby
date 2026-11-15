@@ -1,5 +1,5 @@
 name: scrapyard_derby
-description: "A new Flutter project."
+description: "A one-button, physics-driven downhill robot game: spin, land on your feet, and see how far your robot gets before it falls apart."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
