@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420"><rect width="1200" height="420" fill="#F3E9DC"/><g transform="translate(150 210)">
+<g id="torso">
+  <path d="M-58,-64 Q0,-78 58,-64 L62,64 Q0,80 -62,64 Z" fill="#C4622D"/>
+  <path d="M30,-70 Q46,-68 58,-64 L62,64 Q48,70 32,74 Q40,0 30,-70 Z" fill="#8A3B1C"/>
+  <path d="M-46,-58 L-36,-60 Q-40,0 -36,56 L-46,58 Q-50,0 -46,-58 Z" fill="#E39056"/>
+  <path d="M-60,-28 Q0,-40 60,-28" fill="none" stroke="#2B1D16" stroke-width="5" stroke-linecap="round"/>
+  <path d="M-61,30 Q0,18 61,30" fill="none" stroke="#2B1D16" stroke-width="5" stroke-linecap="round"/>
+  <!-- patch plate -->
+  <g transform="rotate(-7 4 0)">
+    <rect x="-20" y="-16" width="46" height="34" rx="4" fill="#B4C0CB" stroke="#2B1D16" stroke-width="4"/>
+    <path d="M-16,10 L-6,-12 M-4,14 L8,-12 M8,14 L20,-12" stroke="#F2B233" stroke-width="5"/>
+    <rect x="-20" y="-16" width="46" height="34" rx="4" fill="none" stroke="#2B1D16" stroke-width="4"/>
+    <circle cx="-14" cy="-10" r="3" fill="#2B1D16"/><circle cx="20" cy="-10" r="3" fill="#2B1D16"/>
+    <circle cx="-14" cy="12" r="3" fill="#2B1D16"/><circle cx="20" cy="12" r="3" fill="#2B1D16"/>
+  </g>
+  <!-- dent and rust spots -->
+  <path d="M-30,44 q8,-8 16,0" fill="none" stroke="#8A3B1C" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="40" cy="-44" r="4" fill="#8A3B1C"/><circle cx="-24" cy="-48" r="3" fill="#8A3B1C"/>
+  <path d="M-58,-64 Q0,-78 58,-64 L62,64 Q0,80 -62,64 Z" fill="none" stroke="#2B1D16" stroke-width="6" stroke-linejoin="round"/>
+</g></g><g transform="translate(370 250)">
+<g id="head">
+  <path d="M-10,0 l20,-3 l-20,-3 l20,-3 l-20,-3" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round"/>
+  <path d="M-10,0 l20,-3 l-20,-3 l20,-3 l-20,-3" fill="none" stroke="#B4C0CB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M-36,-66 L36,-66 L38,-16 Q0,-6 -38,-16 Z" fill="#6B7B8C"/>
+  <path d="M18,-66 L36,-66 L38,-16 Q28,-13 20,-12 Z" fill="#4A5563"/>
+  <path d="M-30,-60 L-24,-60 L-25,-18 L-31,-19 Z" fill="#B4C0CB"/>
+  <path d="M-36,-66 L36,-66 L38,-16 Q0,-6 -38,-16 Z" fill="none" stroke="#2B1D16" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="0" cy="-66" rx="37" ry="8" fill="#B4C0CB" stroke="#2B1D16" stroke-width="5"/>
+  <!-- fork antenna -->
+  <path d="M-14,-72 L-20,-98 L-30,-106" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-14,-72 L-20,-98 L-30,-106" fill="none" stroke="#B4C0CB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="-32" cy="-108" r="7" fill="#F2B233" stroke="#2B1D16" stroke-width="4"/>
+  <!-- eyes: one big camera lens, one small warning light -->
+  <circle cx="12" cy="-40" r="17" fill="#2B1D16"/>
+  <circle cx="12" cy="-40" r="11" fill="#5FE3D0"/>
+  <circle cx="12" cy="-40" r="5" fill="#1C6B66"/>
+  <circle cx="7" cy="-45" r="3" fill="#FFFFFF"/>
+  <circle cx="-20" cy="-36" r="6" fill="#F2B233" stroke="#2B1D16" stroke-width="4"/>
+  <path d="M-16,-24 q10,5 20,0" fill="none" stroke="#2B1D16" stroke-width="4" stroke-linecap="round"/>
+</g></g><g transform="translate(560 140)">
+<g id="a1">
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#2B1D16" stroke-width="26" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#B4C0CB" stroke-width="15" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#6B7B8C" stroke-width="15" stroke-dasharray="4 7"/>
+  <path d="M-8,70 l-8,22 l9,2 l8,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M8,70 l6,22 l-9,2 l-6,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="0" cy="66" r="11" fill="#F2B233" stroke="#2B1D16" stroke-width="5"/>
+  <circle cx="0" cy="66" r="3" fill="#2B1D16"/>
+</g></g><g transform="translate(740 150)">
+<g id="l1">
+  <path d="M0,0 L0,64" stroke="#2B1D16" stroke-width="22" stroke-linecap="round"/>
+  <path d="M0,0 L0,64" stroke="#6B7B8C" stroke-width="12" stroke-linecap="round"/>
+  <path d="M3,2 L3,60" stroke="#4A5563" stroke-width="4"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#F2B233" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="#F2B233"/>
+  <rect x="-24" y="73" width="58" height="7" rx="3" fill="#B97F14"/>
+  <path d="M-14,80 v-5 M-2,80 v-5 M10,80 v-5 M22,80 v-5" stroke="#2B1D16" stroke-width="4"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="none" stroke="#2B1D16" stroke-width="5"/>
+</g></g><g transform="translate(1000 230) scale(0.9)">
+<g transform="translate(0 0) rotate(0)">
+  <g transform="translate(-24 66) rotate(0)">
+<g id="leg_l">
+  <path d="M0,0 L0,64" stroke="#2B1D16" stroke-width="22" stroke-linecap="round"/>
+  <path d="M0,0 L0,64" stroke="#6B7B8C" stroke-width="12" stroke-linecap="round"/>
+  <path d="M3,2 L3,60" stroke="#4A5563" stroke-width="4"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#F2B233" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="#F2B233"/>
+  <rect x="-24" y="73" width="58" height="7" rx="3" fill="#B97F14"/>
+  <path d="M-14,80 v-5 M-2,80 v-5 M10,80 v-5 M22,80 v-5" stroke="#2B1D16" stroke-width="4"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="none" stroke="#2B1D16" stroke-width="5"/>
+</g></g>
+  <g transform="translate(24 66) rotate(0)">
+<g id="leg_r">
+  <path d="M0,0 L0,64" stroke="#2B1D16" stroke-width="22" stroke-linecap="round"/>
+  <path d="M0,0 L0,64" stroke="#6B7B8C" stroke-width="12" stroke-linecap="round"/>
+  <path d="M3,2 L3,60" stroke="#4A5563" stroke-width="4"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-13,22 L13,27 L-13,32 L13,37 L-13,42" fill="none" stroke="#F2B233" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="#F2B233"/>
+  <rect x="-24" y="73" width="58" height="7" rx="3" fill="#B97F14"/>
+  <path d="M-14,80 v-5 M-2,80 v-5 M10,80 v-5 M22,80 v-5" stroke="#2B1D16" stroke-width="4"/>
+  <rect x="-24" y="62" width="58" height="18" rx="6" fill="none" stroke="#2B1D16" stroke-width="5"/>
+</g></g>
+  <g transform="translate(-56 -42) rotate(20)">
+<g id="arm_l">
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#2B1D16" stroke-width="26" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#B4C0CB" stroke-width="15" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#6B7B8C" stroke-width="15" stroke-dasharray="4 7"/>
+  <path d="M-8,70 l-8,22 l9,2 l8,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M8,70 l6,22 l-9,2 l-6,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="0" cy="66" r="11" fill="#F2B233" stroke="#2B1D16" stroke-width="5"/>
+  <circle cx="0" cy="66" r="3" fill="#2B1D16"/>
+</g></g>
+  
+<g id="torso">
+  <path d="M-58,-64 Q0,-78 58,-64 L62,64 Q0,80 -62,64 Z" fill="#C4622D"/>
+  <path d="M30,-70 Q46,-68 58,-64 L62,64 Q48,70 32,74 Q40,0 30,-70 Z" fill="#8A3B1C"/>
+  <path d="M-46,-58 L-36,-60 Q-40,0 -36,56 L-46,58 Q-50,0 -46,-58 Z" fill="#E39056"/>
+  <path d="M-60,-28 Q0,-40 60,-28" fill="none" stroke="#2B1D16" stroke-width="5" stroke-linecap="round"/>
+  <path d="M-61,30 Q0,18 61,30" fill="none" stroke="#2B1D16" stroke-width="5" stroke-linecap="round"/>
+  <!-- patch plate -->
+  <g transform="rotate(-7 4 0)">
+    <rect x="-20" y="-16" width="46" height="34" rx="4" fill="#B4C0CB" stroke="#2B1D16" stroke-width="4"/>
+    <path d="M-16,10 L-6,-12 M-4,14 L8,-12 M8,14 L20,-12" stroke="#F2B233" stroke-width="5"/>
+    <rect x="-20" y="-16" width="46" height="34" rx="4" fill="none" stroke="#2B1D16" stroke-width="4"/>
+    <circle cx="-14" cy="-10" r="3" fill="#2B1D16"/><circle cx="20" cy="-10" r="3" fill="#2B1D16"/>
+    <circle cx="-14" cy="12" r="3" fill="#2B1D16"/><circle cx="20" cy="12" r="3" fill="#2B1D16"/>
+  </g>
+  <!-- dent and rust spots -->
+  <path d="M-30,44 q8,-8 16,0" fill="none" stroke="#8A3B1C" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="40" cy="-44" r="4" fill="#8A3B1C"/><circle cx="-24" cy="-48" r="3" fill="#8A3B1C"/>
+  <path d="M-58,-64 Q0,-78 58,-64 L62,64 Q0,80 -62,64 Z" fill="none" stroke="#2B1D16" stroke-width="6" stroke-linejoin="round"/>
+</g>
+  <g transform="translate(0 -72) rotate(0)">
+<g id="head">
+  <path d="M-10,0 l20,-3 l-20,-3 l20,-3 l-20,-3" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round"/>
+  <path d="M-10,0 l20,-3 l-20,-3 l20,-3 l-20,-3" fill="none" stroke="#B4C0CB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M-36,-66 L36,-66 L38,-16 Q0,-6 -38,-16 Z" fill="#6B7B8C"/>
+  <path d="M18,-66 L36,-66 L38,-16 Q28,-13 20,-12 Z" fill="#4A5563"/>
+  <path d="M-30,-60 L-24,-60 L-25,-18 L-31,-19 Z" fill="#B4C0CB"/>
+  <path d="M-36,-66 L36,-66 L38,-16 Q0,-6 -38,-16 Z" fill="none" stroke="#2B1D16" stroke-width="6" stroke-linejoin="round"/>
+  <ellipse cx="0" cy="-66" rx="37" ry="8" fill="#B4C0CB" stroke="#2B1D16" stroke-width="5"/>
+  <!-- fork antenna -->
+  <path d="M-14,-72 L-20,-98 L-30,-106" fill="none" stroke="#2B1D16" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M-14,-72 L-20,-98 L-30,-106" fill="none" stroke="#B4C0CB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="-32" cy="-108" r="7" fill="#F2B233" stroke="#2B1D16" stroke-width="4"/>
+  <!-- eyes: one big camera lens, one small warning light -->
+  <circle cx="12" cy="-40" r="17" fill="#2B1D16"/>
+  <circle cx="12" cy="-40" r="11" fill="#5FE3D0"/>
+  <circle cx="12" cy="-40" r="5" fill="#1C6B66"/>
+  <circle cx="7" cy="-45" r="3" fill="#FFFFFF"/>
+  <circle cx="-20" cy="-36" r="6" fill="#F2B233" stroke="#2B1D16" stroke-width="4"/>
+  <path d="M-16,-24 q10,5 20,0" fill="none" stroke="#2B1D16" stroke-width="4" stroke-linecap="round"/>
+</g></g>
+  <g transform="translate(58 -42) rotate(-20)">
+<g id="arm_r">
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#2B1D16" stroke-width="26" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#B4C0CB" stroke-width="15" stroke-linecap="round"/>
+  <path d="M0,0 Q-8,34 0,62" fill="none" stroke="#6B7B8C" stroke-width="15" stroke-dasharray="4 7"/>
+  <path d="M-8,70 l-8,22 l9,2 l8,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M8,70 l6,22 l-9,2 l-6,-18 Z" fill="#6B7B8C" stroke="#2B1D16" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="0" cy="66" r="11" fill="#F2B233" stroke="#2B1D16" stroke-width="5"/>
+  <circle cx="0" cy="66" r="3" fill="#2B1D16"/>
+</g></g>
+</g></g><text x="150" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="#2B1D16" text-anchor="middle">Torso</text><text x="370" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="#2B1D16" text-anchor="middle">Head</text><text x="560" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="#2B1D16" text-anchor="middle">Arm</text><text x="740" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="#2B1D16" text-anchor="middle">Leg</text><text x="1000" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="#2B1D16" text-anchor="middle">Assembled</text></svg>

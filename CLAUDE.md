@@ -1,0 +1,56 @@
+# Scrapyard Derby (working title)
+
+A one-button, physics-based endless downhill robot game for mobile. Hobby project, no monetization.
+All names, art, sound and code are original.
+
+## Stack
+- Flutter + Flame + flame_forge2d (Box2D port). Dart only.
+- Day-to-day testing: iOS Simulator on the developer's Mac (`open -a Simulator`, then `flutter run -d <simulator id>` from `flutter devices`).
+  A mouse click in the Simulator is a tap; click and hold is a held finger. Haptics don't work there, and performance isn't representative of a phone.
+- Real-device checks later on the developer's Android phone; ship Android first, then iOS.
+- All tunable gameplay numbers live in ONE config file (e.g. `lib/config/tuning.dart`).
+
+## Core loop
+A robot is dropped from high up (not spinning yet) onto a steep, bumpy, endless scrap hill (no flat start, no finish line).
+The robot spins clockwise on its own; touching and holding anywhere applies counter-spin. Land on your feet to keep bouncing and gain speed.
+The feel is calm and floaty ("flow"): the whole game runs slightly slowed down (game speed 0.75), slow spin, very high jumps, but holding reacts quickly. Spinning in the air gathers energy that is fully released into the next bounce (capped), so more spins = higher launches.
+Bad landings break limbs off; with no limbs left the head is launched like a rocket and the attempt ends where it lands. The goal is to cover as much distance as possible.
+The score is horizontal distance in meters; the best distance is shown after each run.
+
+## Mechanics spec
+1. **Spin**: clockwise at a constant speed by default. Holding a finger down is a counter-spin force: the clockwise spin quickly (but not instantly) slows to zero, then builds up counter-clockwise until it reaches the same speed the other way. Releasing returns gradually to full clockwise. No instant flips. Holding is the only correction mechanism.
+2. **Spin energy**: every airtime gathers energy from the turns made in the air (either direction), capped (currently 2 turns = +8 m/s bounce, jumps at most ~21 m). On every landing, whatever the type, ALL of it is released into that bounce and the next airtime starts from zero. Shown as an energy bar under the distance.
+3. **Landings** (robot angle vs ground normal at contact):
+   - Both feet within a tolerance angle: strong bounce along the normal + speed bonus.
+   - One foot: weaker bounce, speed loss.
+   - Any other part: crash bounce, damage to the nearest joint, big speed loss.
+4. **Limb loss**: each arm/leg joint has HP. Crashes cost a lot (nearest limb), one-foot landings hurt that leg, clean landings cost each leg a little. At 0 HP call `joint.destroy()`; the limb stays on the track as debris (remove debris after a few seconds).
+5. **Run end**: the run ends the moment the launched head first touches the ground (distance measured there), or when the robot gets stuck (too slow for a few seconds). Losing all four limbs does NOT end the run; it leads to the head launch.
+6. **Head launch**: when only torso + head remain, the next landing (or ~0.6 s of sliding on the ground) fires the head like a rocket: along the facing direction, bent strongly away from the ground, with power from speed and landing angle (capped), plus a short rocket burn with a flame. The torso stays behind as debris. The head's first ground contact finishes the attempt; it does not roll on. Broken-off parts are flung away from the robot and fade out, so they never look attached.
+7. **Rivals** (open question, was "4-racer race"): undecided how rivals fit an endless distance game, e.g. AI bots on the same hill, ghost runs, or none. AI would use the same physics and hold based on time-to-ground and angle error, plus per-bot skill noise.
+8. **Camera**: follows the player and always frames both the robot and the ground right below it: the higher the robot, the further it zooms out, zooming back in as it lands (capped). Slightly wider when fast. Distance counter and energy bar at the top.
+9. **Juice**: screen shake on crashes, sparks on landings, slow-mo on head launch, haptics on landings.
+
+## Physics setup
+- Robot = 6 `BodyComponent`s (torso, head, arm_l, arm_r, leg_l, leg_r) joined by `RevoluteJoint`s with angle limits.
+- Joint positions in torso-local units (art pixels, scale to world units in config):
+  neck (0,-72), shoulders (-56,-42) and (58,-42), hips (-24,66) and (24,66).
+- Hill = endless: ground height is a formula of x (35 degree slope + sine bumps from a seed), built as static chain-shape chunks ahead of the robot and removed behind it. Chunks overlap by one ghost point so seams are smooth.
+
+## Art
+- Style: hand-drawn cutout vector look. Thick dark outlines, flat fills with one shadow and one highlight.
+- Palette: outline #2B1D16, rust #C4622D / #8A3B1C / #E39056, steel #6B7B8C / #4A5563 / #B4C0CB,
+  hazard yellow #F2B233 / #B97F14, eye glow #5FE3D0.
+- Source of truth: `art/make_style_test.py` generates SVGs. Each part is drawn around its joint pivot,
+  so parts can be exported as separate PNG sprites with the pivot at a known offset.
+- Placeholder shapes are fine in phase 1; real sprites from phase 2.
+
+## Phases
+1. **Feel prototype** (now): spinning robot, hold to counter-spin, 3 landing types, endless hill, limb loss, head launch, distance score, tuning config. Gate: it's fun to replay.
+2. **Playable MVP**: run summary screen, saved best distance, rivals (if kept), Android build, art style test in game.
+3. **Content and upgrades**: hill variants (biomes / difficulty that ramps with distance), scrap currency, upgrade tree, full art set, sound and music.
+4. **Launch**: Play closed testing, iOS build, store listings, optional online leaderboard.
+
+## Working rules
+- Keep the code simple and readable; the developer knows Flutter but is new to game dev.
+- After each change: run `flutter analyze` and the tests, and fix problems before reporting back.
