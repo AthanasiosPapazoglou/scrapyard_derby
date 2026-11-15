@@ -256,4 +256,58 @@ abstract final class Tuning {
 
   /// How far ahead the camera looks, in seconds of current velocity.
   static const double cameraLookAhead = 0.25;
+
+  /// Share of the screen height at the top kept clear for the distance
+  /// counter, so the robot is never drawn behind it.
+  static const double cameraHudReserve = 0.18;
+
+  // ---------------------------------------------------------------- Juice
+  // Visual and touch feedback. None of these change the physics.
+
+  /// Sparks on a clean landing: how many, how fast (m/s), how long (s).
+  static const int sparkCount = 14;
+  static const double sparkSpeed = 7.0;
+  static const double sparkLifetime = 0.4;
+
+  /// Dust puffs on one-foot landings and crashes: count and lifetime (s).
+  static const int dustCount = 10;
+  static const double dustLifetime = 0.7;
+
+  /// Screen shake strength (m) per landing type and on limb loss/launch.
+  /// It fades out at [shakeDecay] per second.
+  static const double shakeClean = 0.08;
+  static const double shakeOneFoot = 0.2;
+  static const double shakeCrash = 0.6;
+  static const double shakeLimbLost = 0.5;
+  static const double shakeHeadLaunch = 0.8;
+  static const double shakeDecay = 7.0;
+
+  /// Bits of scrap thrown off when a limb breaks.
+  static const int limbBreakBits = 8;
+
+  /// Slow motion on head launch: the game runs at this speed share right
+  /// after the launch and eases back to normal over this many real seconds.
+  static const double headLaunchSlowMo = 0.3;
+  static const double headLaunchSlowMoTime = 1.0;
+
+  /// Smoke puffs behind the flying head: seconds between puffs during the
+  /// rocket burn and after it, and how long a puff lasts.
+  static const double smokeIntervalBurn = 0.03;
+  static const double smokeIntervalCoast = 0.09;
+  static const double smokeLifetime = 0.9;
+
+  /// Phone vibration on landings, limb loss and launch (no effect in the
+  /// iOS Simulator).
+  static const bool hapticsEnabled = true;
+
+  // ---------------------------------------------------------------- Background
+  /// Parallax layers of distant scrap heaps, far to near: how much each
+  /// moves with the camera (0 = not at all, 1 = like the ground).
+  static const List<double> parallaxFactors = [0.04, 0.09, 0.16];
+
+  /// Where the distant horizon sits, as a share of the screen height.
+  static const double horizonHeight = 0.62;
+
+  /// Scrap props lying on the slope: average spacing (m) between them.
+  static const double propSpacing = 9.0;
 }

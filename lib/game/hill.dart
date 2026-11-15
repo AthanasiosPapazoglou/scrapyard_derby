@@ -6,6 +6,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/tuning.dart';
 import 'palette.dart';
+import 'scrap_props.dart';
 
 /// The shape of the endless hill, as plain math (no physics), so it can be
 /// unit tested.
@@ -107,7 +108,10 @@ class Hill extends Component {
     // Add the missing ones.
     for (var index = first; index <= last; index++) {
       if (!_chunks.containsKey(index)) {
-        final chunk = HillChunk(geometry.chunkPoints(index));
+        final chunk = HillChunk(
+          geometry.chunkPoints(index),
+          props: propsForChunk(geometry, index),
+        );
         _chunks[index] = chunk;
         add(chunk);
       }
@@ -116,16 +120,34 @@ class Hill extends Component {
 }
 
 /// One static piece of the hill: a chain shape plus its drawing.
+///
+/// Drawn in the cutout style: a flat fill, one lighter highlight band
+/// just under the surface, a thick dark outline, and scrap props on top.
 class HillChunk extends BodyComponent {
-  HillChunk(this.points) : super(priority: 1);
+  HillChunk(this.points, {this.props = const []}) : super(priority: 1);
 
   /// Chain points, including the ghost point at each end.
   final List<Vector2> points;
 
+  /// Junk lying on this piece of slope (decoration only).
+  final List<PropPlacement> props;
+
   late final Path _surfacePath = _buildSurfacePath();
   late final Path _groundPath = _buildGroundPath();
 
+  static final PropPainter _propPainter = PropPainter();
+
   final Paint _fillPaint = Paint()..color = Palette.steelDark;
+  final Paint _bandPaint = Paint()
+    ..color = Palette.steel
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.6
+    ..strokeJoin = StrokeJoin.round;
+  final Paint _highlightPaint = Paint()
+    ..color = Palette.steelLight
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.5
+    ..strokeJoin = StrokeJoin.round;
   final Paint _edgePaint = Paint()
     ..color = Palette.outline
     ..style = PaintingStyle.stroke
@@ -169,8 +191,18 @@ class HillChunk extends BodyComponent {
 
   @override
   void render(Canvas canvas) {
+    canvas.drawPath(_groundPath, _fillPaint);
+    // Bands along the surface, clipped to the ground so only their lower
+    // halves show: a mid-tone band and a thin light highlight on top.
     canvas
-      ..drawPath(_groundPath, _fillPaint)
+      ..save()
+      ..clipPath(_groundPath)
+      ..drawPath(_surfacePath, _bandPaint)
+      ..drawPath(_surfacePath, _highlightPaint)
+      ..restore()
       ..drawPath(_surfacePath, _edgePaint);
+    for (final prop in props) {
+      _propPainter.paint(canvas, prop);
+    }
   }
 }

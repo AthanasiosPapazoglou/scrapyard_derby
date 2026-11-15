@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
 import 'package:scrapyard_derby/game/hill.dart';
+import 'package:scrapyard_derby/game/scrap_props.dart';
 
 void main() {
   final hill = HillGeometry();
@@ -58,5 +59,21 @@ void main() {
       expect(a.last, b[2]);
       expect(b.first, a[a.length - 3]);
     }
+  });
+
+  test('props are placed on the ground and stay the same per chunk', () {
+    final a = propsForChunk(hill, 4);
+    final b = propsForChunk(hill, 4);
+    expect(a, isNotEmpty);
+    expect(a.length, b.length);
+    for (var i = 0; i < a.length; i++) {
+      expect(a[i].position, b[i].position);
+      expect(a[i].position.y, closeTo(hill.heightAt(a[i].position.x), 1e-3));
+    }
+  });
+
+  test('no props near the drop zone at the start', () {
+    final props = propsForChunk(hill, 0);
+    expect(props.every((p) => p.position.x >= 20), isTrue);
   });
 }

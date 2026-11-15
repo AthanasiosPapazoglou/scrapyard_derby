@@ -14,8 +14,11 @@ CameraFraming frameAt(double heightAboveGround) => frameRobotAndGround(
 );
 
 void main() {
-  test('on the ground the camera uses the close base view', () {
-    expect(frameAt(0).visibleWidth, Tuning.cameraBaseWidth);
+  test('on the ground the camera uses a close view', () {
+    // The base view, or slightly wider to keep room for the HUD.
+    final width = frameAt(0).visibleWidth;
+    expect(width, greaterThanOrEqualTo(Tuning.cameraBaseWidth));
+    expect(width, lessThan(Tuning.cameraBaseWidth * 1.15));
   });
 
   test('the higher the robot, the further the camera zooms out', () {
@@ -80,5 +83,21 @@ void main() {
     expect(framing.visibleWidth, Tuning.cameraMaxWidth);
     expect(robotY, greaterThan(framing.center.y - halfVisibleHeight));
     expect(robotY, lessThan(framing.center.y + halfVisibleHeight));
+  });
+
+  test('the robot is never framed behind the HUD at the top', () {
+    for (final height in [0.0, 5.0, 20.0, 60.0, 500.0]) {
+      final robotY = 50 - height;
+      final framing = frameRobotAndGround(
+        robotPosition: Vector2(100, robotY),
+        velocity: Vector2.zero(),
+        groundY: 50,
+        screenAspect: aspect,
+      );
+      final visibleHeight = framing.visibleWidth * aspect;
+      final top = framing.center.y - visibleHeight / 2;
+      final hudBottom = top + visibleHeight * Tuning.cameraHudReserve;
+      expect(robotY, greaterThan(hudBottom), reason: 'height $height');
+    }
   });
 }

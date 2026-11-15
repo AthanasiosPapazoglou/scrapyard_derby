@@ -6,7 +6,9 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import 'background.dart';
 import 'camera_framing.dart';
+import 'effects.dart';
 import 'hill.dart';
 import 'landing.dart';
 import 'palette.dart';
@@ -79,6 +81,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
 
+  /// Feedback effects (particles, shake, vibration).
+  final Effects effects = Effects();
+
+  /// Where the camera is smoothly heading; the shake is added on top.
+  Vector2 _cameraCenter = Vector2.zero();
+
   @override
   Color backgroundColor() => Palette.sky;
 
@@ -86,6 +94,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   Future<void> onLoad() async {
     await super.onLoad();
     world.subStepCount = Tuning.physicsSubSteps;
+    camera.backdrop.add(Background());
+    await world.add(effects);
     _spawnRobot();
     await world.add(Hill(hillGeometry, focusX: _focusX));
   }
@@ -96,7 +106,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   void _spawnRobot() {
     robot = Robot(hill: hillGeometry);
     world.add(robot);
-    camera.viewfinder.position = robot.start.clone();
+    _cameraCenter = robot.start.clone();
+    camera.viewfinder.position = _cameraCenter.clone();
   }
 
   /// Fingers currently touching the screen. Holding any finger down applies
@@ -119,6 +130,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _spawnRobot();
     _runEnd = null;
     _stallTime = 0;
+    _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
     hud.value = HudInfo(bestDistance: _bestDistance);
   }
@@ -127,11 +139,29 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// [Tuning.gameSpeed] speed. This game's own [update] below (camera, HUD,
   /// stuck timer) still gets real time, so the camera stays smooth.
   @override
-  void updateTree(double dt) => super.updateTree(dt * Tuning.gameSpeed);
+  void updateTree(double dt) =>
+      super.updateTree(dt * Tuning.gameSpeed * _slowMoFactor);
+
+  /// Slows the game right after the head launch, easing back to normal
+  /// (see [Tuning.headLaunchSlowMo]).
+  void startHeadLaunchSlowMo() => _slowMoLeft = Tuning.headLaunchSlowMoTime;
+
+  /// Seconds (real time) of head-launch slow motion left.
+  double _slowMoLeft = 0;
+
+  /// 1 = normal speed; lower during the head-launch slow motion.
+  double get _slowMoFactor {
+    if (_slowMoLeft <= 0) {
+      return 1;
+    }
+    final eased = 1 - _slowMoLeft / Tuning.headLaunchSlowMoTime;
+    return Tuning.headLaunchSlowMo + (1 - Tuning.headLaunchSlowMo) * eased;
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
+    _slowMoLeft = math.max(0, _slowMoLeft - dt);
     if (!robot.isLoaded) {
       return;
     }
@@ -187,7 +217,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
         ? Tuning.cameraHeadFollowSharpness
         : Tuning.cameraFollowSharpness;
     final follow = 1 - math.exp(-sharpness * dt);
-    viewfinder.position += (framing.center - viewfinder.position) * follow;
+    _cameraCenter += (framing.center - _cameraCenter) * follow;
+    viewfinder.position = _cameraCenter + effects.shakeOffset(dt);
 
     final zoomFollow = 1 - math.exp(-Tuning.cameraZoomSharpness * dt);
     _visibleWidth += (framing.visibleWidth - _visibleWidth) * zoomFollow;

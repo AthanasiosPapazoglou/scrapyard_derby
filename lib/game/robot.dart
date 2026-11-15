@@ -84,6 +84,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Direction the rocket burn pushes in (the launch direction).
   Vector2 _rocketDirection = Vector2(0, -1);
 
+  /// Seconds since the last smoke puff behind the flying head.
+  double _smokeTimer = 0;
+
   /// Seconds spent on the ground with no limbs left, before the head
   /// launches anyway (see [Tuning.headLaunchGroundDelay]).
   double _noLimbsGroundTime = 0;
@@ -297,6 +300,16 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// the rocket burn keeps pushing it along its launch direction.
   void _updateHead(double dt) {
     _headFlightTime += dt;
+    if (!headLanded) {
+      _smokeTimer += dt;
+      final interval = rocketBurnLeft > 0
+          ? Tuning.smokeIntervalBurn
+          : Tuning.smokeIntervalCoast;
+      if (_smokeTimer >= interval) {
+        _smokeTimer = 0;
+        game.effects.smokePuff(head.body.worldCenterOfMass);
+      }
+    }
     if (rocketBurnLeft > 0 && !headLanded) {
       final burn = math.min(dt, rocketBurnLeft);
       rocketBurnLeft -= burn;
@@ -376,6 +389,11 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     final up = torso.body.rotation.rotate(Vector2(0, -1));
     final type = classifyLanding(part.kind, signedAngleBetween(up, normal));
     lastLanding = type;
+    final points = contact.points;
+    final contactPoint = (points != null && points.isNotEmpty)
+        ? points.first.point
+        : part.body.worldCenterOfMass;
+    game.effects.landing(type, contactPoint, normal);
 
     // Change the velocity of the whole robot by the same amount, so the
     // parts keep moving together.
@@ -459,6 +477,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   void _breakOff(RobotPart limb) {
     limb.joint?.destroy();
     limb.joint = null;
+    game.effects.limbLost(limb.body.worldCenterOfMass);
     _makeDebris(limb);
   }
 
@@ -500,6 +519,8 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     _rocketDirection = launch.normalized();
     rocketBurnLeft = Tuning.headRocketBurnTime;
     _headFlightTime = 0;
+    game.effects.headLaunch(head.body.worldCenterOfMass, _rocketDirection);
+    game.startHeadLaunchSlowMo();
     // Leave the torso where it is; it slows and fades like other debris.
   }
 
@@ -511,6 +532,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
     headLanded = true;
     rocketBurnLeft = 0;
+    game.effects.headLanded(head.body.worldCenterOfMass);
     head.body
       ..linearVelocity = Vector2.zero()
       ..angularVelocity = 0

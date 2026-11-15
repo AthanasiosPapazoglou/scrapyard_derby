@@ -29,7 +29,7 @@ The score is horizontal distance in meters; the best distance is shown after eac
 6. **Head launch**: when only torso + head remain, the next landing (or ~0.6 s of sliding on the ground) fires the head like a rocket: along the facing direction, bent strongly away from the ground, with power from speed and landing angle (capped), plus a short rocket burn with a flame. The torso stays behind as debris. The head's first ground contact finishes the attempt; it does not roll on. Broken-off parts are flung away from the robot and fade out, so they never look attached.
 7. **Rivals** (open question, was "4-racer race"): undecided how rivals fit an endless distance game, e.g. AI bots on the same hill, ghost runs, or none. AI would use the same physics and hold based on time-to-ground and angle error, plus per-bot skill noise.
 8. **Camera**: follows the player and always frames both the robot and the ground right below it: the higher the robot, the further it zooms out, zooming back in as it lands (capped). Slightly wider when fast. Distance counter and energy bar at the top.
-9. **Juice**: screen shake on crashes, sparks on landings, slow-mo on head launch, haptics on landings.
+9. **Juice**: sparks on clean landings, dust on one-foot landings and crashes, screen shake (scaled by landing type), scrap bits on limb loss, slow-mo + spark burst + smoke trail on head launch, haptics on landings/limb loss/launch. All numbers in the Juice section of tuning.dart.
 
 ## Physics setup
 - Robot = 6 `BodyComponent`s (torso, head, arm_l, arm_r, leg_l, leg_r) joined by `RevoluteJoint`s with angle limits.
@@ -44,6 +44,7 @@ The score is horizontal distance in meters; the best distance is shown after eac
 - Source of truth: `art/make_style_test.py` generates SVGs. Each part is drawn around its joint pivot,
   so parts can be exported as separate PNG sprites with the pivot at a known offset.
 - Placeholder shapes are fine in phase 1; real sprites from phase 2.
+- World visuals so far (code-drawn, palette colours): sky gradient, 3 parallax layers of distant scrap heaps (camera backdrop), ground with a highlight band and thick outline, decorative scrap props on the slope (tires, barrels, girders, plates; no physics).
 
 ## Phases
 1. **Feel prototype** (now): spinning robot, hold to counter-spin, 3 landing types, endless hill, limb loss, head launch, distance score, tuning config. Gate: it's fun to replay.

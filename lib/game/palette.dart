@@ -19,4 +19,11 @@ abstract final class Palette {
 
   /// Sky colour behind the hill (not in the brief; a pale warm tone).
   static const sky = Color(0xFFF4E6CF);
+
+  /// Sky gradient: top and near the horizon (warm, dusty haze).
+  static const skyTop = Color(0xFFF8EEDC);
+  static const skyHorizon = Color(0xFFEBCBA2);
+
+  /// Smoke for the head's rocket trail.
+  static const smoke = Color(0xFF9AA3AC);
 }
