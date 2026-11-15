@@ -57,6 +57,15 @@ class HillGeometry {
     return math.atan2(heightAt(x + dx) - heightAt(x - dx), 2 * dx);
   }
 
+  /// Unit normal (pointing up, away from the ground) of the ground's
+  /// average slope over [span] meters around [x]. Used by Leveler Treads,
+  /// so a sharp bump under one foot counts less.
+  Vector2 averageNormalAt(double x, double span) {
+    final half = math.max(span, 0.5) / 2;
+    final angle = math.atan2(heightAt(x + half) - heightAt(x - half), 2 * half);
+    return Vector2(math.sin(angle), -math.cos(angle));
+  }
+
   /// X where chunk number [index] starts. Chunk 0 starts at x = 0.
   static double chunkStartX(int index) => index * Tuning.hillChunkLength;
 

@@ -30,8 +30,8 @@ class ScrapLine {
 /// Lines worth nothing are left out, except distance, which always shows.
 ///
 /// On top of the run's own lines: the [level]'s multiplier and the
-/// permanent [starBonus] (share, e.g. 0.12) both add a share of that
-/// subtotal, and every star earned for the first time ([newStars]) pays a
+/// permanent [starBonus] (share, e.g. 0.12) and the Scrap Magnet gadget's
+/// [magnetBonus] each add a share of that subtotal, and every star earned for the first time ([newStars]) pays a
 /// flat bonus.
 List<ScrapLine> scrapReward(
   RunStats stats, {
@@ -39,6 +39,7 @@ List<ScrapLine> scrapReward(
   int level = 1,
   double starBonus = 0,
   int newStars = 0,
+  double magnetBonus = 0,
 }) {
   final clean = stats.landingsOf(LandingType.clean);
   // A backwards head launch earns nothing (but costs nothing either).
@@ -66,6 +67,10 @@ List<ScrapLine> scrapReward(
     ScrapLine(
       'Stars +${(starBonus * 100).round()}%',
       (subtotal * starBonus).round(),
+    ),
+    ScrapLine(
+      'Scrap Magnet +${(magnetBonus * 100).round()}%',
+      (subtotal * magnetBonus).round(),
     ),
     ScrapLine('New star x$newStars', newStars * Tuning.scrapPerNewStar),
   ];

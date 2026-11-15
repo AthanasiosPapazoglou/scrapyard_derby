@@ -354,10 +354,35 @@ commit command for the developer.
   bonus). Opened from the menu ("Stats") and the Workshop header
   ("All stats"). P4 adds gadget rows here.
 
-### P4 — Gadgets  ☐
+### P4 — Gadgets  ☑
 - `GadgetType` (save ids never renamed) + effects in `RobotStats`, prices
   and per-level numbers in `Tuning`, Workshop tab, unlock by level.
 - Landing Sight and Auto-Gyro reuse `predictLandingError` from the autopilot.
+- Done: `lib/game/gadgets.dart` (`Gadget` enum: ids are save keys, never
+  rename; `effect(level)` texts), numbers in the Gadgets section of
+  `tuning.dart`, effects as `RobotStats` fields (`fromLevels(..., gadgets:)`).
+  Profile: `gadgetLevel`, `isGadgetUnlocked`, `canBuyGadget`, `buyGadget`,
+  saved under `"gadgets"` (no version bump needed).
+  - Landing Sight: `lib/game/landing_sight.dart`, uses `predictLanding`
+    (autopilot.dart, now also returns time, ground point and angle). A
+    gauge beside the robot (ground slope line + coloured "up" stick, sized
+    by zoom, so it stays on screen on big jumps) plus a marker on the
+    ground at touchdown. Hidden during the opening drop.
+  - Auto-Gyro: `autoGyroWantsHold` in autopilot.dart; `DerbyGame.update`
+    ORs it with the player's (or bot's) hold.
+  - Shock Pads: `landingDamage(type, stats:)`. Crash Cage:
+    `Robot.crashCageLeft`. Leveler Treads: `HillGeometry.averageNormalAt`
+    is used for the landing check only (the bounce uses the real normal).
+  - Scrap Magnet: extra line in `scrapReward(magnetBonus:)`.
+  - Workshop: a sixth "GADGETS" tab with a row per gadget; Robot Stats
+    lists gadgets too.
+- Measured (no input, average of all 6 hills): Auto-Gyro 0/1/2/3 =
+  388 / 434 / 515 / 842 m. Sloppy bot (skill 0): 915 m without, 1000-1180 m
+  with any level (not monotonic, as the bot's own holds override). Tune in
+  P7.
+- Gotcha: widget tests run on a fake clock; keep full headless runs
+  (`simulateRun`) in files without `testWidgets` (see
+  `test/gadget_runs_test.dart`), or they time out.
 
 ### P5 — Level scenery  ☐
 - `LevelTheme` per level (sky gradient, heap colours, dirt, props mix, sun /

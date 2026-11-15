@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import '../game/gadgets.dart';
 import '../game/levels.dart';
 import '../game/robot_stats.dart';
 
@@ -40,12 +41,14 @@ class PlayerProfile extends ChangeNotifier {
     Map<int, double> levelBest = const {},
     this._scrap = 0,
     Map<String, int> upgradeLevels = const {},
+    Map<String, int> gadgetLevels = const {},
     this._musicVolume = defaultMusicVolume,
     this._sfxVolume = defaultSfxVolume,
     this._hapticsOn = Tuning.hapticsEnabled,
     this._showDebugInfo = false,
   }) : _levelBest = Map.of(levelBest),
-       _upgradeLevels = Map.of(upgradeLevels);
+       _upgradeLevels = Map.of(upgradeLevels),
+       _gadgetLevels = Map.of(gadgetLevels);
 
   /// Bump this when the JSON layout changes, and migrate in [fromJson].
   /// v2: best distance per level (v1 had one best, now level 1's).
@@ -57,6 +60,7 @@ class PlayerProfile extends ChangeNotifier {
   final Map<int, double> _levelBest;
   int _scrap;
   final Map<String, int> _upgradeLevels;
+  final Map<String, int> _gadgetLevels;
   double _musicVolume;
   double _sfxVolume;
   bool _hapticsOn;
@@ -105,6 +109,32 @@ class PlayerProfile extends ChangeNotifier {
   /// Upgrade level per track name (missing = level 0).
   Map<String, int> get upgradeLevels => Map.unmodifiable(_upgradeLevels);
   int upgradeLevel(String track) => _upgradeLevels[track] ?? 0;
+
+  /// Gadget level per gadget id (missing = not owned).
+  Map<String, int> get gadgetLevels => Map.unmodifiable(_gadgetLevels);
+  int gadgetLevel(Gadget gadget) => _gadgetLevels[gadget.id] ?? 0;
+
+  /// Is [gadget] for sale yet (its level unlocked)?
+  bool isGadgetUnlocked(Gadget gadget) => isUnlocked(gadget.unlockLevel);
+
+  /// Can the next level of [gadget] be bought right now?
+  bool canBuyGadget(Gadget gadget) {
+    final price = gadget.priceAfter(gadgetLevel(gadget));
+    return price != null && isGadgetUnlocked(gadget) && price <= _scrap;
+  }
+
+  /// Buys the next level of [gadget]. Returns false (and changes nothing)
+  /// if it is maxed, still locked or too expensive.
+  bool buyGadget(Gadget gadget) {
+    if (!canBuyGadget(gadget)) {
+      return false;
+    }
+    final level = gadgetLevel(gadget);
+    _scrap -= gadget.priceAfter(level)!;
+    _gadgetLevels[gadget.id] = level + 1;
+    notifyListeners();
+    return true;
+  }
 
   /// Volumes from 0 (off) to 1 (full).
   double get musicVolume => _musicVolume;
@@ -176,19 +206,24 @@ class PlayerProfile extends ChangeNotifier {
   int tierOf(UpgradeTrack track) => upgradeLevel(track.id);
 
   /// The robot's numbers with this profile's upgrades.
-  RobotStats get robotStats => RobotStats.fromLevelOf(upgradeLevel);
+  RobotStats get robotStats => RobotStats.fromLevelOf(
+    upgradeLevel,
+    gadgetLevelOf: (id) => _gadgetLevels[id] ?? 0,
+  );
 
   void setUpgradeLevel(String track, int level) {
     _upgradeLevels[track] = level;
     notifyListeners();
   }
 
-  /// Wipes best distances (so stars and unlocks), scrap and upgrades.
+  /// Wipes best distances (so stars and unlocks), scrap, upgrades and
+  /// gadgets.
   /// Settings are kept.
   void resetProgress() {
     _levelBest.clear();
     _scrap = 0;
     _upgradeLevels.clear();
+    _gadgetLevels.clear();
     notifyListeners();
   }
 
@@ -221,6 +256,7 @@ class PlayerProfile extends ChangeNotifier {
     },
     'scrap': _scrap,
     'upgrades': Map.of(_upgradeLevels),
+    'gadgets': Map.of(_gadgetLevels),
     'settings': {
       'musicVolume': _musicVolume,
       'sfxVolume': _sfxVolume,
@@ -236,6 +272,7 @@ class PlayerProfile extends ChangeNotifier {
     final s = settings is Map ? settings : const {};
     final upgrades = json['upgrades'];
     final levelBest = json['levelBest'];
+    final gadgets = json['gadgets'];
     return PlayerProfile(
       levelBest: {
         // v1 saves had one best distance: it was played on level 1.
@@ -250,6 +287,11 @@ class PlayerProfile extends ChangeNotifier {
       upgradeLevels: {
         if (upgrades is Map)
           for (final MapEntry(:key, :value) in upgrades.entries)
+            if (key is String && value is int) key: value,
+      },
+      gadgetLevels: {
+        if (gadgets is Map)
+          for (final MapEntry(:key, :value) in gadgets.entries)
             if (key is String && value is int) key: value,
       },
       musicVolume: _double(s['musicVolume'], defaultMusicVolume),

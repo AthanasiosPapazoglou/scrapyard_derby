@@ -40,13 +40,34 @@ double wrapAngle(double a) {
   return x - math.pi;
 }
 
-/// Predicts the landing angle error (radians, signed, like the robot's
-/// landing check) if the player keeps [holding] (or not) until touchdown.
-/// Returns null if the robot won't land within [horizon] seconds.
+/// Where and how the robot will touch down if the input stays the same.
+class LandingPrediction {
+  const LandingPrediction({
+    required this.error,
+    required this.time,
+    required this.groundPoint,
+    required this.angle,
+  });
+
+  /// Landing angle error (radians, signed, like the robot's landing check).
+  final double error;
+
+  /// Game seconds until touchdown.
+  final double time;
+
+  /// The point on the ground below the robot at touchdown.
+  final Vector2 groundPoint;
+
+  /// The robot's angle at touchdown (radians, clockwise, 0 = upright).
+  final double angle;
+}
+
+/// Predicts the touchdown if the player keeps [holding] (or not) until
+/// then. Returns null if the robot won't land within [horizon] seconds.
 ///
 /// Flight is ballistic and the spin follows the hold/release ramps, which
 /// is close to what the physics does in the air.
-double? predictLandingError(
+LandingPrediction? predictLanding(
   FlightState s,
   HillGeometry hill, {
   required bool holding,
@@ -68,11 +89,58 @@ double? predictLandingError(
     angle += control * Tuning.spinSpeed * step;
     v.y += Tuning.gravity * step;
     p.addScaled(v, step);
-    if (hill.heightAt(p.x) - p.y <= s.feetBelowTorso) {
-      return wrapAngle(angle - hill.slopeAngleAt(p.x));
+    final groundY = hill.heightAt(p.x);
+    if (groundY - p.y <= s.feetBelowTorso) {
+      return LandingPrediction(
+        error: wrapAngle(angle - hill.slopeAngleAt(p.x)),
+        time: t + step,
+        groundPoint: Vector2(p.x, groundY),
+        angle: angle,
+      );
     }
   }
   return null;
+}
+
+/// The landing angle error from [predictLanding], or null.
+double? predictLandingError(
+  FlightState s,
+  HillGeometry hill, {
+  required bool holding,
+  RobotStats stats = RobotStats.base,
+  double horizon = 6,
+  double step = 1 / 60,
+}) => predictLanding(
+  s,
+  hill,
+  holding: holding,
+  stats: stats,
+  horizon: horizon,
+  step: step,
+)?.error;
+
+/// The Auto-Gyro gadget: should it hold for a player who isn't holding?
+/// Only in the last [RobotStats.autoGyroWindow] seconds before touchdown,
+/// only when letting go would not land clean, and only when holding lands
+/// closer to upright.
+bool autoGyroWantsHold(
+  FlightState s,
+  HillGeometry hill, {
+  required RobotStats stats,
+}) {
+  if (stats.autoGyroWindow <= 0) {
+    return false;
+  }
+  final release = predictLanding(s, hill, holding: false, stats: stats);
+  if (release == null || release.time > stats.autoGyroWindow) {
+    return false;
+  }
+  final cleanLimit = stats.cleanToleranceDeg * math.pi / 180;
+  if (release.error.abs() <= cleanLimit) {
+    return false;
+  }
+  final hold = predictLanding(s, hill, holding: true, stats: stats);
+  return hold != null && hold.error.abs() < release.error.abs();
 }
 
 /// A bot that plays like a person: while in the air it holds when holding

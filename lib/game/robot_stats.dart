@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import 'gadgets.dart';
 
 /// The five Workshop slots. Each one has six parts (tier 0 = the scrap
 /// robot's own, tiers 1-5 to buy); a better part looks more high-tech and
@@ -129,14 +130,24 @@ class RobotStats {
     this.maxEnergyBounce = Tuning.coreMaxExtraBounce,
     this.headLaunchScale = 1,
     this.headRocketBurnTime = Tuning.headRocketBurnTime,
+    this.landingSightTime = 0,
+    this.scrapMagnet = 0,
+    this.autoGyroWindow = 0,
+    this.landingDamageScale = 1,
+    this.crashCageCrashes = 0,
+    this.levelerSpan = 0,
   });
 
   /// The plain robot, no upgrades.
   static const RobotStats base = RobotStats();
 
   /// Stats for the given upgrade levels (missing tracks = level 0; levels
-  /// are clamped to 0..[Tuning.upgradeMaxLevel]).
-  factory RobotStats.fromLevels(Map<UpgradeTrack, int> levels) {
+  /// are clamped to 0..[Tuning.upgradeMaxLevel]) and [gadgets] levels
+  /// (missing = not owned).
+  factory RobotStats.fromLevels(
+    Map<UpgradeTrack, int> levels, {
+    Map<Gadget, int> gadgets = const {},
+  }) {
     double level(UpgradeTrack track) =>
         (levels[track] ?? 0).clamp(0, Tuning.upgradeMaxLevel).toDouble();
 
@@ -145,6 +156,11 @@ class RobotStats {
     final gyro = level(UpgradeTrack.gyroArms);
     final core = level(UpgradeTrack.energyCore);
     final rocket = level(UpgradeTrack.rocketHead);
+
+    int owned(Gadget gadget) =>
+        (gadgets[gadget] ?? 0).clamp(0, Tuning.gadgetMaxLevel);
+    double perLevel(List<double> values, Gadget gadget) =>
+        owned(gadget) == 0 ? 0 : values[owned(gadget) - 1];
 
     final gyroShare = math.max(
       Tuning.gyroTimeMinShare,
@@ -178,14 +194,28 @@ class RobotStats {
         Tuning.rocketBurnMax,
         Tuning.headRocketBurnTime + Tuning.rocketBurnPerLevel * rocket,
       ),
+      landingSightTime: perLevel(Tuning.landingSightTimes, Gadget.landingSight),
+      scrapMagnet: Tuning.scrapMagnetPerLevel * owned(Gadget.scrapMagnet),
+      autoGyroWindow: perLevel(Tuning.autoGyroWindows, Gadget.autoGyro),
+      landingDamageScale:
+          1 - Tuning.shockPadsPerLevel * owned(Gadget.shockPads),
+      crashCageCrashes: Tuning.crashCagePerLevel * owned(Gadget.crashCage),
+      levelerSpan: perLevel(Tuning.levelerSpans, Gadget.levelerTreads),
     );
   }
 
-  /// Stats for a profile's saved levels, looked up by track id.
-  factory RobotStats.fromLevelOf(int Function(String trackId) levelOf) =>
-      RobotStats.fromLevels({
-        for (final track in UpgradeTrack.values) track: levelOf(track.id),
-      });
+  /// Stats for a profile's saved levels, looked up by track id (and
+  /// gadget id).
+  factory RobotStats.fromLevelOf(
+    int Function(String trackId) levelOf, {
+    int Function(String gadgetId)? gadgetLevelOf,
+  }) => RobotStats.fromLevels(
+    {for (final track in UpgradeTrack.values) track: levelOf(track.id)},
+    gadgets: {
+      if (gadgetLevelOf != null)
+        for (final gadget in Gadget.values) gadget: gadgetLevelOf(gadget.id),
+    },
+  );
 
   /// Damage between one part breaking and the next (see damage.dart).
   final double limbMaxHp;
@@ -214,6 +244,26 @@ class RobotStats {
 
   /// Seconds of rocket burn after the head launch.
   final double headRocketBurnTime;
+
+  // Gadgets (0 / 1 = off).
+
+  /// Landing Sight: seconds before touchdown the predicted landing shows.
+  final double landingSightTime;
+
+  /// Scrap Magnet: extra scrap share, e.g. 0.2 = +20%.
+  final double scrapMagnet;
+
+  /// Auto-Gyro: seconds before touchdown it may hold for the player.
+  final double autoGyroWindow;
+
+  /// Shock Pads: multiplier on one-foot and crash damage.
+  final double landingDamageScale;
+
+  /// Crash Cage: crashes per run that cost no damage.
+  final int crashCageCrashes;
+
+  /// Leveler Treads: meters of ground averaged for the landing check.
+  final double levelerSpan;
 
   /// A short "now" value for the Workshop, e.g. "115 HP".
   String summary(UpgradeTrack track) => switch (track) {

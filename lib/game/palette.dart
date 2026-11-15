@@ -45,6 +45,9 @@ abstract final class Palette {
   /// Light text over the dark sky (with an [outline] edge).
   static const cream = Color(0xFFFFF2D6);
 
+  /// Warning red (Landing Sight: this landing will crash).
+  static const danger = Color(0xFFE5483B);
+
   /// Smoke for the head's rocket trail.
   static const smoke = Color(0xFF9AA3AC);
 }

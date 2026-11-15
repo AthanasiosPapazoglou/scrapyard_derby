@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/tuning.dart';
+import '../game/gadgets.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
@@ -49,9 +50,28 @@ class _WorkshopPageState extends State<WorkshopPage> {
   int _nextTier(UpgradeTrack track) =>
       (_installed(track) + 1).clamp(0, Tuning.upgradeMaxLevel);
 
+  /// True while the Gadgets tab is open instead of a part slot.
+  bool _gadgets = false;
+
+  void _openGadgets() {
+    Sound.play(Sfx.uiClick);
+    setState(() => _gadgets = true);
+  }
+
+  void _buyGadget(Gadget gadget) {
+    if (!_profile.buyGadget(gadget)) {
+      return;
+    }
+    Sound.play(Sfx.uiBuy);
+    if (_profile.hapticsOn) {
+      unawaited(HapticFeedback.mediumImpact());
+    }
+  }
+
   void _selectSlot(UpgradeTrack track) {
     Sound.play(Sfx.uiClick);
     setState(() {
+      _gadgets = false;
       _slot = track;
       _viewTier = _nextTier(track);
     });
@@ -103,7 +123,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
     // The robot in the bay wears its installed parts, except the slot
     // being browsed, which shows the part you're looking at.
     int tryOn(UpgradeTrack track) =>
-        track == _slot ? _viewTier : _installed(track);
+        !_gadgets && track == _slot ? _viewTier : _installed(track);
     return Column(
       children: [
         _Header(
@@ -125,7 +145,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                   flex: 4,
                   child: _RobotBay(
                     look: sprites?.look(tryOn),
-                    tryingOn: _viewTier == _installed(_slot)
+                    tryingOn: _gadgets || _viewTier == _installed(_slot)
                         ? null
                         : _slot.partName(_viewTier),
                   ),
@@ -140,41 +160,55 @@ class _WorkshopPageState extends State<WorkshopPage> {
                         selected: _slot,
                         installedOf: _installed,
                         onSelect: _selectSlot,
+                        gadgetsSelected: _gadgets,
+                        gadgetsOwned: Gadget.values
+                            .where((g) => _profile.gadgetLevel(g) > 0)
+                            .length,
+                        onGadgets: _openGadgets,
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        height: 124,
-                        child: Row(
-                          children: [
-                            for (
-                              var tier = 0;
-                              tier <= Tuning.upgradeMaxLevel;
-                              tier++
-                            )
-                              Expanded(
-                                child: _PartCard(
-                                  sprite: sprites?.part(_slot, tier),
-                                  name: _slot.partName(tier),
-                                  tier: tier,
-                                  installed: _installed(_slot),
-                                  selected: tier == _viewTier,
-                                  onTap: () => _viewPart(tier),
+                      if (_gadgets)
+                        Expanded(
+                          child: _GadgetList(
+                            profile: _profile,
+                            onBuy: _buyGadget,
+                          ),
+                        )
+                      else ...[
+                        SizedBox(
+                          height: 124,
+                          child: Row(
+                            children: [
+                              for (
+                                var tier = 0;
+                                tier <= Tuning.upgradeMaxLevel;
+                                tier++
+                              )
+                                Expanded(
+                                  child: _PartCard(
+                                    sprite: sprites?.part(_slot, tier),
+                                    name: _slot.partName(tier),
+                                    tier: tier,
+                                    installed: _installed(_slot),
+                                    selected: tier == _viewTier,
+                                    onTap: () => _viewPart(tier),
+                                  ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: _PartDetails(
-                          slot: _slot,
-                          tier: _viewTier,
-                          installed: _installed(_slot),
-                          canBuy: _profile.canBuy(_slot),
-                          maxTier: _profile.maxPartTier,
-                          onBuy: _buy,
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: _PartDetails(
+                            slot: _slot,
+                            tier: _viewTier,
+                            installed: _installed(_slot),
+                            canBuy: _profile.canBuy(_slot),
+                            maxTier: _profile.maxPartTier,
+                            onBuy: _buy,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -348,11 +382,20 @@ class _SlotTabs extends StatelessWidget {
     required this.selected,
     required this.installedOf,
     required this.onSelect,
+    required this.gadgetsSelected,
+    required this.gadgetsOwned,
+    required this.onGadgets,
   });
 
+  /// The selected slot; ignored while [gadgetsSelected].
   final UpgradeTrack selected;
   final int Function(UpgradeTrack) installedOf;
   final ValueChanged<UpgradeTrack> onSelect;
+
+  /// The Gadgets tab after the slots.
+  final bool gadgetsSelected;
+  final int gadgetsOwned;
+  final VoidCallback onGadgets;
 
   @override
   Widget build(BuildContext context) {
@@ -363,13 +406,29 @@ class _SlotTabs extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
               child: _SlotTab(
-                track: track,
-                tier: installedOf(track),
-                selected: track == selected,
+                name: track.name,
+                semanticLabel: '${track.name}, tier ${installedOf(track)}',
+                pips: installedOf(track),
+                maxPips: Tuning.upgradeMaxLevel,
+                selected: !gadgetsSelected && track == selected,
                 onTap: () => onSelect(track),
               ),
             ),
           ),
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: _SlotTab(
+              name: 'Gadgets',
+              semanticLabel: 'Gadgets, $gadgetsOwned owned',
+              pips: gadgetsOwned,
+              maxPips: Gadget.values.length,
+              selected: gadgetsSelected,
+              onTap: onGadgets,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -377,14 +436,20 @@ class _SlotTabs extends StatelessWidget {
 
 class _SlotTab extends StatelessWidget {
   const _SlotTab({
-    required this.track,
-    required this.tier,
+    required this.name,
+    required this.semanticLabel,
+    required this.pips,
+    required this.maxPips,
     required this.selected,
     required this.onTap,
   });
 
-  final UpgradeTrack track;
-  final int tier;
+  final String name;
+  final String semanticLabel;
+
+  /// Filled pips out of [maxPips] (installed tier, or gadgets owned).
+  final int pips;
+  final int maxPips;
   final bool selected;
   final VoidCallback onTap;
 
@@ -394,7 +459,7 @@ class _SlotTab extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${track.name}, tier $tier',
+      label: semanticLabel,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -412,7 +477,7 @@ class _SlotTab extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                track.name.toUpperCase(),
+                name.toUpperCase(),
                 style: TextStyle(
                   color: fg,
                   fontSize: 14,
@@ -420,7 +485,7 @@ class _SlotTab extends StatelessWidget {
                   letterSpacing: 1,
                 ),
               ),
-              _TierPips(tier: tier, color: fg),
+              _TierPips(tier: pips, max: maxPips, color: fg),
             ],
           ),
         ),
@@ -431,9 +496,14 @@ class _SlotTab extends StatelessWidget {
 
 /// Small pips: filled up to the installed tier.
 class _TierPips extends StatelessWidget {
-  const _TierPips({required this.tier, required this.color});
+  const _TierPips({
+    required this.tier,
+    required this.color,
+    this.max = Tuning.upgradeMaxLevel,
+  });
 
   final int tier;
+  final int max;
   final Color color;
 
   @override
@@ -441,7 +511,7 @@ class _TierPips extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var i = 1; i <= Tuning.upgradeMaxLevel; i++)
+        for (var i = 1; i <= max; i++)
           Container(
             width: 7,
             height: 7,
@@ -601,6 +671,123 @@ class _PartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PartPainter oldDelegate) => oldDelegate.sprite != sprite;
+}
+
+/// The Gadgets tab: one row per gadget with its level, effect now and
+/// next, and the Buy button (or what unlocks it).
+class _GadgetList extends StatelessWidget {
+  const _GadgetList({required this.profile, required this.onBuy});
+
+  final PlayerProfile profile;
+  final ValueChanged<Gadget> onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _Garage.panel,
+        border: Border.all(color: _Garage.panelEdge, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        itemCount: Gadget.values.length,
+        separatorBuilder: (_, _) =>
+            const Divider(color: _Garage.panelEdge, height: 8),
+        itemBuilder: (context, i) => _GadgetRow(
+          gadget: Gadget.values[i],
+          profile: profile,
+          onBuy: () => onBuy(Gadget.values[i]),
+        ),
+      ),
+    );
+  }
+}
+
+class _GadgetRow extends StatelessWidget {
+  const _GadgetRow({
+    required this.gadget,
+    required this.profile,
+    required this.onBuy,
+  });
+
+  final Gadget gadget;
+  final PlayerProfile profile;
+  final VoidCallback onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = profile.gadgetLevel(gadget);
+    final price = gadget.priceAfter(level);
+    final unlocked = profile.isGadgetUnlocked(gadget);
+    final Widget action;
+    if (price == null) {
+      action = const _Pill(text: 'MAXED', color: Crt.green);
+    } else if (!unlocked) {
+      action = SizedBox(
+        width: 120,
+        child: _Pill(
+          text: 'UNLOCKS WITH LEVEL ${gadget.unlockLevel}',
+          color: Palette.steelLight,
+        ),
+      );
+    } else {
+      action = DerbyButton(
+        label: 'BUY $price',
+        icon: Icons.settings,
+        primary: true,
+        onPressed: profile.canBuyGadget(gadget) ? onBuy : null,
+        disabledNote: 'NOT ENOUGH SCRAP',
+      );
+    }
+    final readout = price == null
+        ? gadget.effect(level)
+        : '${gadget.effect(level)}  →  ${gadget.effect(level + 1)}';
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    gadget.name,
+                    style: TextStyle(
+                      color: unlocked ? Palette.cream : Palette.steelLight,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _TierPips(
+                    tier: level,
+                    max: Tuning.gadgetMaxLevel,
+                    color: unlocked ? Palette.hazard : Palette.steelLight,
+                  ),
+                ],
+              ),
+              Text(
+                gadget.description,
+                style: const TextStyle(color: Palette.steelLight, fontSize: 11),
+              ),
+              Text(
+                readout,
+                style: const TextStyle(
+                  color: Crt.green,
+                  fontFamily: Crt.font,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        action,
+      ],
+    );
+  }
 }
 
 /// The first level that unlocks part [tier].

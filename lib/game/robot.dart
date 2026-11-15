@@ -83,6 +83,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Parts still connected to the robot (not debris).
   Iterable<RobotPart> get attachedParts => parts.where((p) => !p.detached);
 
+  /// Crashes left this run that the Crash Cage gadget absorbs.
+  late int crashCageLeft = stats.crashCageCrashes;
+
   /// Shared damage that decides which part breaks next (see damage.dart).
   late final RobotDamage damage = RobotDamage(limbMaxHp: stats.limbMaxHp);
 
@@ -125,6 +128,10 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// The spin only starts once the robot has touched the ground, so the
   /// opening drop is calm and the first landing is clean.
   bool _hasTouchedDown = false;
+
+  /// True once the robot has landed for the first time (it only starts
+  /// spinning then).
+  bool get hasTouchedDown => _hasTouchedDown;
 
   double _airTime = 0;
 
@@ -465,17 +472,22 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       return;
     }
     final up = torso.body.rotation.rotate(Vector2(0, -1));
-    final type = classifyLanding(
-      part.kind,
-      signedAngleBetween(up, normal),
-      stats: stats,
-    );
-    lastLanding = type;
-    runStats.addLanding(type);
     final points = contact.points;
     final contactPoint = (points != null && points.isNotEmpty)
         ? points.first.point
         : part.body.worldCenterOfMass;
+    // Leveler Treads judge the landing against the ground's average slope
+    // instead of the exact spot touched.
+    final judgedNormal = stats.levelerSpan > 0
+        ? game.hillGeometry.averageNormalAt(contactPoint.x, stats.levelerSpan)
+        : normal;
+    final type = classifyLanding(
+      part.kind,
+      signedAngleBetween(up, judgedNormal),
+      stats: stats,
+    );
+    lastLanding = type;
+    runStats.addLanding(type);
     game.effects.landing(type, contactPoint, normal);
 
     // Change the velocity of the whole robot by the same amount, so the
@@ -510,7 +522,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Adds this landing's damage to the shared total and breaks off the
   /// limbs whose turn it is (arms first, then legs; see damage.dart).
   void _applyLandingDamage(LandingType type) {
-    for (final slot in damage.add(landingDamage(type))) {
+    // Crash Cage: the first crashes of the run cost nothing.
+    if (type == LandingType.crash && crashCageLeft > 0) {
+      crashCageLeft--;
+      return;
+    }
+    for (final slot in damage.add(landingDamage(type, stats: stats))) {
       _breakOff(_partFor(slot));
     }
   }

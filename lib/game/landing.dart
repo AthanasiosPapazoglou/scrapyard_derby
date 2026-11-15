@@ -93,12 +93,14 @@ Vector2 velocityAfterLanding(
 }
 
 /// How much damage a landing adds to the robot's shared damage total
-/// (see damage.dart).
-double landingDamage(LandingType type) => switch (type) {
-  LandingType.clean => Tuning.cleanLandingDamage,
-  LandingType.oneFoot => Tuning.oneFootDamage,
-  LandingType.crash => Tuning.crashDamage,
-};
+/// (see damage.dart). Shock Pads ([RobotStats.landingDamageScale]) soften
+/// one-foot landings and crashes.
+double landingDamage(LandingType type, {RobotStats stats = RobotStats.base}) =>
+    switch (type) {
+      LandingType.clean => Tuning.cleanLandingDamage,
+      LandingType.oneFoot => Tuning.oneFootDamage * stats.landingDamageScale,
+      LandingType.crash => Tuning.crashDamage * stats.landingDamageScale,
+    };
 
 // ---------------------------------------------------------------- Spin energy
 //

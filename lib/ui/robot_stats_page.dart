@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/tuning.dart';
+import '../game/gadgets.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_stats.dart';
@@ -176,6 +177,16 @@ class _StatsScreen extends StatelessWidget {
             for (final line in lines.where((l) => l.slot == slot))
               _StatRow(line),
           ],
+          const Padding(
+            padding: EdgeInsets.only(top: 5, bottom: 1),
+            child: Text('GADGETS', style: TextStyle(color: Crt.amber)),
+          ),
+          for (final gadget in Gadget.values)
+            _GadgetStatRow(
+              gadget: gadget,
+              level: profile.gadgetLevel(gadget),
+              unlocked: profile.isGadgetUnlocked(gadget),
+            ),
           const SizedBox(height: 6),
           const _Legend(),
         ],
@@ -238,6 +249,63 @@ class _StatRow extends StatelessWidget {
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                   fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A gadget's level as a bar, and what it does now (or what unlocks it).
+class _GadgetStatRow extends StatelessWidget {
+  const _GadgetStatRow({
+    required this.gadget,
+    required this.level,
+    required this.unlocked,
+  });
+
+  final Gadget gadget;
+  final int level;
+  final bool unlocked;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = unlocked || level > 0
+        ? gadget.effect(level)
+        : 'Unlocks with level ${gadget.unlockLevel}';
+    return Semantics(
+      label: '${gadget.name} level $level of ${Tuning.gadgetMaxLevel}, $text',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1.5),
+        child: Row(
+          children: [
+            SizedBox(width: 125, child: Text(gadget.name)),
+            Expanded(
+              child: SizedBox(
+                height: 10,
+                child: CustomPaint(
+                  painter: _StatBar(
+                    now: level / Tuning.gadgetMaxLevel,
+                    reachable: unlocked ? 1 : level / Tuning.gadgetMaxLevel,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 185,
+              child: Text(
+                text,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked || level > 0
+                      ? Crt.green
+                      : Crt.green.withValues(alpha: 0.5),
                 ),
               ),
             ),

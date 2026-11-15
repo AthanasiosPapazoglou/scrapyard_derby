@@ -14,6 +14,7 @@ import 'damage.dart';
 import 'effects.dart';
 import 'hill.dart';
 import 'landing.dart';
+import 'landing_sight.dart';
 import 'levels.dart';
 import 'palette.dart';
 import 'robot.dart';
@@ -144,6 +145,9 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     HudInfo(bestDistance: profile.bestOn(level)),
   );
 
+  /// Meters of world visible across the screen right now (zoom).
+  double get visibleWidth => _visibleWidth;
+
   RunResult? _result;
   int _starsPassed = 0;
   double _stallTime = 0;
@@ -171,6 +175,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     await world.add(effects);
     _spawnRobot();
     await world.add(Hill(hillGeometry, focusX: _focusX)..priority = 1);
+    await world.add(LandingSight());
     // A flag at each star distance (distance is measured from the start).
     final targets = Levels.of(level).starDistances;
     for (var i = 0; i < targets.length; i++) {
@@ -262,14 +267,14 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       return;
     }
     final pilot = autopilot;
-    final bool wantsHold;
+    final bool playerHolds;
     if (pilot == null) {
-      wantsHold = _heldPointers.isNotEmpty;
+      playerHolds = _heldPointers.isNotEmpty;
     } else if (robot.headLaunched) {
       // Nothing left to steer (and the torso may already be removed).
-      wantsHold = false;
+      playerHolds = false;
     } else {
-      wantsHold = pilot.decide(
+      playerHolds = pilot.decide(
         robot.flightState,
         hillGeometry,
         dt: dt * Tuning.gameSpeed * _slowMoFactor,
@@ -277,6 +282,16 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
         stats: robot.stats,
       );
     }
+    // Auto-Gyro gadget: helps whoever plays when they aren't holding.
+    final wantsHold =
+        playerHolds ||
+        (!robot.headLaunched &&
+            !robot.isOnGround &&
+            autoGyroWantsHold(
+              robot.flightState,
+              hillGeometry,
+              stats: robot.stats,
+            ));
     robot.holding = _result == null && wantsHold;
     if (_result == null) {
       _checkStarsPassed();
@@ -332,6 +347,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       level: level,
       starBonus: starBonus,
       newStars: record.newStars,
+      magnetBonus: robot.stats.scrapMagnet,
     );
     profile.addScrap(scrapTotal(scrap));
     if (isNewBest) {

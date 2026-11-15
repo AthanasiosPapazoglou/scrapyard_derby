@@ -461,6 +461,51 @@ abstract final class Tuning {
   static const double rocketBurnPerLevel = 0.08;
   static const double rocketBurnMax = 0.9;
 
+  // ---------------------------------------------------------------- Gadgets
+  // Extra helpers bought in the Workshop's Gadgets tab (see
+  // lib/game/gadgets.dart). Each has [gadgetMaxLevel] levels and opens with
+  // a level (Gadget.unlockLevel). Level 0 = not owned, no effect.
+
+  static const int gadgetMaxLevel = 3;
+
+  /// Scrap price of each gadget level (index 0 = buying level 1), by
+  /// gadget id.
+  static const Map<String, List<int>> gadgetPrices = {
+    'landingSight': [60, 150, 300],
+    'scrapMagnet': [100, 250, 500],
+    'autoGyro': [200, 450, 800],
+    'shockPads': [300, 600, 1000],
+    'crashCage': [400, 800, 1300],
+    'levelerTreads': [500, 1000, 1600],
+  };
+
+  /// Landing Sight: shows the predicted landing this many seconds (game
+  /// time) before touchdown, per level. The last level covers any flight.
+  static const List<double> landingSightTimes = [0.6, 1.2, 10.0];
+
+  /// Size (radius) of the Landing Sight gauge next to the robot, as a
+  /// share of the visible screen width in meters.
+  static const double landingSightGaugeSize = 0.035;
+
+  /// Scrap Magnet: extra scrap share per level.
+  static const double scrapMagnetPerLevel = 0.10;
+
+  /// Auto-Gyro: in the last this-many seconds before touchdown, while the
+  /// player isn't holding and the landing would not be clean, it holds for
+  /// them whenever holding lands closer to upright. Per level.
+  static const List<double> autoGyroWindows = [0.3, 0.5, 0.8];
+
+  /// Shock Pads: one-foot and crash damage −15% per level.
+  static const double shockPadsPerLevel = 0.15;
+
+  /// Crash Cage: crashes per run that cost no damage, per level.
+  static const int crashCagePerLevel = 1;
+
+  /// Leveler Treads: the landing check uses the ground's average slope
+  /// over this many meters around the touchdown, per level, so sharp
+  /// bumps count less.
+  static const List<double> levelerSpans = [1.0, 2.0, 3.0];
+
   // ---------------------------------------------------------------- Background
   /// Parallax layers of distant scrap heaps, far to near: how much each
   /// moves with the camera (0 = not at all, 1 = like the ground).
