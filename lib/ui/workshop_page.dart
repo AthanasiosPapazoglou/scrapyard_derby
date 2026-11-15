@@ -14,6 +14,7 @@ import 'crt.dart';
 import 'derby_button.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
+import 'robot_stats_page.dart';
 
 /// The garage: swap the robot's parts for better ones with scrap.
 ///
@@ -108,6 +109,11 @@ class _WorkshopPageState extends State<WorkshopPage> {
         _Header(
           scrap: _profile.scrap,
           onBack: () => Navigator.of(context).pop(),
+          onStats: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => RobotStatsPage(profile: _profile),
+            ),
+          ),
         ),
         Expanded(
           child: Padding(
@@ -192,10 +198,15 @@ abstract final class _Garage {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.scrap, required this.onBack});
+  const _Header({
+    required this.scrap,
+    required this.onBack,
+    required this.onStats,
+  });
 
   final int scrap;
   final VoidCallback onBack;
+  final VoidCallback onStats;
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +221,21 @@ class _Header extends StatelessWidget {
           ),
           const OutlinedText('WORKSHOP', fontSize: 28, color: Palette.hazard),
           const Spacer(),
+          TextButton.icon(
+            onPressed: () {
+              Sound.play(Sfx.uiClick);
+              onStats();
+            },
+            icon: const Icon(Icons.bar_chart, color: Palette.hazard),
+            label: const Text(
+              'All stats',
+              style: TextStyle(
+                color: Palette.cream,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
           const Icon(Icons.settings, color: Palette.hazard, size: 22),
           const SizedBox(width: 6),
           OutlinedText('$scrap Scrap', fontSize: 22, color: Palette.cream),

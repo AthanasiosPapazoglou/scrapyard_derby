@@ -341,10 +341,18 @@ commit command for the developer.
   is open (replaces the game page). "Menu" buttons in the game are now
   "Levels" and go back to the level select.
 
-### P3 — Robot stats screen  ☐
+### P3 — Robot stats screen  ☑
 - Every stat with its current value and the max possible (all tiers +
   gadgets), as CRT bars; star scrap bonus and level multipliers too.
   Opened from the menu and the Workshop.
+- Done: `lib/game/stat_sheet.dart` (pure) lists 10 stats by slot with
+  base / now / reachable (parts on sale now) / max; bars show upgrade
+  progress (empty = scrap robot, full = max; times count down).
+  `lib/ui/robot_stats_page.dart`: CRT "ROBOT" panel (slot, installed part,
+  tier, bar, "now / max") and "PROGRESS" panel (stars, levels cleared,
+  furthest level, parts tier on sale, star bonus, level multiplier, new-star
+  bonus). Opened from the menu ("Stats") and the Workshop header
+  ("All stats"). P4 adds gadget rows here.
 
 ### P4 — Gadgets  ☐
 - `GadgetType` (save ids never renamed) + effects in `RobotStats`, prices

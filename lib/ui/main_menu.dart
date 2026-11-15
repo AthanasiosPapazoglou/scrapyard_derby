@@ -9,6 +9,7 @@ import 'derby_button.dart';
 import 'level_select_page.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
+import 'robot_stats_page.dart';
 import 'settings_page.dart';
 import 'workshop_page.dart';
 
@@ -54,6 +55,14 @@ class _MainMenuState extends State<MainMenu>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => WorkshopPage(profile: widget.profile),
+      ),
+    );
+  }
+
+  void _openStats() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => RobotStatsPage(profile: widget.profile),
       ),
     );
   }
@@ -119,6 +128,7 @@ class _MainMenuState extends State<MainMenu>
                           onPlay: _play,
                           onSettings: _openSettings,
                           onWorkshop: _openWorkshop,
+                          onStats: _openStats,
                         ),
                       ),
                     ),
@@ -140,12 +150,14 @@ class _MenuPanel extends StatelessWidget {
     required this.onPlay,
     required this.onSettings,
     required this.onWorkshop,
+    required this.onStats,
   });
 
   final PlayerProfile profile;
   final VoidCallback onPlay;
   final VoidCallback onSettings;
   final VoidCallback onWorkshop;
+  final VoidCallback onStats;
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +199,12 @@ class _MenuPanel extends StatelessWidget {
                 label: 'Workshop',
                 icon: Icons.build,
                 onPressed: onWorkshop,
+              ),
+              const SizedBox(width: 12),
+              DerbyButton(
+                label: 'Stats',
+                icon: Icons.bar_chart,
+                onPressed: onStats,
               ),
               const SizedBox(width: 12),
               DerbyButton(
