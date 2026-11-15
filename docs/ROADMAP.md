@@ -23,7 +23,7 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Game loop, camera, run end, HUD data | `lib/game/derby_game.dart` (`HudInfo`, `RunEnd`) |
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
 | Pure, tested logic | `robot_stats.dart`, `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
-| Audio | `sound.dart`, generator `art/make_sfx.py`, files `assets/audio/sfx/` |
+| Audio | `sound.dart`, generators `art/make_sfx.py` and `art/make_music.py`, files in `assets/audio/` |
 | Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
 | Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `settings_page.dart`, `workshop_page.dart`, `crt.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
 | Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
@@ -38,6 +38,8 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 - `DerbyGame.updateTree` scales world time (`Tuning.gameSpeed`, head-launch slow-mo);
   `DerbyGame.update` itself gets real time (camera, HUD, stall timer).
 - Flame particles don't pass `lifespan` down to child particles; set it explicitly.
+- Hot restart keeps the old native music player running, so the music can
+  double up in development; a full `flutter run` restart fixes it.
 - A `CustomPaint` without a child is zero-sized; give it `size: Size.infinite`.
 - Simulator: `flutter run` runs in a Terminal tab; `kill -USR1 <flutter_tools pid>`
   hot-reloads, `-USR2` hot-restarts. Simulator screenshots arrive a few seconds
@@ -56,7 +58,7 @@ Defaults are in use until the developer changes them.
 | D1 | Currency name | **Scrap** (default) |
 | D2 | Upgrade tracks | **The five below** (default) |
 | D3 | Shop name in menus | **Workshop** (default) |
-| D4 | Music source | **Open.** CLAUDE.md says all sound is original. Options: developer/composer makes it, or CC0 track + credits + CLAUDE.md exception, or silence for now. Until decided: no music, sound effects only. |
+| D4 | Music source | **Generated** by `art/make_music.py` (original composition and synth, like the sound effects). One loop for menu and game for now. |
 | D5 | Sound effects | **Generated** by a script in `art/` (original, retro synth style), like the art |
 | D6 | Rivals | Still open (see CLAUDE.md spec item 7). Not part of this roadmap. |
 
@@ -122,7 +124,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   (`PlayerProfile.resetProgress`) wipes best, scrap and upgrades but keeps
   settings. `Effects` reads `game.profile.hapticsOn`; the HUD hides the debug
   panel unless `showDebugInfo` is on. Music slider is saved but labelled
-  "No music yet" until D4 is decided. Credits link to Flutter's license page.
+  "No music yet" until D4 was decided (label removed with the music). Credits link to Flutter's license page.
 
 ### Step 4 — Upgrade stats layer + Workshop  ☑
 - `lib/game/robot_stats.dart` (pure): the robot's effective values =
@@ -158,7 +160,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   robot's own max. Workshop: `lib/ui/workshop_page.dart`, CRT colours
   shared via `lib/ui/crt.dart`. Opened from the menu and the run summary.
 
-### Step 5 — Audio  ◐ (sound effects done; music waits for D4)
+### Step 5 — Audio  ☑
 - Dependency: `flame_audio`. Volumes from the profile settings.
 - `art/make_sfx.py`: generates original WAV effects (simple synth: noise
   bursts, pitch sweeps) into `assets/audio/sfx/`: land_clean, land_onefoot,
@@ -180,7 +182,15 @@ passing, a check in the Simulator, and a commit command for the developer.
   `Tuning.newBestSoundDelay`), `DerbyButton` + HUD buttons (click),
   Workshop (buy), Settings (sample on releasing the sfx slider).
   `test/sound_test.dart` checks every `Sfx` has a file and a generator entry.
-- Not verified by ear yet: the developer should listen in the Simulator.
+- Developer listened: sound effects "sound cool for now".
+- Done (music): `python3 art/make_music.py` composes "Scrapyard Dusk", a
+  16-bar loop at 88 BPM (~44 s, 1.9 MB WAV; Am9–Fmaj7–Cmaj7–G6–Am9–Fmaj7–
+  Dm9–E7sus4 twice, melody in bars 9–16). Notes and echoes that ring past
+  the end wrap to the start, so the loop is seamless. Played by
+  `FlameAudio.bgm` from startup through menu and game (pauses when the app
+  is backgrounded) at music volume × `Tuning.musicMix`; volume 0 pauses it.
+  Ducked to `Tuning.musicDuckShare` during the head-launch slow motion.
+  One track for now; a separate menu track could come later.
 
 ### Step 6 — Balance pass  ☐
 - First make landings less forgiving (unassisted runs currently reach

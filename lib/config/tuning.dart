@@ -313,6 +313,13 @@ abstract final class Tuning {
   static const double smokeIntervalCoast = 0.09;
   static const double smokeLifetime = 0.9;
 
+  /// Background music level relative to the player's music volume, so it
+  /// sits under the sound effects.
+  static const double musicMix = 0.6;
+
+  /// Music level share during the head-launch slow motion (ducking).
+  static const double musicDuckShare = 0.35;
+
   /// Wait after the run ends before the "new best" jingle plays.
   static const Duration newBestSoundDelay = Duration(milliseconds: 600);
 

@@ -196,7 +196,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   /// Slows the game right after the head launch, easing back to normal
   /// (see [Tuning.headLaunchSlowMo]).
-  void startHeadLaunchSlowMo() => _slowMoLeft = Tuning.headLaunchSlowMoTime;
+  void startHeadLaunchSlowMo() {
+    _slowMoLeft = Tuning.headLaunchSlowMoTime;
+    Sound.duckMusic(
+      Duration(milliseconds: (Tuning.headLaunchSlowMoTime * 1000).round()),
+    );
+  }
 
   /// Seconds (real time) of head-launch slow motion left.
   double _slowMoLeft = 0;

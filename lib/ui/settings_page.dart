@@ -37,7 +37,6 @@ class SettingsPage extends StatelessWidget {
                               children: [
                                 _VolumeRow(
                                   label: 'Music',
-                                  note: 'No music yet',
                                   icon: Icons.music_note,
                                   value: profile.musicVolume,
                                   onChanged: (v) => profile.musicVolume = v,
@@ -228,7 +227,6 @@ class _VolumeRow extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.onChangeEnd,
-    this.note,
   });
 
   final String label;
@@ -236,7 +234,6 @@ class _VolumeRow extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
   final ValueChanged<double>? onChangeEnd;
-  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -244,20 +241,7 @@ class _VolumeRow extends StatelessWidget {
       children: [
         Icon(icon, color: Palette.outline),
         const SizedBox(width: 8),
-        SizedBox(
-          width: 120,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label),
-              if (note != null)
-                Text(
-                  note!,
-                  style: const TextStyle(fontSize: 11, color: Palette.steel),
-                ),
-            ],
-          ),
-        ),
+        SizedBox(width: 120, child: Text(label)),
         Expanded(
           child: Slider(
             value: value,
