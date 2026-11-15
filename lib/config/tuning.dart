@@ -360,8 +360,10 @@ abstract final class Tuning {
   // distances. 1 star (the goal) unlocks the next level. Later levels are
   // steeper and bumpier, so landing angles vary more, and pay more scrap.
   // Part tier N can be bought once level N is unlocked.
-  // Star distances are placeholders until the progression balance pass
-  // (docs/ROADMAP.md, P7).
+  // Star distances come from tool/progression_report_test.dart (P7 in
+  // docs/ROADMAP.md): with every slot at the level's tier, star 1 is ~80%
+  // of a skill-0.4 bot's average, star 2 ~80% of skill 0.7, star 3 ~95%
+  // of skill 0.9. Level 6's third star needs gadgets.
   //
   // Bump scale check: the ground must never go uphill. The bumps' steepest
   // possible slope is about 0.51 × bumpScale; keep it below tan(slopeDeg)
@@ -371,7 +373,7 @@ abstract final class Tuning {
       name: 'Rust Hollow',
       slopeDeg: 35,
       bumpScale: 1.0,
-      starDistances: [1000, 1800, 2800],
+      starDistances: [1600, 3100, 4300],
       scrapMultiplier: 1.0,
       partTier: 1,
     ),
@@ -379,41 +381,46 @@ abstract final class Tuning {
       name: 'Cinder Flats',
       slopeDeg: 36,
       bumpScale: 1.2,
-      starDistances: [1300, 2300, 3400],
-      scrapMultiplier: 1.2,
+      starDistances: [1650, 3200, 4400],
+      scrapMultiplier: 1.3,
       partTier: 2,
+      damageScale: 1.15,
     ),
     LevelTuning(
       name: 'Smog Ridge',
       slopeDeg: 38,
       bumpScale: 1.4,
-      starDistances: [1600, 2800, 4000],
-      scrapMultiplier: 1.4,
+      starDistances: [1700, 3300, 4500],
+      scrapMultiplier: 1.7,
       partTier: 3,
+      damageScale: 1.3,
     ),
     LevelTuning(
       name: 'Crusher Pass',
       slopeDeg: 40,
       bumpScale: 1.55,
-      starDistances: [1900, 3200, 4600],
-      scrapMultiplier: 1.6,
+      starDistances: [1800, 3500, 4600],
+      scrapMultiplier: 2.2,
       partTier: 4,
+      damageScale: 1.45,
     ),
     LevelTuning(
       name: 'Furnace Drop',
       slopeDeg: 42,
       bumpScale: 1.7,
-      starDistances: [2200, 3600, 5200],
-      scrapMultiplier: 1.8,
+      starDistances: [1900, 3600, 4700],
+      scrapMultiplier: 2.6,
       partTier: 5,
+      damageScale: 1.6,
     ),
     LevelTuning(
       name: 'Obsidian Maw',
       slopeDeg: 44,
       bumpScale: 1.85,
-      starDistances: [2600, 4200, 6000],
-      scrapMultiplier: 2.0,
+      starDistances: [2000, 3700, 4800],
+      scrapMultiplier: 3.0,
       partTier: 5,
+      damageScale: 1.8,
     ),
   ];
 
@@ -527,6 +534,7 @@ class LevelTuning {
     required this.starDistances,
     required this.scrapMultiplier,
     required this.partTier,
+    this.damageScale = 1,
   });
 
   final String name;
@@ -546,4 +554,8 @@ class LevelTuning {
 
   /// Unlocking this level lets the Workshop sell parts up to this tier.
   final int partTier;
+
+  /// Multiplier on all landing damage: later levels are harsher, which
+  /// roughly cancels the extra part HP of the tier they unlock.
+  final double damageScale;
 }

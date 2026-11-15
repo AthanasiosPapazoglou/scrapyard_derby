@@ -10,6 +10,7 @@ import 'derby_game.dart';
 import 'head_launch.dart';
 import 'hill.dart';
 import 'landing.dart';
+import 'levels.dart';
 import 'palette.dart';
 import 'robot_part.dart';
 import 'robot_sprites.dart';
@@ -527,7 +528,10 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       crashCageLeft--;
       return;
     }
-    for (final slot in damage.add(landingDamage(type, stats: stats))) {
+    // Later levels are harsher on the robot (Tuning.levels damageScale).
+    final amount =
+        landingDamage(type, stats: stats) * Levels.of(game.level).damageScale;
+    for (final slot in damage.add(amount)) {
       _breakOff(_partFor(slot));
     }
   }

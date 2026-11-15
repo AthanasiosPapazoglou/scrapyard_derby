@@ -50,6 +50,9 @@ class HillGeometry {
     return x * _slope + bumps * fade;
   }
 
+  /// The hill's overall slope angle in radians (without bumps).
+  double get baseSlopeAngle => math.atan(_slope);
+
   /// Angle of the ground at [x] in radians (positive = going down to the
   /// right, which is the normal case).
   double slopeAngleAt(double x) {

@@ -65,6 +65,11 @@ class LandingPrediction {
 /// Predicts the touchdown if the player keeps [holding] (or not) until
 /// then. Returns null if the robot won't land within [horizon] seconds.
 ///
+/// [slopeReading] is how well the ground is read: 1 = the exact slope at
+/// the touchdown point, 0 = only the hill's average slope (bumps ignored),
+/// in between = a mix. Bots read as well as their skill, like a person
+/// judging rough ground by eye; gadgets read exactly.
+///
 /// Flight is ballistic and the spin follows the hold/release ramps, which
 /// is close to what the physics does in the air.
 LandingPrediction? predictLanding(
@@ -74,6 +79,7 @@ LandingPrediction? predictLanding(
   RobotStats stats = RobotStats.base,
   double horizon = 6,
   double step = 1 / 60,
+  double slopeReading = 1,
 }) {
   final p = s.position.clone();
   final v = s.velocity.clone();
@@ -91,8 +97,11 @@ LandingPrediction? predictLanding(
     p.addScaled(v, step);
     final groundY = hill.heightAt(p.x);
     if (groundY - p.y <= s.feetBelowTorso) {
+      final slope =
+          hill.slopeAngleAt(p.x) * slopeReading +
+          hill.baseSlopeAngle * (1 - slopeReading);
       return LandingPrediction(
-        error: wrapAngle(angle - hill.slopeAngleAt(p.x)),
+        error: wrapAngle(angle - slope),
         time: t + step,
         groundPoint: Vector2(p.x, groundY),
         angle: angle,
@@ -110,6 +119,7 @@ double? predictLandingError(
   RobotStats stats = RobotStats.base,
   double horizon = 6,
   double step = 1 / 60,
+  double slopeReading = 1,
 }) => predictLanding(
   s,
   hill,
@@ -117,6 +127,7 @@ double? predictLandingError(
   stats: stats,
   horizon: horizon,
   step: step,
+  slopeReading: slopeReading,
 )?.error;
 
 /// The Auto-Gyro gadget: should it hold for a player who isn't holding?
@@ -181,12 +192,19 @@ class Autopilot {
       return _holding;
     }
     _sinceDecision = 0;
-    final hold = predictLandingError(state, hill, holding: true, stats: stats);
+    final hold = predictLandingError(
+      state,
+      hill,
+      holding: true,
+      stats: stats,
+      slopeReading: skill,
+    );
     final release = predictLandingError(
       state,
       hill,
       holding: false,
       stats: stats,
+      slopeReading: skill,
     );
     if (hold == null || release == null) {
       return _holding;
