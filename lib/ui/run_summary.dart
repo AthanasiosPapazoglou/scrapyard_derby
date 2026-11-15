@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
 import '../game/landing.dart';
+import '../game/levels.dart';
 import '../game/palette.dart';
 import 'derby_button.dart';
 
@@ -16,6 +17,7 @@ class RunSummary extends StatelessWidget {
     required this.onPlayAgain,
     this.onMenu,
     this.onWorkshop,
+    this.onNextLevel,
   });
 
   final RunResult result;
@@ -31,6 +33,9 @@ class RunSummary extends StatelessWidget {
 
   /// Greyed out ("soon") when null.
   final VoidCallback? onWorkshop;
+
+  /// Plays the next level; hidden when null (last level, or still locked).
+  final VoidCallback? onNextLevel;
 
   static const _ink = Palette.outline;
 
@@ -61,6 +66,14 @@ class RunSummary extends StatelessWidget {
                   Column(
                     children: [
                       Text(
+                        'LEVEL ${result.level} · '
+                        '${Levels.of(result.level).name.toUpperCase()}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      Text(
                         result.end.label,
                         style: const TextStyle(
                           fontSize: 18,
@@ -75,10 +88,19 @@ class RunSummary extends StatelessWidget {
                           height: 1.1,
                         ),
                       ),
-                      if (result.isNewBest)
+                      _SummaryStars(
+                        before: result.starsBefore,
+                        after: result.starsAfter,
+                      ),
+                      const SizedBox(height: 4),
+                      if (result.unlockedLevel case final unlocked?)
+                        _Badge('LEVEL $unlocked UNLOCKED!')
+                      else if (result.isNewBest)
                         const _Badge('NEW BEST!')
                       else
                         Text('Best: ${bestDistance.toStringAsFixed(0)} m'),
+                      if (result.unlockedLevel != null && result.isNewBest)
+                        Text('New best: ${bestDistance.toStringAsFixed(0)} m'),
                     ],
                   ),
                   const _Divider(),
@@ -121,8 +143,8 @@ class RunSummary extends StatelessWidget {
               children: [
                 if (onMenu != null) ...[
                   DerbyButton(
-                    label: 'Menu',
-                    icon: Icons.home,
+                    label: 'Levels',
+                    icon: Icons.map,
                     onPressed: onMenu,
                   ),
                   const SizedBox(width: 10),
@@ -137,8 +159,18 @@ class RunSummary extends StatelessWidget {
                 DerbyButton(
                   label: 'Play again',
                   icon: Icons.replay,
+                  primary: onNextLevel == null,
                   onPressed: onPlayAgain,
                 ),
+                if (onNextLevel != null) ...[
+                  const SizedBox(width: 10),
+                  DerbyButton(
+                    label: 'Next level',
+                    icon: Icons.arrow_forward,
+                    primary: true,
+                    onPressed: onNextLevel,
+                  ),
+                ],
               ],
             ),
           ],
@@ -213,6 +245,37 @@ class _Divider extends StatelessWidget {
       width: 3,
       margin: const EdgeInsets.symmetric(horizontal: 18),
       color: Palette.hazardShadow,
+    );
+  }
+}
+
+/// The level's stars after this run; the ones earned by this run glow.
+class _SummaryStars extends StatelessWidget {
+  const _SummaryStars({required this.before, required this.after});
+
+  final int before;
+  final int after;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$after of ${Levels.maxStars} stars',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < Levels.maxStars; i++)
+            Icon(
+              i < after ? Icons.star : Icons.star_border,
+              size: 30,
+              color: i < before
+                  ? RunSummary._ink
+                  : (i < after ? Palette.cream : Palette.hazardShadow),
+              shadows: i >= before && i < after
+                  ? const [Shadow(color: RunSummary._ink, blurRadius: 4)]
+                  : null,
+            ),
+        ],
+      ),
     );
   }
 }

@@ -42,7 +42,18 @@ class _GamePageState extends State<GamePage> {
     _game.resumeEngine();
   }
 
+  /// Back to the level select (the page under this one).
   void _toMenu() => Navigator.of(context).pop();
+
+  /// From the run summary: this page is replaced by the next level's.
+  void _nextLevel() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            GamePage(profile: widget.profile, level: widget.level + 1),
+      ),
+    );
+  }
 
   /// From the run summary. Coming back, "Play again" uses the new upgrades.
   void _openWorkshop() {
@@ -64,6 +75,7 @@ class _GamePageState extends State<GamePage> {
             onMenu: _toMenu,
             onPause: _pause,
             onWorkshop: _openWorkshop,
+            onNextLevel: _nextLevel,
           ),
           _pauseKey: (context, game) =>
               _PauseMenu(onResume: _resume, onMenu: _toMenu),
@@ -95,7 +107,11 @@ class _PauseMenu extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DerbyButton(label: 'Menu', icon: Icons.home, onPressed: onMenu),
+                DerbyButton(
+                  label: 'Levels',
+                  icon: Icons.map,
+                  onPressed: onMenu,
+                ),
                 const SizedBox(width: 12),
                 DerbyButton(
                   label: 'Resume',

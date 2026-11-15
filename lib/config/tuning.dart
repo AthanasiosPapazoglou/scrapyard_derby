@@ -417,6 +417,13 @@ abstract final class Tuning {
     ),
   ];
 
+  /// Star flags planted on the hill at each star distance (meters): pole
+  /// height, cloth size and ink outline width.
+  static const double starFlagHeight = 4.5;
+  static const double starFlagClothWidth = 2.6;
+  static const double starFlagClothHeight = 1.5;
+  static const double starFlagOutline = 0.15;
+
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
   // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every

@@ -326,11 +326,20 @@ commit command for the developer.
   ground perfectly. P7 will need much rougher ground (shorter, sharper
   bumps, maybe small kickers) to make later levels truly harder.
 
-### P2 — Level select, star flags, summary stars  ☐
+### P2 — Level select, star flags, summary stars  ☑
 - Level select page (Play → map of 6 levels: name, stars, best, lock and
   what unlocks it). Locked parts in the Workshop say "Unlocks with level N".
 - Star flags on the hill at each target; HUD shows the next target.
 - Run summary: stars earned this run, "LEVEL CLEARED" / "NEXT LEVEL UNLOCKED".
+- Done: Play → `lib/ui/level_select_page.dart` (2×3 cards; the furthest
+  unlocked level is yellow, locked ones say "Reach X m on <level>").
+  `lib/game/star_flags.dart` plants a flag per star distance (goal yellow,
+  then rust, then glow; sizes in `Tuning`), and passing one plays the
+  new-best jingle. HUD: star row + "next X m" under the energy bar
+  (`HudInfo.starsPassed`). Summary: level name, stars (new ones glow),
+  "LEVEL N UNLOCKED!", and a "Next level" button whenever the next level
+  is open (replaces the game page). "Menu" buttons in the game are now
+  "Levels" and go back to the level select.
 
 ### P3 — Robot stats screen  ☐
 - Every stat with its current value and the max possible (all tiers +

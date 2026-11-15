@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/game/damage.dart';
 import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/landing.dart';
+import 'package:scrapyard_derby/game/levels.dart';
 import 'package:scrapyard_derby/game/run_stats.dart';
 import 'package:scrapyard_derby/game/scrap_reward.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
@@ -63,6 +64,8 @@ void main() {
           ScrapLine('Distance', 41),
           ScrapLine('Clean landings x1', 2),
         ],
+        starsBefore: 0,
+        starsAfter: 1,
       ),
     );
     await tester.pump();
@@ -76,7 +79,11 @@ void main() {
     expect(find.text('412 m'), findsNWidgets(3));
     expect(find.text('Best: 500 m'), findsOneWidget);
     expect(find.text('Play again'), findsOneWidget);
-    expect(find.text('Menu'), findsOneWidget);
+    expect(find.text('Levels'), findsOneWidget);
+    // Level and stars; no next level while level 2 is locked.
+    expect(find.text('LEVEL 1 · RUST HOLLOW'), findsOneWidget);
+    expect(find.bySemanticsLabel('1 of 3 stars'), findsOneWidget);
+    expect(find.text('Next level'), findsNothing);
     // Run stats and the scrap breakdown.
     expect(find.text('14.3 m'), findsOneWidget);
     expect(find.text('1/4'), findsOneWidget);
@@ -91,5 +98,58 @@ void main() {
       find.bySemanticsLabel(RegExp('L ARM 0%, R ARM 50%')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('HUD shows the next star distance', (tester) async {
+    tester.view.physicalSize = const Size(2400, 1100);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final game = DerbyGame(profile: PlayerProfile(), level: 2);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: Hud(game: game)),
+      ),
+    );
+    final targets = Levels.of(2).starDistances;
+    expect(find.text('next ${targets[0].toStringAsFixed(0)} m'), findsWidgets);
+    game.hud.value = const HudInfo(starsPassed: 1);
+    await tester.pump();
+    expect(find.text('next ${targets[1].toStringAsFixed(0)} m'), findsWidgets);
+    game.hud.value = const HudInfo(starsPassed: 3);
+    await tester.pump();
+    expect(find.text('ALL STARS!'), findsWidgets);
+  });
+
+  testWidgets('a run that unlocks a level offers the next level', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(2400, 1100);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final goal = Levels.of(1).starDistances.first;
+    final game = DerbyGame(profile: PlayerProfile(levelBest: {1: goal}));
+    var next = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Hud(game: game, onNextLevel: () => next++),
+        ),
+      ),
+    );
+    game.hud.value = HudInfo(
+      result: RunResult(
+        end: RunEnd.stuck,
+        distance: goal,
+        isNewBest: true,
+        stats: RunStats(),
+        scrap: const [ScrapLine('Distance', 40)],
+        starsAfter: 1,
+        unlockedLevel: 2,
+      ),
+    );
+    await tester.pump();
+    expect(find.text('LEVEL 2 UNLOCKED!'), findsOneWidget);
+    await tester.tap(find.text('Next level'));
+    expect(next, 1);
   });
 }

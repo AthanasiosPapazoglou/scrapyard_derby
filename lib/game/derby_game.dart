@@ -14,12 +14,14 @@ import 'damage.dart';
 import 'effects.dart';
 import 'hill.dart';
 import 'landing.dart';
+import 'levels.dart';
 import 'palette.dart';
 import 'robot.dart';
 import 'robot_sprites.dart';
 import 'run_stats.dart';
 import 'scrap_reward.dart';
 import 'sound.dart';
+import 'star_flags.dart';
 
 /// Why a run ended.
 enum RunEnd {
@@ -80,6 +82,7 @@ class HudInfo {
     this.limbsLeft = 4,
     this.headLaunched = false,
     this.partHp = const {},
+    this.starsPassed = 0,
     this.result,
   });
 
@@ -108,6 +111,9 @@ class HudInfo {
 
   /// Each part's remaining HP (0 to 1) for the status panel.
   final Map<RobotSlot, double> partHp;
+
+  /// Star distances of the level passed so far this run (0-3).
+  final int starsPassed;
 
   /// Set once the run is over.
   final RunResult? result;
@@ -139,6 +145,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   );
 
   RunResult? _result;
+  int _starsPassed = 0;
   double _stallTime = 0;
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
@@ -164,6 +171,17 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     await world.add(effects);
     _spawnRobot();
     await world.add(Hill(hillGeometry, focusX: _focusX)..priority = 1);
+    // A flag at each star distance (distance is measured from the start).
+    final targets = Levels.of(level).starDistances;
+    for (var i = 0; i < targets.length; i++) {
+      await world.add(
+        StarFlag(
+          stars: i + 1,
+          x: robot.start.x + targets[i],
+          hill: hillGeometry,
+        ),
+      );
+    }
   }
 
   /// Where the hill should be built: around the robot.
@@ -201,6 +219,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     robot.removeFromParent();
     _spawnRobot();
     _result = null;
+    _starsPassed = 0;
     _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
@@ -260,6 +279,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     }
     robot.holding = _result == null && wantsHold;
     if (_result == null) {
+      _checkStarsPassed();
       _checkRunEnd(dt);
     }
     _updateCamera(dt);
@@ -267,6 +287,18 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _hudTimer += dt;
     if (_hudTimer >= 0.1) {
       _hudTimer = 0;
+      _publishHud();
+    }
+  }
+
+  /// Plays the jingle each time the robot passes one of the level's star
+  /// distances during a run.
+  void _checkStarsPassed() {
+    final targets = Levels.of(level).starDistances;
+    if (_starsPassed < targets.length &&
+        robot.distance >= targets[_starsPassed]) {
+      _starsPassed++;
+      Sound.play(Sfx.newBest);
       _publishHud();
     }
   }
@@ -367,6 +399,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       limbsLeft: robot.limbsLeft,
       headLaunched: robot.headLaunched,
       partHp: robot.partHp,
+      starsPassed: _starsPassed,
       result: _result,
     );
   }

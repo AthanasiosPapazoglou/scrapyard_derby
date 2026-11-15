@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
+import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
 import 'debug_overlay.dart';
@@ -17,6 +18,7 @@ class Hud extends StatelessWidget {
     this.onMenu,
     this.onPause,
     this.onWorkshop,
+    this.onNextLevel,
   });
 
   static const overlayKey = 'hud';
@@ -31,6 +33,10 @@ class Hud extends StatelessWidget {
 
   /// Pauses the run (button hidden when null or once the run is over).
   final VoidCallback? onPause;
+
+  /// Starts the next level from the run summary (shown only when that
+  /// level is unlocked).
+  final VoidCallback? onNextLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +119,11 @@ class Hud extends StatelessWidget {
                           color: Palette.hazard,
                           fullColor: Palette.eyeGlow,
                         ),
+                      const SizedBox(height: 4),
+                      _StarProgress(
+                        targets: Levels.of(game.level).starDistances,
+                        passed: info.starsPassed,
+                      ),
                     ],
                   ),
                 ),
@@ -136,6 +147,11 @@ class Hud extends StatelessWidget {
                         onPlayAgain: game.restart,
                         onMenu: onMenu,
                         onWorkshop: onWorkshop,
+                        onNextLevel:
+                            game.level < Levels.count &&
+                                game.profile.isUnlocked(game.level + 1)
+                            ? onNextLevel
+                            : null,
                       ),
                     ),
                   ),
@@ -192,6 +208,39 @@ class _MeterBar extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The level's three stars under the energy bar: filled once passed this
+/// run, with the next star distance to aim for.
+class _StarProgress extends StatelessWidget {
+  const _StarProgress({required this.targets, required this.passed});
+
+  final List<double> targets;
+  final int passed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < targets.length; i++)
+          Icon(
+            i < passed ? Icons.star : Icons.star_border,
+            color: i < passed ? Palette.hazard : Palette.cream,
+            size: 20,
+            shadows: const [Shadow(color: Palette.outline, blurRadius: 3)],
+          ),
+        const SizedBox(width: 6),
+        OutlinedText(
+          passed < targets.length
+              ? 'next ${targets[passed].toStringAsFixed(0)} m'
+              : 'ALL STARS!',
+          fontSize: 15,
+          color: Palette.cream,
         ),
       ],
     );

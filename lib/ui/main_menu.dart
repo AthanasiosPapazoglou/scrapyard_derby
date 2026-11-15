@@ -6,7 +6,7 @@ import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../profile/player_profile.dart';
 import 'derby_button.dart';
-import 'game_page.dart';
+import 'level_select_page.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
 import 'settings_page.dart';
@@ -69,11 +69,7 @@ class _MainMenuState extends State<MainMenu>
   void _play() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        // Until the level select (docs/ROADMAP.md P2): the furthest level.
-        builder: (_) => GamePage(
-          profile: widget.profile,
-          level: widget.profile.highestUnlockedLevel,
-        ),
+        builder: (_) => LevelSelectPage(profile: widget.profile),
       ),
     );
   }
