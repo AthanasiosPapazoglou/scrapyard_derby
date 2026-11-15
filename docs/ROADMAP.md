@@ -22,9 +22,9 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Tuning (all numbers) | `lib/config/tuning.dart` |
 | Game loop, camera, run end, HUD data | `lib/game/derby_game.dart` (`HudInfo`, `RunEnd`) |
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
-| Pure, tested logic | `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
-| Visuals | `background.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
-| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `outlined_text.dart` |
+| Pure, tested logic | `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
+| Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
+| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
 | Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
 
 ### Gotchas learned so far
@@ -37,6 +37,7 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 - `DerbyGame.updateTree` scales world time (`Tuning.gameSpeed`, head-launch slow-mo);
   `DerbyGame.update` itself gets real time (camera, HUD, stall timer).
 - Flame particles don't pass `lifespan` down to child particles; set it explicitly.
+- A `CustomPaint` without a child is zero-sized; give it `size: Size.infinite`.
 - Simulator: `flutter run` runs in a Terminal tab; `kill -USR1 <flutter_tools pid>`
   hot-reloads, `-USR2` hot-restarts. Simulator screenshots arrive a few seconds
   late, so verify timing-sensitive things with temporary `debugPrint` logs.
@@ -81,7 +82,7 @@ passing, a check in the Simulator, and a commit command for the developer.
   got a Menu button. Settings exist in the profile but nothing reads them
   yet (step 3). `OutlinedText` moved to `lib/ui/outlined_text.dart`.
 
-### Step 2 — Main menu + run summary  ☐
+### Step 2 — Main menu + run summary  ☑
 - `lib/ui/main_menu.dart`: dusk background (reuse the sky/heap drawing:
   factor the painting out of `background.dart` so a Flutter `CustomPainter`
   can use it too), robot sprite idling/slowly spinning, title, buttons
@@ -97,6 +98,17 @@ passing, a check in the Simulator, and a commit command for the developer.
   **Play again / Workshop / Menu**. Scrap is added to the profile once.
 - HUD keeps Restart; add a small pause/menu button.
 - Tests: scrap reward breakdown, run stats.
+- Done: sky/heap drawing now lives in `lib/game/dusk_scene.dart` (`DuskScene`),
+  used by `Background` and the menu. The idle robot is
+  `lib/ui/robot_figure.dart` (sprites posed at the joint pivots). The robot
+  collects `RunStats`; `DerbyGame._finishRun` records best + scrap once and
+  publishes a `RunResult` in `HudInfo.result`. The summary is an overlay
+  over the wreck (not a separate page), so the landing spot stays visible.
+  Pause = `pauseEngine()` + a `pause` overlay in `GamePage`. Restarting or
+  leaving mid-run earns nothing. Workshop/Settings buttons show "SOON"
+  until steps 3–4 wire them. Shared button: `lib/ui/derby_button.dart`.
+- Balance note for step 6: in a test run the head flight was 194 of 546 m
+  and earned 38 of 119 scrap; head-launch power may be too high.
 
 ### Step 3 — Settings page  ☐
 - `lib/ui/settings_page.dart`: music volume, sfx volume, vibration on/off,

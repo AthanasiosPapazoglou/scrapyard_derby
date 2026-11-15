@@ -12,6 +12,7 @@ import 'landing.dart';
 import 'palette.dart';
 import 'robot_part.dart';
 import 'robot_sprites.dart';
+import 'run_stats.dart';
 import 'spin.dart';
 
 /// Converts art pixels (the unit of CLAUDE.md's joint positions) to meters.
@@ -37,6 +38,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     final groundNormal = Vector2(math.sin(angle), -math.cos(angle));
     final feetBelowTorso =
         leftHipPivot.y + _m(Tuning.footCenterY + Tuning.footHalfHeight);
+    _feetBelowTorso = feetBelowTorso;
     start =
         Vector2(x, hill.heightAt(x)) +
         groundNormal * (feetBelowTorso + Tuning.startDropHeight);
@@ -50,6 +52,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
 
   /// Rotation of the whole robot at the start of the run.
   late final Rot startRotation;
+
+  /// Distance from the torso center down to the soles (m), standing up.
+  late final double _feetBelowTorso;
+
+  /// Landings, highest jump, limbs lost and head flight for this run.
+  final RunStats stats = RunStats();
 
   // Joint pivots in torso-local coordinates (meters), from CLAUDE.md.
   static final Vector2 neckPivot = Vector2(_m(0), _m(-72));
@@ -317,6 +325,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     if (!_isOnGround) {
       _airTime += dt;
       if (_hasTouchedDown) {
+        _reportJumpHeight();
         final turns = torso.body.angularVelocity.abs() * dt / (2 * math.pi);
         spinEnergy = addSpinEnergy(spinEnergy, turns);
       }
@@ -330,6 +339,14 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     } else {
       _noLimbsGroundTime = 0;
     }
+  }
+
+  /// Tells [stats] how high the feet are above the ground right now.
+  void _reportJumpHeight() {
+    final torsoPosition = torso.body.position;
+    final groundY = game.hillGeometry.heightAt(torsoPosition.x);
+    // y points down: ground y - torso y is the torso's height.
+    stats.reportHeight(groundY - torsoPosition.y - _feetBelowTorso);
   }
 
   /// The head phase: the head flies free. For a short moment after launch
@@ -425,6 +442,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     final up = torso.body.rotation.rotate(Vector2(0, -1));
     final type = classifyLanding(part.kind, signedAngleBetween(up, normal));
     lastLanding = type;
+    stats.addLanding(type);
     final points = contact.points;
     final contactPoint = (points != null && points.isNotEmpty)
         ? points.first.point
@@ -487,6 +505,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   void _breakOff(RobotPart limb) {
     limb.joint?.destroy();
     limb.joint = null;
+    stats.addLimbLost();
     game.effects.limbLost(limb.body.worldCenterOfMass);
     _makeDebris(limb);
   }
@@ -529,6 +548,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     _rocketDirection = launch.normalized();
     rocketBurnLeft = Tuning.headRocketBurnTime;
     _headFlightTime = 0;
+    stats.headLaunchedAt(head.body.position.x);
     game.effects.headLaunch(head.body.worldCenterOfMass, _rocketDirection);
     game.startHeadLaunchSlowMo();
     // Leave the torso where it is; it slows and fades like other debris.
@@ -542,6 +562,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
     headLanded = true;
     rocketBurnLeft = 0;
+    stats.headLandedAt(head.body.position.x);
     game.effects.headLanded(head.body.worldCenterOfMass);
     head.body
       ..linearVelocity = Vector2.zero()

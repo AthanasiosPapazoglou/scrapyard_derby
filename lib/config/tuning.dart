@@ -317,6 +317,21 @@ abstract final class Tuning {
   /// iOS Simulator).
   static const bool hapticsEnabled = true;
 
+  // ---------------------------------------------------------------- Scrap
+  // Currency earned at the end of each run (see scrap_reward.dart).
+
+  /// 1 scrap per this many meters of distance.
+  static const double scrapMetersPerScrap = 10;
+
+  /// Bonus per clean (both feet) landing.
+  static const int scrapPerCleanLanding = 2;
+
+  /// 1 scrap per this many meters the launched head flies.
+  static const double scrapHeadFlightMetersPerScrap = 5;
+
+  /// Bonus for beating the best distance.
+  static const int scrapNewBestBonus = 25;
+
   // ---------------------------------------------------------------- Background
   /// Parallax layers of distant scrap heaps, far to near: how much each
   /// moves with the camera (0 = not at all, 1 = like the ground).

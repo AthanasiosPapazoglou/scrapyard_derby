@@ -5,12 +5,13 @@ import '../game/derby_game.dart';
 import '../game/palette.dart';
 import 'debug_overlay.dart';
 import 'outlined_text.dart';
+import 'run_summary.dart';
 import 'status_panel.dart';
 
-/// Everything drawn on top of the game: distance, debug info, restart
-/// button and the run-over banner.
+/// Everything drawn on top of the game: distance, energy, status panel,
+/// debug info, pause and restart buttons, and the run summary.
 class Hud extends StatelessWidget {
-  const Hud({super.key, required this.game, this.onMenu});
+  const Hud({super.key, required this.game, this.onMenu, this.onPause});
 
   static const overlayKey = 'hud';
 
@@ -18,6 +19,9 @@ class Hud extends StatelessWidget {
 
   /// Leaves the run for the main menu (hidden when null).
   final VoidCallback? onMenu;
+
+  /// Pauses the run (button hidden when null or once the run is over).
+  final VoidCallback? onPause;
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +40,30 @@ class Hud extends StatelessWidget {
               Positioned(
                 right: 12,
                 top: 12,
-                child: FilledButton.icon(
-                  onPressed: game.restart,
-                  icon: const Icon(Icons.replay),
-                  label: const Text('Restart'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Palette.hazard,
-                    foregroundColor: Palette.outline,
-                  ),
+                child: Row(
+                  children: [
+                    if (onPause != null && info.result == null) ...[
+                      IconButton.filled(
+                        onPressed: onPause,
+                        tooltip: 'Pause',
+                        icon: const Icon(Icons.pause),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Palette.outline,
+                          foregroundColor: Palette.hazard,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    FilledButton.icon(
+                      onPressed: game.restart,
+                      icon: const Icon(Icons.replay),
+                      label: const Text('Restart'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Palette.hazard,
+                        foregroundColor: Palette.outline,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               // The score: distance covered, big and centered at the top.
@@ -80,99 +100,25 @@ class Hud extends StatelessWidget {
                 bottom: 12,
                 child: IgnorePointer(child: StatusPanel(partHp: info.partHp)),
               ),
-              if (info.runEnd case final end?)
+              if (info.result case final result?)
                 Center(
-                  child: _RunOverBanner(
-                    end: end,
-                    info: info,
-                    game: game,
-                    onMenu: onMenu,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: RunSummary(
+                        result: result,
+                        bestDistance: info.bestDistance,
+                        totalScrap: game.profile.scrap,
+                        onPlayAgain: game.restart,
+                        onMenu: onMenu,
+                      ),
+                    ),
                   ),
                 ),
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-/// Shown when the run is over: why, how far, and the best so far.
-class _RunOverBanner extends StatelessWidget {
-  const _RunOverBanner({
-    required this.end,
-    required this.info,
-    required this.game,
-    required this.onMenu,
-  });
-
-  final RunEnd end;
-  final HudInfo info;
-  final DerbyGame game;
-  final VoidCallback? onMenu;
-
-  @override
-  Widget build(BuildContext context) {
-    const ink = Palette.outline;
-    final isNewBest = info.distance > 0 && info.distance >= info.bestDistance;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-      decoration: BoxDecoration(
-        color: Palette.hazard,
-        border: Border.all(color: ink, width: 4),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            end.label,
-            style: const TextStyle(
-              color: ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            '${info.distance.toStringAsFixed(0)} m',
-            style: const TextStyle(
-              color: ink,
-              fontSize: 44,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          Text(
-            isNewBest
-                ? 'NEW BEST!'
-                : 'Best: ${info.bestDistance.toStringAsFixed(0)} m',
-            style: const TextStyle(color: ink, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (onMenu != null) ...[
-                OutlinedButton(
-                  onPressed: onMenu,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ink,
-                    side: const BorderSide(color: ink, width: 2),
-                  ),
-                  child: const Text('Menu'),
-                ),
-                const SizedBox(width: 12),
-              ],
-              FilledButton(
-                onPressed: game.restart,
-                style: FilledButton.styleFrom(
-                  backgroundColor: ink,
-                  foregroundColor: Palette.hazard,
-                ),
-                child: const Text('Go again'),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

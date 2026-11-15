@@ -16,6 +16,8 @@ import 'landing.dart';
 import 'palette.dart';
 import 'robot.dart';
 import 'robot_sprites.dart';
+import 'run_stats.dart';
+import 'scrap_reward.dart';
 
 /// Why a run ended.
 enum RunEnd {
@@ -25,6 +27,30 @@ enum RunEnd {
   const RunEnd(this.label);
 
   final String label;
+}
+
+/// The outcome of a finished run, for the run summary.
+@immutable
+class RunResult {
+  const RunResult({
+    required this.end,
+    required this.distance,
+    required this.isNewBest,
+    required this.stats,
+    required this.scrap,
+  });
+
+  final RunEnd end;
+
+  /// Horizontal meters covered (the score).
+  final double distance;
+  final bool isNewBest;
+  final RunStats stats;
+
+  /// Scrap earned, line by line; already added to the profile.
+  final List<ScrapLine> scrap;
+
+  int get scrapEarned => scrapTotal(scrap);
 }
 
 /// A snapshot of the numbers the Flutter overlays show.
@@ -40,7 +66,7 @@ class HudInfo {
     this.limbsLeft = 4,
     this.headLaunched = false,
     this.partHp = const {},
-    this.runEnd,
+    this.result,
   });
 
   /// Robot speed in m/s.
@@ -67,7 +93,7 @@ class HudInfo {
   final Map<RobotSlot, double> partHp;
 
   /// Set once the run is over.
-  final RunEnd? runEnd;
+  final RunResult? result;
 }
 
 /// The game: an endless hill, one robot, a following camera, hold to
@@ -87,8 +113,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     HudInfo(bestDistance: profile.bestDistance),
   );
 
-  RunEnd? _runEnd;
-  double _finalDistance = 0;
+  RunResult? _result;
   double _stallTime = 0;
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
@@ -145,7 +170,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   void restart() {
     robot.removeFromParent();
     _spawnRobot();
-    _runEnd = null;
+    _result = null;
     _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
@@ -182,8 +207,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (!robot.isLoaded) {
       return;
     }
-    robot.holding = _runEnd == null && _heldPointers.isNotEmpty;
-    if (_runEnd == null) {
+    robot.holding = _result == null && _heldPointers.isNotEmpty;
+    if (_result == null) {
       _checkRunEnd(dt);
     }
     _updateCamera(dt);
@@ -206,11 +231,25 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       end = null;
     }
     if (end != null) {
-      _runEnd = end;
-      _finalDistance = robot.distance;
-      profile.recordRun(_finalDistance);
-      _publishHud();
+      _finishRun(end);
     }
+  }
+
+  /// Records the run in the profile (best distance, scrap; once per run)
+  /// and publishes the result for the run summary.
+  void _finishRun(RunEnd end) {
+    final stats = robot.stats..distance = robot.distance;
+    final isNewBest = profile.recordRun(stats.distance);
+    final scrap = scrapReward(stats, newBest: isNewBest);
+    profile.addScrap(scrapTotal(scrap));
+    _result = RunResult(
+      end: end,
+      distance: stats.distance,
+      isNewBest: isNewBest,
+      stats: stats,
+      scrap: scrap,
+    );
+    _publishHud();
   }
 
   /// Smoothly moves and zooms the camera so both the robot (or launched
@@ -251,12 +290,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       spinEnergy: robot.spinEnergy,
       lastLanding: robot.lastLanding,
       // Frozen once the run is over, even if the wreck keeps sliding.
-      distance: _runEnd == null ? robot.distance : _finalDistance,
+      distance: _result?.distance ?? robot.distance,
       bestDistance: profile.bestDistance,
       limbsLeft: robot.limbsLeft,
       headLaunched: robot.headLaunched,
       partHp: robot.partHp,
-      runEnd: _runEnd,
+      result: _result,
     );
   }
 
