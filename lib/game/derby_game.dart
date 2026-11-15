@@ -13,6 +13,7 @@ import 'hill.dart';
 import 'landing.dart';
 import 'palette.dart';
 import 'robot.dart';
+import 'robot_sprites.dart';
 
 /// Why a run ended.
 enum RunEnd {
@@ -81,6 +82,9 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
 
+  /// Robot part artwork, loaded once.
+  RobotSprites? _sprites;
+
   /// Feedback effects (particles, shake, vibration).
   final Effects effects = Effects();
 
@@ -95,16 +99,18 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     await super.onLoad();
     world.subStepCount = Tuning.physicsSubSteps;
     camera.backdrop.add(Background());
+    _sprites = await RobotSprites.load();
     await world.add(effects);
     _spawnRobot();
-    await world.add(Hill(hillGeometry, focusX: _focusX));
+    await world.add(Hill(hillGeometry, focusX: _focusX)..priority = 1);
   }
 
   /// Where the hill should be built: around the robot.
   double _focusX() => robot.isLoaded ? robot.position.x : robot.start.x;
 
   void _spawnRobot() {
-    robot = Robot(hill: hillGeometry);
+    // Priority 5: drawn in front of the hill (1), behind particles (6).
+    robot = Robot(hill: hillGeometry, sprites: _sprites)..priority = 5;
     world.add(robot);
     _cameraCenter = robot.start.clone();
     camera.viewfinder.position = _cameraCenter.clone();

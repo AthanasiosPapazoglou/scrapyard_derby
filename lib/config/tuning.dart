@@ -22,25 +22,36 @@ abstract final class Tuning {
   static const double artPixelsPerMeter = 100.0;
 
   // ---------------------------------------------------------------- Robot shape (art pixels)
+  // Collision shapes, matched to the sprites in assets/robot/ (drawn by
+  // art/make_style_test.py). Change these together with the art.
+
   /// Half width / half height of the torso box.
-  static const double torsoHalfWidth = 60.0;
-  static const double torsoHalfHeight = 80.0;
+  static const double torsoHalfWidth = 61.0;
+  static const double torsoHalfHeight = 78.0;
 
   /// Head circle radius, and how far its center sits above the neck pivot.
-  static const double headRadius = 40.0;
-  static const double headOffset = 38.0;
+  /// (The art is a paint can; a circle keeps the launched head rolling and
+  /// landing cleanly.)
+  static const double headRadius = 38.0;
+  static const double headOffset = 40.0;
 
   /// Arm capsule: length from the shoulder pivot, and thickness (radius).
   static const double armLength = 80.0;
-  static const double armRadius = 14.0;
+  static const double armRadius = 13.0;
 
   /// Leg capsule: length from the hip pivot, and thickness (radius).
   static const double legLength = 64.0;
-  static const double legRadius = 16.0;
+  static const double legRadius = 11.0;
 
-  /// Foot box below each leg: half width and half height.
-  static const double footHalfWidth = 26.0;
-  static const double footHalfHeight = 10.0;
+  /// Foot box below each leg: half width, half height, and its center
+  /// relative to the hip (the tread foot sticks out a bit to the front).
+  static const double footHalfWidth = 29.0;
+  static const double footHalfHeight = 9.0;
+  static const double footCenterX = 5.0;
+  static const double footCenterY = 71.0;
+
+  /// Debug: draw the collision shapes as outlines on top of the sprites.
+  static const bool debugShowPhysicsShapes = false;
 
   // ---------------------------------------------------------------- Robot mass and joints
   /// Density of each part (mass = area × density). Torso heavier = steadier.

@@ -10,6 +10,7 @@ import 'hill.dart';
 import 'landing.dart';
 import 'palette.dart';
 import 'robot_part.dart';
+import 'robot_sprites.dart';
 import 'spin.dart';
 
 /// Converts art pixels (the unit of CLAUDE.md's joint positions) to meters.
@@ -26,7 +27,7 @@ double _rad(double degrees) => degrees * math.pi / 180;
 /// landing type; the robot's velocity changes to match and its limbs take
 /// damage (see landing.dart). Limbs at 0 HP break off and become debris.
 class Robot extends Component with HasGameReference<DerbyGame> {
-  Robot({required HillGeometry hill}) {
+  Robot({required HillGeometry hill, this.sprites}) {
     // Drop the robot from high above the slope, tilted to match it and not
     // spinning yet, so the first touch-down is a clean landing.
     final x = Tuning.startX;
@@ -34,12 +35,14 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     startRotation = Rot.fromAngle(angle);
     final groundNormal = Vector2(math.sin(angle), -math.cos(angle));
     final feetBelowTorso =
-        leftHipPivot.y +
-        _m(Tuning.legLength + Tuning.legRadius + Tuning.footHalfHeight);
+        leftHipPivot.y + _m(Tuning.footCenterY + Tuning.footHalfHeight);
     start =
         Vector2(x, hill.heightAt(x)) +
         groundNormal * (feetBelowTorso + Tuning.startDropHeight);
   }
+
+  /// Artwork for the parts; null draws the plain placeholder shapes.
+  final RobotSprites? sprites;
 
   /// World position of the torso center at the start of the run.
   late final Vector2 start;
@@ -137,13 +140,15 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   Future<void> onLoad() async {
     final world = game.world;
 
-    torso = _makePart(PartKind.torso, null, Tuning.torsoDensity, [
+    // Draw layers follow the art: back arm and legs behind the torso, then
+    // the head, then the front arm on top.
+    torso = _makePart(PartKind.torso, null, Tuning.torsoDensity, 2, [
       PartShape(
         Polygon(_box(Tuning.torsoHalfWidth, Tuning.torsoHalfHeight, 0)),
         Palette.rust,
       ),
     ]);
-    head = _makePart(PartKind.head, neckPivot, Tuning.headDensity, [
+    head = _makePart(PartKind.head, neckPivot, Tuning.headDensity, 3, [
       PartShape(
         Circle(
           radius: _m(Tuning.headRadius),
@@ -152,10 +157,22 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         Palette.steelLight,
       ),
     ]);
-    _makeArm(leftShoulderPivot);
-    _makeArm(rightShoulderPivot);
+    _makeArm(leftShoulderPivot, layer: 0); // back arm
+    _makeArm(rightShoulderPivot, layer: 4); // front arm
     _makeLeg(leftHipPivot);
     _makeLeg(rightHipPivot);
+
+    final art = sprites;
+    if (art != null) {
+      for (final part in parts) {
+        part.sprite = switch (part.kind) {
+          PartKind.torso => art.torso,
+          PartKind.head => art.head,
+          PartKind.arm => art.arm,
+          PartKind.leg => art.leg,
+        };
+      }
+    }
 
     for (final part in parts) {
       final offset = part.pivot ?? Vector2.zero();
@@ -183,6 +200,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     PartKind kind,
     Vector2? pivot,
     double density,
+    int layer,
     List<PartShape> shapes,
   ) {
     final part = RobotPart(
@@ -190,13 +208,14 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       robot: this,
       shapes: shapes,
       density: density,
+      layer: layer,
     )..pivot = pivot;
     parts.add(part);
     return part;
   }
 
-  void _makeArm(Vector2 pivot) {
-    _makePart(PartKind.arm, pivot, Tuning.limbDensity, [
+  void _makeArm(Vector2 pivot, {required int layer}) {
+    _makePart(PartKind.arm, pivot, Tuning.limbDensity, layer, [
       PartShape(
         Capsule(
           center1: Vector2.zero(),
@@ -209,7 +228,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   }
 
   void _makeLeg(Vector2 pivot) {
-    _makePart(PartKind.leg, pivot, Tuning.limbDensity, [
+    _makePart(PartKind.leg, pivot, Tuning.limbDensity, 1, [
       PartShape(
         Capsule(
           center1: Vector2.zero(),
@@ -223,7 +242,8 @@ class Robot extends Component with HasGameReference<DerbyGame> {
           _box(
             Tuning.footHalfWidth,
             Tuning.footHalfHeight,
-            Tuning.legLength + Tuning.legRadius,
+            Tuning.footCenterY,
+            centerX: Tuning.footCenterX,
           ),
         ),
         Palette.hazard,
@@ -232,16 +252,22 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   }
 
   /// Corner points of a box (art pixels in, meters out), centered at
-  /// (0, [centerY]).
-  List<Vector2> _box(double halfWidth, double halfHeight, double centerY) {
-    final w = _m(halfWidth);
+  /// ([centerX], [centerY]).
+  List<Vector2> _box(
+    double halfWidth,
+    double halfHeight,
+    double centerY, {
+    double centerX = 0,
+  }) {
+    final left = _m(centerX - halfWidth);
+    final right = _m(centerX + halfWidth);
     final top = _m(centerY - halfHeight);
     final bottom = _m(centerY + halfHeight);
     return [
-      Vector2(-w, top),
-      Vector2(w, top),
-      Vector2(w, bottom),
-      Vector2(-w, bottom),
+      Vector2(left, top),
+      Vector2(right, top),
+      Vector2(right, bottom),
+      Vector2(left, bottom),
     ];
   }
 

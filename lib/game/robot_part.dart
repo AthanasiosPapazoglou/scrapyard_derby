@@ -8,6 +8,7 @@ import 'hill.dart';
 import 'landing.dart';
 import 'palette.dart';
 import 'robot.dart';
+import 'robot_sprites.dart';
 
 /// One shape of a part plus the colour it is drawn with.
 class PartShape {
@@ -31,10 +32,14 @@ class RobotPart extends BodyComponent with ContactCallbacks {
     required this.robot,
     required this.shapes,
     required this.density,
-  }) : super(priority: 2);
+    int layer = 0,
+  }) : super(priority: layer);
 
   final PartKind kind;
   final Robot robot;
+
+  /// The part's artwork; when null, the plain placeholder shapes are drawn.
+  PartSprite? sprite;
   final List<PartShape> shapes;
   final double density;
 
@@ -119,18 +124,52 @@ class RobotPart extends BodyComponent with ContactCallbacks {
     final opacity = detached
         ? (1 - debrisAge / Tuning.debrisLifetime).clamp(0.0, 1.0)
         : 1.0;
-    _outline.color = Palette.outline.withValues(alpha: opacity);
     if (kind == PartKind.head && robot.rocketBurnLeft > 0) {
       _renderRocketFlame(canvas);
     }
-    for (final shape in shapes) {
-      _fill.color = shape.color.withValues(alpha: opacity);
-      final path = _pathFor(shape.geometry);
-      canvas
-        ..drawPath(path, _fill)
-        ..drawPath(path, _outline);
+    final art = sprite;
+    if (art != null) {
+      _renderSprite(canvas, art, opacity);
+      if (Tuning.debugShowPhysicsShapes) {
+        _renderShapes(canvas, opacity: 1, outlineOnly: true);
+      }
+    } else {
+      _renderShapes(canvas, opacity: opacity, outlineOnly: false);
     }
-    if (kind == PartKind.head) {
+  }
+
+  final Paint _fadePaint = Paint();
+
+  void _renderSprite(Canvas canvas, PartSprite art, double opacity) {
+    if (opacity >= 1) {
+      art.render(canvas);
+      return;
+    }
+    // Fading debris: draw the sprite into a see-through layer.
+    _fadePaint.color = Palette.outline.withValues(alpha: opacity);
+    canvas.saveLayer(null, _fadePaint);
+    art.render(canvas);
+    canvas.restore();
+  }
+
+  /// The plain placeholder shapes (the physics shapes, filled and outlined).
+  void _renderShapes(
+    Canvas canvas, {
+    required double opacity,
+    required bool outlineOnly,
+  }) {
+    _outline.color = outlineOnly
+        ? Palette.eyeGlow
+        : Palette.outline.withValues(alpha: opacity);
+    for (final shape in shapes) {
+      final path = _pathFor(shape.geometry);
+      if (!outlineOnly) {
+        _fill.color = shape.color.withValues(alpha: opacity);
+        canvas.drawPath(path, _fill);
+      }
+      canvas.drawPath(path, _outline);
+    }
+    if (kind == PartKind.head && !outlineOnly) {
       // An eye on the right side, so you can see which way the head faces.
       const m = Tuning.artPixelsPerMeter;
       final eye = Offset(Tuning.headRadius * 0.45 / m, -Tuning.headOffset / m);
@@ -146,6 +185,7 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   /// A rocket flame trailing behind the launched head, shrinking as the
   /// burn runs out.
   void _renderRocketFlame(Canvas canvas) {
+    _outline.color = Palette.outline;
     final velocity = body.linearVelocity;
     if (velocity.length2 < 1e-4) {
       return;

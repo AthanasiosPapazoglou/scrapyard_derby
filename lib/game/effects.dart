@@ -217,7 +217,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
       ParticleSystemComponent(
         particle: particle,
         position: point.clone(),
-        priority: 3,
+        priority: 6, // in front of the robot (5) and hill (1)
       ),
     );
   }

@@ -43,7 +43,10 @@ The score is horizontal distance in meters; the best distance is shown after eac
   hazard yellow #F2B233 / #B97F14, eye glow #5FE3D0.
 - Source of truth: `art/make_style_test.py` generates SVGs. Each part is drawn around its joint pivot,
   so parts can be exported as separate PNG sprites with the pivot at a known offset.
-- Placeholder shapes are fine in phase 1; real sprites from phase 2.
+- Robot sprites: `python3 art/make_style_test.py art assets/robot` writes one SVG per part (torso, head, arm, leg) to `assets/robot/`,
+  each with its joint pivot at (0,0) of the viewBox. The game draws them as vectors (flutter_svg) on the physics bodies.
+  The collision shapes in tuning.dart are matched to this art; `test/robot_sprites_test.dart` checks they still fit.
+  `Tuning.debugShowPhysicsShapes` draws the collision shapes on top for checking.
 - World visuals so far (code-drawn, palette colours): sky gradient, 3 parallax layers of distant scrap heaps (camera backdrop), ground with a highlight band and thick outline, decorative scrap props on the slope (tires, barrels, girders, plates; no physics).
 
 ## Phases

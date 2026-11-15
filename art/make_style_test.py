@@ -176,9 +176,45 @@ def parts_sheet():
         out.append(f'<text x="{x}" y="395" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" fill="{INK}" text-anchor="middle">{t}</text>')
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">{"".join(out)}</svg>'
 
+# Game sprites: one SVG per part. Each viewBox is placed so that (0, 0) is
+# the part's joint pivot (torso: its centre), the same point the physics
+# body's origin sits on. The game reads the viewBox to line them up.
+# Boxes are in art pixels and include the outline and a little padding.
+SPRITE_BOXES = {
+    "torso": (-70, -86, 140, 172),
+    "head": (-46, -120, 92, 130),
+    "arm": (-26, -16, 52, 116),
+    "leg": (-32, -14, 72, 100),
+}
+
+
+def sprite_svgs():
+    parts = {
+        "torso": torso(),
+        "head": head(),
+        "arm": arm("arm"),
+        "leg": leg("leg"),
+    }
+    out = {}
+    for name, g in parts.items():
+        x, y, w, h = SPRITE_BOXES[name]
+        out[name] = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x} {y} {w} {h}" '
+            f'width="{w}" height="{h}">{g}</svg>'
+        )
+    return out
+
+
 if __name__ == "__main__":
+    # Usage: python3 art/make_style_test.py art [assets/robot]
+    #   1st folder: style test sheets; optional 2nd folder: game sprites.
     import sys, pathlib
     out = pathlib.Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
     (out / "style_test_scene.svg").write_text(scene())
     (out / "style_test_parts.svg").write_text(parts_sheet())
+    if len(sys.argv) > 2:
+        sprites = pathlib.Path(sys.argv[2])
+        sprites.mkdir(parents=True, exist_ok=True)
+        for name, svg in sprite_svgs().items():
+            (sprites / f"{name}.svg").write_text(svg)
