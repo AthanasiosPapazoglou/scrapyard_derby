@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/tuning.dart';
+import 'damage.dart';
 import 'derby_game.dart';
 import 'head_launch.dart';
 import 'hill.dart';
@@ -67,6 +68,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
 
   /// Parts still connected to the robot (not debris).
   Iterable<RobotPart> get attachedParts => parts.where((p) => !p.detached);
+
+  /// Shared damage that decides which part breaks next (see damage.dart).
+  final RobotDamage damage = RobotDamage();
 
   /// How many arms and legs are still attached.
   int get limbsLeft => limbs.where((p) => !p.detached).length;
@@ -157,10 +161,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         Palette.steelLight,
       ),
     ]);
-    _makeArm(leftShoulderPivot, layer: 0); // back arm
-    _makeArm(rightShoulderPivot, layer: 4); // front arm
-    _makeLeg(leftHipPivot);
-    _makeLeg(rightHipPivot);
+    _makeArm(leftShoulderPivot, RobotSlot.leftArm, layer: 0); // back arm
+    _makeArm(rightShoulderPivot, RobotSlot.rightArm, layer: 4); // front
+    _makeLeg(leftHipPivot, RobotSlot.leftLeg);
+    _makeLeg(rightHipPivot, RobotSlot.rightLeg);
+    torso.slot = RobotSlot.body;
+    head.slot = RobotSlot.head;
 
     final art = sprites;
     if (art != null) {
@@ -201,21 +207,25 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     Vector2? pivot,
     double density,
     int layer,
-    List<PartShape> shapes,
-  ) {
-    final part = RobotPart(
-      kind: kind,
-      robot: this,
-      shapes: shapes,
-      density: density,
-      layer: layer,
-    )..pivot = pivot;
+    List<PartShape> shapes, {
+    RobotSlot? slot,
+  }) {
+    final part =
+        RobotPart(
+            kind: kind,
+            robot: this,
+            shapes: shapes,
+            density: density,
+            layer: layer,
+          )
+          ..pivot = pivot
+          ..slot = slot;
     parts.add(part);
     return part;
   }
 
-  void _makeArm(Vector2 pivot, {required int layer}) {
-    _makePart(PartKind.arm, pivot, Tuning.limbDensity, layer, [
+  void _makeArm(Vector2 pivot, RobotSlot slot, {required int layer}) {
+    _makePart(PartKind.arm, pivot, Tuning.limbDensity, layer, slot: slot, [
       PartShape(
         Capsule(
           center1: Vector2.zero(),
@@ -227,8 +237,8 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     ]);
   }
 
-  void _makeLeg(Vector2 pivot) {
-    _makePart(PartKind.leg, pivot, Tuning.limbDensity, 1, [
+  void _makeLeg(Vector2 pivot, RobotSlot slot) {
+    _makePart(PartKind.leg, pivot, Tuning.limbDensity, 1, slot: slot, [
       PartShape(
         Capsule(
           center1: Vector2.zero(),
@@ -438,7 +448,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       p.body.linearVelocity = p.body.linearVelocity + delta;
     }
 
-    _applyLandingDamage(type, part, contact);
+    _applyLandingDamage(type);
   }
 
   /// Called by a part when it stops touching the hill.
@@ -449,54 +459,28 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
   }
 
-  void _applyLandingDamage(LandingType type, RobotPart part, Contact contact) {
-    final damage = landingDamage(type);
-    switch (type) {
-      case LandingType.clean:
-        for (final leg in limbs.where(
-          (p) => p.kind == PartKind.leg && !p.detached,
-        )) {
-          _damage(leg, damage);
-        }
-      case LandingType.oneFoot:
-        _damage(part, damage);
-      case LandingType.crash:
-        final points = contact.points;
-        final impact = (points != null && points.isNotEmpty)
-            ? points.first.point
-            : part.body.position;
-        final nearest = _nearestAttachedLimb(impact);
-        if (nearest != null) {
-          _damage(nearest, damage);
-        }
+  /// Adds this landing's damage to the shared total and breaks off the
+  /// limbs whose turn it is (arms first, then legs; see damage.dart).
+  void _applyLandingDamage(LandingType type) {
+    for (final slot in damage.add(landingDamage(type))) {
+      _breakOff(_partFor(slot));
     }
   }
 
-  void _damage(RobotPart limb, double amount) {
-    if (!limb.isLimb || limb.detached) {
-      return;
-    }
-    limb.hp = math.max(0, limb.hp - amount);
-    if (limb.hp == 0) {
-      _breakOff(limb);
-    }
-  }
+  /// The part shown as [slot] in the status panel.
+  RobotPart _partFor(RobotSlot slot) =>
+      parts.firstWhere((part) => part.slot == slot);
 
-  /// The attached arm or leg whose joint is closest to [worldPoint].
-  RobotPart? _nearestAttachedLimb(Vector2 worldPoint) {
-    RobotPart? nearest;
-    var bestDistance = double.infinity;
-    final torsoTransform = torso.body.transform;
-    for (final limb in limbs.where((p) => !p.detached)) {
-      final jointWorld = torsoTransform.apply(limb.pivot!);
-      final d = jointWorld.distanceTo(worldPoint);
-      if (d < bestDistance) {
-        bestDistance = d;
-        nearest = limb;
-      }
-    }
-    return nearest;
-  }
+  /// Each part's remaining HP (0 to 1) for the status panel. The body is
+  /// gone once the head is launched, the head once it has landed.
+  Map<RobotSlot, double> get partHp => {
+    for (final slot in RobotSlot.values)
+      slot: switch (slot) {
+        RobotSlot.body when headLaunched => 0.0,
+        RobotSlot.head when headLanded => 0.0,
+        _ => damage.hpOf(slot),
+      },
+  };
 
   /// Destroys the limb's joint and flings it away from the torso, so it
   /// clearly tumbles off as debris.

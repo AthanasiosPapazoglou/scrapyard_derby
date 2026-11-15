@@ -84,10 +84,8 @@ Vector2 velocityAfterLanding(
   return tangent * newAlong + groundNormal * (bounce + extraBounce);
 }
 
-/// How much damage a landing does.
-///
-/// Clean: applied to each remaining leg. One foot: to the leg that touched.
-/// Crash: to the limb nearest the impact.
+/// How much damage a landing adds to the robot's shared damage total
+/// (see damage.dart).
 double landingDamage(LandingType type) => switch (type) {
   LandingType.clean => Tuning.cleanLandingDamage,
   LandingType.oneFoot => Tuning.oneFootDamage,

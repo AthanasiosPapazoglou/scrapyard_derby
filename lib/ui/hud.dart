@@ -4,6 +4,7 @@ import '../config/tuning.dart';
 import '../game/derby_game.dart';
 import '../game/palette.dart';
 import 'debug_overlay.dart';
+import 'status_panel.dart';
 
 /// Everything drawn on top of the game: distance, debug info, restart
 /// button and the run-over banner.
@@ -68,6 +69,12 @@ class Hud extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+              // Robot status screen, bottom left.
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: IgnorePointer(child: StatusPanel(partHp: info.partHp)),
               ),
               if (info.runEnd case final end?)
                 Center(

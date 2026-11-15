@@ -177,17 +177,23 @@ abstract final class Tuning {
   static const double startDropHeight = 8.0;
 
   // ---------------------------------------------------------------- Limb damage
-  /// Hit points of each arm and leg joint.
+  // Damage is linear: every landing adds to one shared total, and parts
+  // break in a fixed order (left arm, right arm, left leg, right leg),
+  // whatever part hit the ground. See lib/game/damage.dart.
+
+  /// Damage between one part breaking and the next. The left arm breaks at
+  /// 100, the right arm at 200, the left leg at 300, the right leg at 400.
   static const double limbMaxHp = 100.0;
 
-  /// Damage to the limb nearest the impact point on a crash.
+  /// Damage added by a crash landing.
   static const double crashDamage = 45.0;
 
-  /// Damage to the leg that touched down on a one-foot landing.
+  /// Damage added by a one-foot landing.
   static const double oneFootDamage = 20.0;
 
-  /// Damage to each remaining leg on a clean landing (wear and tear).
-  static const double cleanLandingDamage = 3.0;
+  /// Damage added by a clean landing (wear and tear; was 3 on each of the
+  /// two legs).
+  static const double cleanLandingDamage = 6.0;
 
   /// Seconds a broken-off part stays on the track before disappearing. It
   /// fades out over this time.

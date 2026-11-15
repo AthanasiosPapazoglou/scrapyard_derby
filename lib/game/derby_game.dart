@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import '../config/tuning.dart';
 import 'background.dart';
 import 'camera_framing.dart';
+import 'damage.dart';
 import 'effects.dart';
 import 'hill.dart';
 import 'landing.dart';
@@ -37,6 +38,7 @@ class HudInfo {
     this.bestDistance = 0,
     this.limbsLeft = 4,
     this.headLaunched = false,
+    this.partHp = const {},
     this.runEnd,
   });
 
@@ -59,6 +61,9 @@ class HudInfo {
 
   /// True once the head has been fired off like a rocket.
   final bool headLaunched;
+
+  /// Each part's remaining HP (0 to 1) for the status panel.
+  final Map<RobotSlot, double> partHp;
 
   /// Set once the run is over.
   final RunEnd? runEnd;
@@ -244,6 +249,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       bestDistance: _bestDistance,
       limbsLeft: robot.limbsLeft,
       headLaunched: robot.headLaunched,
+      partHp: robot.partHp,
       runEnd: _runEnd,
     );
   }

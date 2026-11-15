@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scrapyard_derby/game/damage.dart';
 import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/landing.dart';
 import 'package:scrapyard_derby/ui/hud.dart';
@@ -31,6 +32,7 @@ void main() {
       bestDistance: 500,
       limbsLeft: 0,
       runEnd: RunEnd.headDown,
+      partHp: {RobotSlot.leftArm: 0, RobotSlot.rightArm: 0.5},
     );
     await tester.pump();
 
@@ -43,5 +45,10 @@ void main() {
     expect(find.text('412 m'), findsNWidgets(3));
     expect(find.text('Best: 500 m'), findsOneWidget);
     expect(find.text('Go again'), findsOneWidget);
+    // The status panel reports each part's HP.
+    expect(
+      find.bySemanticsLabel(RegExp('L ARM 0%, R ARM 50%')),
+      findsOneWidget,
+    );
   });
 }

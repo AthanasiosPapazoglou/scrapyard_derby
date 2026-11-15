@@ -4,6 +4,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/tuning.dart';
+import 'damage.dart';
 import 'hill.dart';
 import 'landing.dart';
 import 'palette.dart';
@@ -43,11 +44,13 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   final List<PartShape> shapes;
   final double density;
 
-  /// Arms and legs only: the joint holding this limb to the torso, its
-  /// pivot in torso-local meters, and its remaining hit points.
+  /// Arms and legs only: the joint holding this limb to the torso and its
+  /// pivot in torso-local meters.
   RevoluteJoint? joint;
   Vector2? pivot;
-  double hp = Tuning.limbMaxHp;
+
+  /// Which part of the status panel this is.
+  RobotSlot? slot;
 
   /// True once the limb has broken off and is just debris.
   bool detached = false;
