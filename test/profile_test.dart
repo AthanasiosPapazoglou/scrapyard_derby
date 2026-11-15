@@ -61,6 +61,21 @@ void main() {
       expect(p.bestDistance, 150);
     });
 
+    test('resetProgress wipes progress and keeps settings', () {
+      final p = PlayerProfile(
+        bestDistance: 300,
+        scrap: 80,
+        upgradeLevels: {'plating': 1},
+        sfxVolume: 0.3,
+        showDebugInfo: true,
+      )..resetProgress();
+      expect(p.bestDistance, 0);
+      expect(p.scrap, 0);
+      expect(p.upgradeLevels, isEmpty);
+      expect(p.sfxVolume, 0.3);
+      expect(p.showDebugInfo, isTrue);
+    });
+
     test('scrap never goes negative and volumes are clamped', () {
       final p = PlayerProfile(scrap: 10)..addScrap(-50);
       expect(p.scrap, 0);

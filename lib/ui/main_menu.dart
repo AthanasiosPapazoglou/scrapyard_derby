@@ -9,6 +9,7 @@ import 'derby_button.dart';
 import 'game_page.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
+import 'settings_page.dart';
 
 /// The first screen: the dusk scrapyard drifting by, the robot idling in
 /// the air, the title, best distance, scrap, and Play / Workshop / Settings.
@@ -46,6 +47,14 @@ class _MainMenuState extends State<MainMenu>
     _ticker.dispose();
     _time.dispose();
     super.dispose();
+  }
+
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SettingsPage(profile: widget.profile),
+      ),
+    );
   }
 
   void _play() {
@@ -97,6 +106,7 @@ class _MainMenuState extends State<MainMenu>
                         child: _MenuPanel(
                           profile: widget.profile,
                           onPlay: _play,
+                          onSettings: _openSettings,
                         ),
                       ),
                     ),
@@ -113,10 +123,15 @@ class _MainMenuState extends State<MainMenu>
 
 /// Title, best distance, scrap and the buttons.
 class _MenuPanel extends StatelessWidget {
-  const _MenuPanel({required this.profile, required this.onPlay});
+  const _MenuPanel({
+    required this.profile,
+    required this.onPlay,
+    required this.onSettings,
+  });
 
   final PlayerProfile profile;
   final VoidCallback onPlay;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -149,22 +164,21 @@ class _MenuPanel extends StatelessWidget {
             onPressed: onPlay,
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Wired up in roadmap steps 3 (Settings) and 4 (Workshop).
-              DerbyButton(
+              // Wired up in roadmap step 4 (Workshop).
+              const DerbyButton(
                 label: 'Workshop',
                 icon: Icons.build,
                 onPressed: null,
                 disabledNote: 'SOON',
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               DerbyButton(
                 label: 'Settings',
                 icon: Icons.tune,
-                onPressed: null,
-                disabledNote: 'SOON',
+                onPressed: onSettings,
               ),
             ],
           ),

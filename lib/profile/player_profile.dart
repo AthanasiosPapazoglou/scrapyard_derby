@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import '../config/tuning.dart';
+
 /// Everything the game remembers between launches: best distance, scrap,
 /// upgrade levels and settings.
 ///
@@ -14,7 +16,7 @@ class PlayerProfile extends ChangeNotifier {
     Map<String, int> upgradeLevels = const {},
     this._musicVolume = defaultMusicVolume,
     this._sfxVolume = defaultSfxVolume,
-    this._hapticsOn = true,
+    this._hapticsOn = Tuning.hapticsEnabled,
     this._showDebugInfo = false,
   }) : _upgradeLevels = Map.of(upgradeLevels);
 
@@ -77,6 +79,14 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Wipes best distance, scrap and upgrades. Settings are kept.
+  void resetProgress() {
+    _bestDistance = 0;
+    _scrap = 0;
+    _upgradeLevels.clear();
+    notifyListeners();
+  }
+
   set musicVolume(double value) {
     _musicVolume = value.clamp(0.0, 1.0);
     notifyListeners();
@@ -128,7 +138,7 @@ class PlayerProfile extends ChangeNotifier {
       },
       musicVolume: _double(s['musicVolume'], defaultMusicVolume),
       sfxVolume: _double(s['sfxVolume'], defaultSfxVolume),
-      hapticsOn: _bool(s['hapticsOn'], true),
+      hapticsOn: _bool(s['hapticsOn'], Tuning.hapticsEnabled),
       showDebugInfo: _bool(s['showDebugInfo'], false),
     );
   }

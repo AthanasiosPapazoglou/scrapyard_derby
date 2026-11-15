@@ -35,7 +35,15 @@ class Hud extends StatelessWidget {
                 left: 12,
                 top: 12,
                 // IgnorePointer: taps on the panel still reach the game.
-                child: IgnorePointer(child: DebugOverlay(info: info)),
+                child: IgnorePointer(
+                  // Developer numbers, only with Settings > Show debug info.
+                  child: ListenableBuilder(
+                    listenable: game.profile,
+                    builder: (context, _) => game.profile.showDebugInfo
+                        ? DebugOverlay(info: info)
+                        : const SizedBox.shrink(),
+                  ),
+                ),
               ),
               Positioned(
                 right: 12,

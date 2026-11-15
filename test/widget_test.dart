@@ -19,7 +19,8 @@ void main() {
 
     // The game is never loaded here, so no physics runs; we only drive the
     // HUD through its ValueNotifier.
-    final game = DerbyGame(profile: PlayerProfile(scrap: 120));
+    final profile = PlayerProfile(scrap: 120);
+    final game = DerbyGame(profile: profile);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -32,6 +33,10 @@ void main() {
     expect(find.byTooltip('Pause'), findsOneWidget);
     // The distance is outlined text: drawn twice (ink outline + fill).
     expect(find.text('0 m'), findsNWidgets(2));
+    // Debug numbers are hidden until Settings turns them on.
+    expect(find.textContaining('↻ 100%'), findsNothing);
+    profile.showDebugInfo = true;
+    await tester.pump();
     expect(find.textContaining('↻ 100%'), findsOneWidget);
     expect(find.textContaining('HEAD DOWN'), findsNothing);
 

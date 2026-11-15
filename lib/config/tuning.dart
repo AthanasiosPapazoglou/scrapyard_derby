@@ -314,7 +314,7 @@ abstract final class Tuning {
   static const double smokeLifetime = 0.9;
 
   /// Phone vibration on landings, limb loss and launch (no effect in the
-  /// iOS Simulator).
+  /// iOS Simulator). Only the default: the player's Settings decide.
   static const bool hapticsEnabled = true;
 
   // ---------------------------------------------------------------- Scrap

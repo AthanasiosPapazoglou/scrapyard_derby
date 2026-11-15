@@ -140,7 +140,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
   // ---------------------------------------------------------------- Helpers
 
   void _haptic(Future<void> Function() feedback) {
-    if (Tuning.hapticsEnabled) {
+    if (game.profile.hapticsOn) {
       unawaited(feedback());
     }
   }

@@ -24,7 +24,7 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
 | Pure, tested logic | `run_stats.dart`, `scrap_reward.dart`, `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
 | Visuals | `background.dart`, `dusk_scene.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
-| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
+| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `settings_page.dart`, `run_summary.dart`, `robot_figure.dart`, `derby_button.dart`, `outlined_text.dart` |
 | Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
 
 ### Gotchas learned so far
@@ -110,13 +110,18 @@ passing, a check in the Simulator, and a commit command for the developer.
 - Balance note for step 6: in a test run the head flight was 194 of 546 m
   and earned 38 of 119 scrap; head-launch power may be too high.
 
-### Step 3 — Settings page  ☐
+### Step 3 — Settings page  ☑
 - `lib/ui/settings_page.dart`: music volume, sfx volume, vibration on/off,
   show debug info (default off), reset progress (confirm dialog), credits.
 - Haptics read the profile setting instead of `Tuning.hapticsEnabled`
   (keep the Tuning value as the default).
 - The debug overlay shows only when the setting is on.
 - Widget tests: toggles change the profile; reset asks first.
+- Done: `lib/ui/settings_page.dart` (two columns for landscape). Reset
+  (`PlayerProfile.resetProgress`) wipes best, scrap and upgrades but keeps
+  settings. `Effects` reads `game.profile.hapticsOn`; the HUD hides the debug
+  panel unless `showDebugInfo` is on. Music slider is saved but labelled
+  "No music yet" until D4 is decided. Credits link to Flutter's license page.
 
 ### Step 4 — Upgrade stats layer + Workshop  ☐
 - `lib/game/robot_stats.dart` (pure): the robot's effective values =
