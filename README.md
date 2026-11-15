@@ -12,8 +12,12 @@ and see how far your robot gets before it falls apart.
 ![Flutter](https://img.shields.io/badge/Flutter-3-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3-0175C2?logo=dart&logoColor=white)
 ![Flame](https://img.shields.io/badge/Flame-Forge2D-F2B233)
-![Platforms](https://img.shields.io/badge/platforms-Android%20%7C%20iOS-6B7B8C)
+![Platforms](https://img.shields.io/badge/platforms-Android%20%7C%20iOS%20%7C%20Web-6B7B8C)
 ![Status](https://img.shields.io/badge/status-in%20development-C4622D)
+
+### [▶ Play in your browser](https://athanasiospapazoglou.github.io/scrapyard_derby/)
+
+<sub>Best played in landscape. Your progress is saved in your browser.</sub>
 
 </div>
 
@@ -105,7 +109,11 @@ The scenery (sky, parallax scrap heaps, dirt, weather particles) is drawn in cod
 
 ## Run it
 
-You'll need [Flutter](https://docs.flutter.dev/get-started/install) (Dart 3) and a phone, emulator or simulator.
+The quickest way is the [browser version](https://athanasiospapazoglou.github.io/scrapyard_derby/),
+which is rebuilt and published automatically on every push to `main`
+(see [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml)).
+
+To run it yourself you'll need [Flutter](https://docs.flutter.dev/get-started/install) (Dart 3) and a phone, emulator, simulator or browser.
 
 ```bash
 flutter pub get

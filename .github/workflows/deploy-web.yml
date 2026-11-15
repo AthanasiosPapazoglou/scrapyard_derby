@@ -1,0 +1,64 @@
+# Builds the web version of the game and publishes it to GitHub Pages on
+# every push to main: https://athanasiospapazoglou.github.io/scrapyard_derby/
+#
+# Costs nothing: the repo is public and this uses GitHub's standard
+# ubuntu-latest runner, which is free for public repositories.
+#
+# One-time setup on GitHub: Settings -> Pages -> Build and deployment ->
+# Source: "GitHub Actions". It can also be run by hand from the Actions tab.
+name: Deploy web build to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits for the running one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+
+      - name: Get packages
+        run: flutter pub get
+
+      # The site lives under /scrapyard_derby/, so the app needs that base.
+      - name: Build web
+        run: flutter build web --release --base-href /scrapyard_derby/
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

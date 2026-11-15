@@ -8,6 +8,9 @@ All names, art, sound and code are original.
 - Day-to-day testing: iOS Simulator on the developer's Mac (`open -a Simulator`, then `flutter run -d <simulator id>` from `flutter devices`).
   A mouse click in the Simulator is a tap; click and hold is a held finger. Haptics don't work there, and performance isn't representative of a phone.
 - Real-device checks later on the developer's Android phone; ship Android first, then iOS.
+- A web build is published to GitHub Pages on every push to main (`.github/workflows/deploy-web.yml`,
+  https://athanasiospapazoglou.github.io/scrapyard_derby/). Box2D runs there as WebAssembly. Must stay free:
+  public repo + standard `ubuntu-latest` runner only (no larger runners).
 - All tunable gameplay numbers live in ONE config file (e.g. `lib/config/tuning.dart`).
 
 ## Core loop
