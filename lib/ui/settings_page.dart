@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../game/palette.dart';
@@ -96,6 +97,20 @@ class SettingsPage extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            // Developer shortcut; never in release builds.
+                            if (kDebugMode) ...[
+                              const SizedBox(height: 12),
+                              _Panel(
+                                title: 'DEVELOPER',
+                                children: [
+                                  DerbyButton(
+                                    label: 'Unlock everything',
+                                    icon: Icons.lock_open,
+                                    onPressed: profile.debugUnlockAll,
+                                  ),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 12),
                             const _Credits(),
                           ],

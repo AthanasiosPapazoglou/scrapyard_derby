@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
+import 'package:scrapyard_derby/game/gadgets.dart';
 import 'package:scrapyard_derby/game/levels.dart';
 import 'package:scrapyard_derby/game/robot_stats.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
@@ -114,6 +115,22 @@ void main() {
       expect(p.maxPartTier, 2);
       expect(p.buyUpgrade(UpgradeTrack.plating), isTrue);
       expect(p.tierOf(UpgradeTrack.plating), 2);
+    });
+
+    test('debugUnlockAll maxes everything and opens every level', () {
+      final p = PlayerProfile(levelBest: {1: 99999}, scrap: 5);
+      p.debugUnlockAll();
+      for (final track in UpgradeTrack.values) {
+        expect(p.tierOf(track), Tuning.upgradeMaxLevel);
+      }
+      for (final gadget in Gadget.values) {
+        expect(p.gadgetLevel(gadget), Tuning.gadgetMaxLevel);
+      }
+      expect(p.highestUnlockedLevel, Levels.count);
+      expect(p.bestOn(1), 99999); // A better best is kept.
+      expect(p.starsOn(2), 1); // Other levels: only the goal.
+      expect(p.bestOn(Levels.count), 0);
+      expect(p.scrap, 10005);
     });
 
     test('a version 1 save keeps its best distance as level 1', () {

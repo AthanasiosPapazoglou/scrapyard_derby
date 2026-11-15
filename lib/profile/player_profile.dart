@@ -216,6 +216,25 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Developer shortcut (Settings, debug builds only): every part at the
+  /// top tier, every gadget maxed, every level open (each level before the
+  /// last gets at least its first-star distance, so the other stars are
+  /// still to earn) and [extraScrap] more scrap. Better bests are kept.
+  void debugUnlockAll({int extraScrap = 10000}) {
+    for (final track in UpgradeTrack.values) {
+      _upgradeLevels[track.id] = Tuning.upgradeMaxLevel;
+    }
+    for (final gadget in Gadget.values) {
+      _gadgetLevels[gadget.id] = Tuning.gadgetMaxLevel;
+    }
+    for (var level = 1; level < Levels.count; level++) {
+      final goal = Levels.of(level).starDistances.first;
+      _levelBest[level] = math.max(bestOn(level), goal);
+    }
+    _scrap += extraScrap;
+    notifyListeners();
+  }
+
   /// Wipes best distances (so stars and unlocks), scrap, upgrades and
   /// gadgets.
   /// Settings are kept.
