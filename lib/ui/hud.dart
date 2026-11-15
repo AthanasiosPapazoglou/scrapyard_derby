@@ -4,16 +4,20 @@ import '../config/tuning.dart';
 import '../game/derby_game.dart';
 import '../game/palette.dart';
 import 'debug_overlay.dart';
+import 'outlined_text.dart';
 import 'status_panel.dart';
 
 /// Everything drawn on top of the game: distance, debug info, restart
 /// button and the run-over banner.
 class Hud extends StatelessWidget {
-  const Hud({super.key, required this.game});
+  const Hud({super.key, required this.game, this.onMenu});
 
   static const overlayKey = 'hud';
 
   final DerbyGame game;
+
+  /// Leaves the run for the main menu (hidden when null).
+  final VoidCallback? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +54,7 @@ class Hud extends StatelessWidget {
                 child: IgnorePointer(
                   child: Column(
                     children: [
-                      _OutlinedText(
+                      OutlinedText(
                         '${info.distance.toStringAsFixed(0)} m',
                         fontSize: 36,
                         color: Palette.cream,
@@ -78,7 +82,12 @@ class Hud extends StatelessWidget {
               ),
               if (info.runEnd case final end?)
                 Center(
-                  child: _RunOverBanner(end: end, info: info, game: game),
+                  child: _RunOverBanner(
+                    end: end,
+                    info: info,
+                    game: game,
+                    onMenu: onMenu,
+                  ),
                 ),
             ],
           );
@@ -94,11 +103,13 @@ class _RunOverBanner extends StatelessWidget {
     required this.end,
     required this.info,
     required this.game,
+    required this.onMenu,
   });
 
   final RunEnd end;
   final HudInfo info;
   final DerbyGame game;
+  final VoidCallback? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -137,13 +148,29 @@ class _RunOverBanner extends StatelessWidget {
             style: const TextStyle(color: ink, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: game.restart,
-            style: FilledButton.styleFrom(
-              backgroundColor: ink,
-              foregroundColor: Palette.hazard,
-            ),
-            child: const Text('Go again'),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onMenu != null) ...[
+                OutlinedButton(
+                  onPressed: onMenu,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ink,
+                    side: const BorderSide(color: ink, width: 2),
+                  ),
+                  child: const Text('Menu'),
+                ),
+                const SizedBox(width: 12),
+              ],
+              FilledButton(
+                onPressed: game.restart,
+                style: FilledButton.styleFrom(
+                  backgroundColor: ink,
+                  foregroundColor: Palette.hazard,
+                ),
+                child: const Text('Go again'),
+              ),
+            ],
           ),
         ],
       ),
@@ -212,42 +239,7 @@ class _HeadLaunchLabel extends StatelessWidget {
       children: [
         Icon(Icons.rocket_launch, color: Palette.hazard, size: 20),
         SizedBox(width: 4),
-        _OutlinedText('HEAD LAUNCH!', fontSize: 16, color: Palette.hazard),
-      ],
-    );
-  }
-}
-
-/// Bold text with a thick ink outline, readable on both the dark sky and
-/// the light ground (the cutout art style).
-class _OutlinedText extends StatelessWidget {
-  const _OutlinedText(this.text, {required this.fontSize, required this.color});
-
-  final String text;
-  final double fontSize;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final base = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900);
-    return Stack(
-      children: [
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: base.copyWith(
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = fontSize / 6
-              ..strokeJoin = StrokeJoin.round
-              ..color = Palette.outline,
-          ),
-        ),
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: base.copyWith(color: color),
-        ),
+        OutlinedText('HEAD LAUNCH!', fontSize: 16, color: Palette.hazard),
       ],
     );
   }

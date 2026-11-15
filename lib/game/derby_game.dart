@@ -6,6 +6,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import '../profile/player_profile.dart';
 import 'background.dart';
 import 'camera_framing.dart';
 import 'damage.dart';
@@ -52,7 +53,7 @@ class HudInfo {
   final double spinEnergy;
   final LandingType? lastLanding;
 
-  /// Horizontal meters covered this run, and the best this session.
+  /// Horizontal meters covered this run, and the best ever (saved).
   final double distance;
   final double bestDistance;
 
@@ -72,17 +73,22 @@ class HudInfo {
 /// The game: an endless hill, one robot, a following camera, hold to
 /// counter-spin. The run lasts until the robot breaks down or gets stuck.
 class DerbyGame extends Forge2DGame with TapCallbacks {
-  DerbyGame() : super(gravity: Vector2(0, Tuning.gravity));
+  DerbyGame({required this.profile})
+    : super(gravity: Vector2(0, Tuning.gravity));
+
+  /// Saved player data; the best distance is recorded here at run end.
+  final PlayerProfile profile;
 
   final HillGeometry hillGeometry = HillGeometry();
   late Robot robot;
 
   /// Updated a few times per second for the Flutter overlays.
-  final ValueNotifier<HudInfo> hud = ValueNotifier(const HudInfo());
+  late final ValueNotifier<HudInfo> hud = ValueNotifier(
+    HudInfo(bestDistance: profile.bestDistance),
+  );
 
   RunEnd? _runEnd;
   double _finalDistance = 0;
-  double _bestDistance = 0;
   double _stallTime = 0;
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
@@ -143,7 +149,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
-    hud.value = HudInfo(bestDistance: _bestDistance);
+    hud.value = HudInfo(bestDistance: profile.bestDistance);
   }
 
   /// Runs the world (physics, robot spin and hold response, hill) at
@@ -202,7 +208,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (end != null) {
       _runEnd = end;
       _finalDistance = robot.distance;
-      _bestDistance = math.max(_bestDistance, _finalDistance);
+      profile.recordRun(_finalDistance);
       _publishHud();
     }
   }
@@ -246,7 +252,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       lastLanding: robot.lastLanding,
       // Frozen once the run is over, even if the wreck keeps sliding.
       distance: _runEnd == null ? robot.distance : _finalDistance,
-      bestDistance: _bestDistance,
+      bestDistance: profile.bestDistance,
       limbsLeft: robot.limbsLeft,
       headLaunched: robot.headLaunched,
       partHp: robot.partHp,

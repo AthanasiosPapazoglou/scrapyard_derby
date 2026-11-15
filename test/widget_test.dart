@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/game/damage.dart';
 import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/landing.dart';
+import 'package:scrapyard_derby/profile/player_profile.dart';
 import 'package:scrapyard_derby/ui/hud.dart';
 
 void main() {
@@ -11,10 +12,12 @@ void main() {
   ) async {
     // The game is never loaded here, so no physics runs; we only drive the
     // HUD through its ValueNotifier.
-    final game = DerbyGame();
+    final game = DerbyGame(profile: PlayerProfile());
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: Hud(game: game)),
+        home: Scaffold(
+          body: Hud(game: game, onMenu: () {}),
+        ),
       ),
     );
 
@@ -45,6 +48,7 @@ void main() {
     expect(find.text('412 m'), findsNWidgets(3));
     expect(find.text('Best: 500 m'), findsOneWidget);
     expect(find.text('Go again'), findsOneWidget);
+    expect(find.text('Menu'), findsOneWidget);
     // The status panel reports each part's HP.
     expect(
       find.bySemanticsLabel(RegExp('L ARM 0%, R ARM 50%')),

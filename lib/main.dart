@@ -1,9 +1,9 @@
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'game/derby_game.dart';
-import 'ui/hud.dart';
+import 'profile/player_profile.dart';
+import 'profile/profile_store.dart';
+import 'ui/main_menu.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,34 +13,24 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(const ScrapyardDerbyApp());
+  // Saved data is loaded before the first page, so the menu shows it at once.
+  final store = await ProfileStore.load();
+  runApp(ScrapyardDerbyApp(profile: store.profile));
 }
 
-class ScrapyardDerbyApp extends StatefulWidget {
-  const ScrapyardDerbyApp({super.key});
+/// The app shell: a plain Navigator starting at the main menu.
+/// Pages: Menu → Game (later: Run summary, Workshop, Settings).
+class ScrapyardDerbyApp extends StatelessWidget {
+  const ScrapyardDerbyApp({super.key, required this.profile});
 
-  @override
-  State<ScrapyardDerbyApp> createState() => _ScrapyardDerbyAppState();
-}
-
-class _ScrapyardDerbyAppState extends State<ScrapyardDerbyApp> {
-  // Created once, so hot reload doesn't restart the run.
-  final DerbyGame _game = DerbyGame();
+  final PlayerProfile profile;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Scrapyard Derby',
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: GameWidget<DerbyGame>(
-          game: _game,
-          overlayBuilderMap: {
-            Hud.overlayKey: (context, game) => Hud(game: game),
-          },
-          initialActiveOverlays: const [Hud.overlayKey],
-        ),
-      ),
+      home: MainMenu(profile: profile),
     );
   }
 }

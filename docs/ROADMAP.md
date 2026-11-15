@@ -10,8 +10,9 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 - Phase 2 art is in: robot sprites (vector, from `art/make_style_test.py`),
   dusk world, styled hill, props, juice (particles, shake, slow-mo, haptics),
   CRT-style robot status panel.
-- The app is a single screen: `main.dart` → `GameWidget<DerbyGame>` with the
-  `Hud` overlay. Best distance lives only in memory (`DerbyGame._bestDistance`).
+- App shell: `main.dart` loads the `PlayerProfile` (shared_preferences),
+  then Menu → `GamePage` (`GameWidget<DerbyGame>` + `Hud` overlay).
+  Best distance is saved in the profile.
 - The end-of-run card (`_RunOverBanner` in `lib/ui/hud.dart`) shows reason,
   distance, best and "Go again".
 
@@ -23,7 +24,8 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
 | Robot (spin, landings, damage, head launch) | `lib/game/robot.dart`, `robot_part.dart` |
 | Pure, tested logic | `landing.dart`, `spin.dart`, `damage.dart`, `head_launch.dart`, `camera_framing.dart`, `hill.dart` (`HillGeometry`) |
 | Visuals | `background.dart`, `effects.dart`, `scrap_props.dart`, `robot_sprites.dart`, `palette.dart` |
-| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart` |
+| Flutter UI | `lib/ui/hud.dart`, `debug_overlay.dart`, `status_panel.dart`, `main_menu.dart`, `game_page.dart`, `outlined_text.dart` |
+| Saved data | `lib/profile/player_profile.dart`, `profile_store.dart` |
 
 ### Gotchas learned so far
 - `flame_forge2d` 0.20 / `forge2d` 0.15 wrap **Box2D v3**, not the classic API:
@@ -39,6 +41,9 @@ The working plan for the next block of work. Read this together with `CLAUDE.md`
   hot-reloads, `-USR2` hot-restarts. Simulator screenshots arrive a few seconds
   late, so verify timing-sensitive things with temporary `debugPrint` logs.
 - New assets or packages need a full `flutter run` restart, not a hot restart.
+- This SDK supports private named parameters (`this._field = 0` in a named
+  constructor list, called as `field:`); use them to satisfy
+  `prefer_initializing_formals`.
 
 ## Decisions
 
@@ -58,7 +63,7 @@ Defaults are in use until the developer changes them.
 Work in this order; each step ends with `flutter analyze` clean, tests
 passing, a check in the Simulator, and a commit command for the developer.
 
-### Step 1 — Saved player data + navigation  ☐
+### Step 1 — Saved player data + navigation  ☑
 - `lib/profile/player_profile.dart`: `PlayerProfile` (ChangeNotifier) with
   best distance, scrap, upgrade levels (map track → level), settings
   (music volume, sfx volume, haptics on, debug overlay on). JSON in/out.
@@ -70,6 +75,11 @@ passing, a check in the Simulator, and a commit command for the developer.
   the first page. The `DerbyGame` is created per Play press (fresh run).
 - Best distance moves from `DerbyGame` to the profile.
 - Tests: profile JSON round trip, defaults, unknown/missing keys.
+- Done: `PlayerProfile` saves itself through `ProfileStore` (it listens for
+  every change). `lib/ui/main_menu.dart` is a plain placeholder (title, best,
+  scrap, Play) and `lib/ui/game_page.dart` hosts the game; the run-over card
+  got a Menu button. Settings exist in the profile but nothing reads them
+  yet (step 3). `OutlinedText` moved to `lib/ui/outlined_text.dart`.
 
 ### Step 2 — Main menu + run summary  ☐
 - `lib/ui/main_menu.dart`: dusk background (reuse the sky/heap drawing:
