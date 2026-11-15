@@ -40,14 +40,14 @@ The score is horizontal distance in meters; the best distance is shown after eac
 ## Art
 - Style: hand-drawn cutout vector look. Thick dark outlines, flat fills with one shadow and one highlight.
 - Palette: outline #2B1D16, rust #C4622D / #8A3B1C / #E39056, steel #6B7B8C / #4A5563 / #B4C0CB,
-  hazard yellow #F2B233 / #B97F14, eye glow #5FE3D0.
+  hazard yellow #F2B233 / #B97F14, eye glow #5FE3D0. World colours (sky, heaps, dirt) come from the style test scene; all live in lib/game/palette.dart.
 - Source of truth: `art/make_style_test.py` generates SVGs. Each part is drawn around its joint pivot,
   so parts can be exported as separate PNG sprites with the pivot at a known offset.
 - Robot sprites: `python3 art/make_style_test.py art assets/robot` writes one SVG per part (torso, head, arm, leg) to `assets/robot/`,
   each with its joint pivot at (0,0) of the viewBox. The game draws them as vectors (flutter_svg) on the physics bodies.
   The collision shapes in tuning.dart are matched to this art; `test/robot_sprites_test.dart` checks they still fit.
   `Tuning.debugShowPhysicsShapes` draws the collision shapes on top for checking.
-- World visuals so far (code-drawn, palette colours): sky gradient, 3 parallax layers of distant scrap heaps (camera backdrop), ground with a highlight band and thick outline, decorative scrap props on the slope (tires, barrels, girders, plates; no physics).
+- World visuals (code-drawn, following the style test scene): dusk sky gradient (navy, coral, amber) with a low sun, 3 parallax layers of purple-brown scrap heaps with tire/car/girder silhouettes (camera backdrop), dirt hill with a highlight band, a deeper shadow tone, specks and buried junk, decorative scrap props on the slope (no physics). HUD text is cream with an ink outline.
 
 ## Phases
 1. **Feel prototype** (now): spinning robot, hold to counter-spin, 3 landing types, endless hill, limb loss, head launch, distance score, tuning config. Gate: it's fun to replay.

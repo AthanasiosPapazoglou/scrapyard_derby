@@ -49,14 +49,10 @@ class Hud extends StatelessWidget {
                 child: IgnorePointer(
                   child: Column(
                     children: [
-                      Text(
+                      _OutlinedText(
                         '${info.distance.toStringAsFixed(0)} m',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Palette.outline,
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        fontSize: 36,
+                        color: Palette.cream,
                       ),
                       // Energy bar while the robot is whole; a rocket label
                       // once the head has been launched.
@@ -172,7 +168,7 @@ class _MeterBar extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: Palette.outline, size: 20),
+        Icon(icon, color: Palette.cream, size: 20),
         Container(
           width: 160,
           height: 14,
@@ -207,15 +203,43 @@ class _HeadLaunchLabel extends StatelessWidget {
     return const Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.rocket_launch, color: Palette.rust, size: 20),
+        Icon(Icons.rocket_launch, color: Palette.hazard, size: 20),
         SizedBox(width: 4),
+        _OutlinedText('HEAD LAUNCH!', fontSize: 16, color: Palette.hazard),
+      ],
+    );
+  }
+}
+
+/// Bold text with a thick ink outline, readable on both the dark sky and
+/// the light ground (the cutout art style).
+class _OutlinedText extends StatelessWidget {
+  const _OutlinedText(this.text, {required this.fontSize, required this.color});
+
+  final String text;
+  final double fontSize;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900);
+    return Stack(
+      children: [
         Text(
-          'HEAD LAUNCH!',
-          style: TextStyle(
-            color: Palette.rust,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+          text,
+          textAlign: TextAlign.center,
+          style: base.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = fontSize / 6
+              ..strokeJoin = StrokeJoin.round
+              ..color = Palette.outline,
           ),
+        ),
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: base.copyWith(color: color),
         ),
       ],
     );

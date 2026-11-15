@@ -76,14 +76,14 @@ class PropPainter {
           Path()..addOval(
             Rect.fromCircle(center: const Offset(0, -0.25), radius: 0.5),
           ),
-          Palette.outline,
+          Palette.tire,
         );
         _shape(
           canvas,
           Path()..addOval(
             Rect.fromCircle(center: const Offset(0, -0.25), radius: 0.2),
           ),
-          Palette.steelDark,
+          Palette.dirt,
         );
       case PropKind.barrel:
         final body = RRect.fromRectAndRadius(

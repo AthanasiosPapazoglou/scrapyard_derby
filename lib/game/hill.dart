@@ -137,16 +137,14 @@ class HillChunk extends BodyComponent {
 
   static final PropPainter _propPainter = PropPainter();
 
-  final Paint _fillPaint = Paint()..color = Palette.steelDark;
-  final Paint _bandPaint = Paint()
-    ..color = Palette.steel
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 2.6
-    ..strokeJoin = StrokeJoin.round;
+  final Paint _fillPaint = Paint()..color = Palette.dirt;
+  final Paint _shadowPaint = Paint()
+    ..color = Color.lerp(Palette.dirt, Palette.dirtSpeck, 0.55)!;
+  final Paint _speckPaint = Paint()..color = Palette.dirtSpeck;
   final Paint _highlightPaint = Paint()
-    ..color = Palette.steelLight
+    ..color = Palette.dirtHighlight
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 0.5
+    ..strokeWidth = 0.75
     ..strokeJoin = StrokeJoin.round;
   final Paint _edgePaint = Paint()
     ..color = Palette.outline
@@ -189,15 +187,76 @@ class HillChunk extends BodyComponent {
       ..close();
   }
 
+  /// Darker dirt from this deep below the surface down (the "shadow").
+  static const double _shadowDepth = 3.5;
+
+  late final Path _shadowPath = _groundPath.shift(
+    const Offset(0, _shadowDepth),
+  );
+
+  /// Specks and junk buried in the ground, the same for this chunk every
+  /// time it is built (seeded by where the chunk starts).
+  late final List<_Buried> _buried = _buildBuried();
+
+  List<_Buried> _buildBuried() {
+    final pts = _visiblePoints;
+    final random = math.Random(pts.first.x.round() * 31 + 7);
+    final buried = <_Buried>[];
+    double surfaceAt(double x) {
+      final i = (x - pts.first.x).floor().clamp(0, pts.length - 2);
+      final a = pts[i];
+      final b = pts[i + 1];
+      return a.y + (b.y - a.y) * ((x - a.x) / (b.x - a.x));
+    }
+
+    final width = pts.last.x - pts.first.x;
+    for (var i = 0; i < 26; i++) {
+      final x = pts.first.x + random.nextDouble() * width;
+      buried.add(
+        _Buried(
+          kind: 0,
+          x: x,
+          y: surfaceAt(x) + 0.9 + random.nextDouble() * 7,
+          size: 0.1 + random.nextDouble() * 0.18,
+          angle: 0,
+        ),
+      );
+    }
+    for (var i = 0; i < 3; i++) {
+      final x = pts.first.x + random.nextDouble() * width;
+      buried.add(
+        _Buried(
+          kind: random.nextBool() ? 1 : 2,
+          x: x,
+          y: surfaceAt(x) + 1.6 + random.nextDouble() * 4,
+          size: 0.4 + random.nextDouble() * 0.3,
+          angle: random.nextDouble() * math.pi,
+        ),
+      );
+    }
+    return buried;
+  }
+
+  static final Paint _junkFill = Paint();
+  static final Paint _junkOutline = Paint()
+    ..color = Palette.outline
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.07;
+
   @override
   void render(Canvas canvas) {
-    canvas.drawPath(_groundPath, _fillPaint);
-    // Bands along the surface, clipped to the ground so only their lower
-    // halves show: a mid-tone band and a thin light highlight on top.
+    // Ground: dirt, a darker tone deeper down, buried specks and junk.
+    canvas
+      ..drawPath(_groundPath, _fillPaint)
+      ..drawPath(_shadowPath, _shadowPaint);
+    for (final b in _buried) {
+      _renderBuried(canvas, b);
+    }
+    // Highlight band along the surface, clipped to the ground so only its
+    // lower half shows, then the thick ink outline on top.
     canvas
       ..save()
       ..clipPath(_groundPath)
-      ..drawPath(_surfacePath, _bandPaint)
       ..drawPath(_surfacePath, _highlightPaint)
       ..restore()
       ..drawPath(_surfacePath, _edgePaint);
@@ -205,4 +264,49 @@ class HillChunk extends BodyComponent {
       _propPainter.paint(canvas, prop);
     }
   }
+
+  void _renderBuried(Canvas canvas, _Buried b) {
+    switch (b.kind) {
+      case 0: // speck
+        canvas.drawCircle(Offset(b.x, b.y), b.size, _speckPaint);
+      case 1: // buried tire
+        _junkFill.color = Palette.tire;
+        canvas
+          ..drawCircle(Offset(b.x, b.y), b.size, _junkFill)
+          ..drawCircle(Offset(b.x, b.y), b.size, _junkOutline);
+        _junkFill.color = Palette.dirt;
+        canvas.drawCircle(Offset(b.x, b.y), b.size * 0.4, _junkFill);
+      default: // buried steel plate
+        _junkFill.color = Palette.steel;
+        final rect = Rect.fromCenter(
+          center: Offset.zero,
+          width: b.size * 2.2,
+          height: b.size * 1.2,
+        );
+        canvas
+          ..save()
+          ..translate(b.x, b.y)
+          ..rotate(b.angle)
+          ..drawRect(rect, _junkFill)
+          ..drawRect(rect, _junkOutline)
+          ..restore();
+    }
+  }
+}
+
+/// A speck (kind 0), tire (1) or steel plate (2) buried in the ground.
+class _Buried {
+  const _Buried({
+    required this.kind,
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.angle,
+  });
+
+  final int kind;
+  final double x;
+  final double y;
+  final double size;
+  final double angle;
 }

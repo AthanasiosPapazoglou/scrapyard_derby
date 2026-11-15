@@ -18,7 +18,8 @@ void main() {
     );
 
     expect(find.text('Restart'), findsOneWidget);
-    expect(find.text('0 m'), findsOneWidget);
+    // The distance is outlined text: drawn twice (ink outline + fill).
+    expect(find.text('0 m'), findsNWidgets(2));
     expect(find.textContaining('↻ 100%'), findsOneWidget);
     expect(find.textContaining('HEAD DOWN'), findsNothing);
 
@@ -38,7 +39,8 @@ void main() {
     expect(find.textContaining('Both feet'), findsOneWidget);
     expect(find.textContaining('0/4'), findsOneWidget);
     expect(find.textContaining('HEAD DOWN'), findsOneWidget);
-    expect(find.text('412 m'), findsNWidgets(2)); // top counter + banner
+    // Top counter (outline + fill) and the banner.
+    expect(find.text('412 m'), findsNWidgets(3));
     expect(find.text('Best: 500 m'), findsOneWidget);
     expect(find.text('Go again'), findsOneWidget);
   });
