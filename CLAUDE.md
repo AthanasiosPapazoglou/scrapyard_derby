@@ -50,11 +50,18 @@ The score is horizontal distance in meters; the best distance is shown after eac
 - World visuals (code-drawn, following the style test scene): dusk sky gradient (navy, coral, amber) with a low sun, 3 parallax layers of purple-brown scrap heaps with tire/car/girder silhouettes (camera backdrop), dirt hill with a highlight band, a deeper shadow tone, specks and buried junk, decorative scrap props on the slope (no physics). HUD text is cream with an ink outline.
 
 ## Phases
-1. **Feel prototype** (now): spinning robot, hold to counter-spin, 3 landing types, endless hill, limb loss, head launch, distance score, tuning config. Gate: it's fun to replay.
-2. **Playable MVP**: run summary screen, saved best distance, rivals (if kept), Android build, art style test in game.
-3. **Content and upgrades**: hill variants (biomes / difficulty that ramps with distance), scrap currency, upgrade tree, full art set, sound and music.
-4. **Launch**: Play closed testing, iOS build, store listings, optional online leaderboard.
+1. **Feel prototype**: done (spin, hold to counter-spin, landings, endless hill, limb loss, head launch, distance, tuning).
+2. **Playable MVP** (now): art style test in game is done. Remaining: main menu, run summary, saved best distance,
+   settings, Android build, rivals decision.
+3. **Content and upgrades**: Workshop (scrap currency, part upgrades), sound effects and music, hill variants
+   (biomes / difficulty ramping with distance), full art set.
+4. **Launch**: Play closed testing, iOS build, store listings, final name/app IDs/icon, optional online leaderboard.
+
+**Current work plan: `docs/ROADMAP.md`** (menus, settings, Workshop, audio, balance), with steps, decisions,
+code map and known gotchas. Read it before starting; tick steps off there as they land.
 
 ## Working rules
 - Keep the code simple and readable; the developer knows Flutter but is new to game dev.
 - After each change: run `flutter analyze` and the tests, and fix problems before reporting back.
+- The developer commits and pushes themself: end each step with a single chained command
+  (`git add -A && git commit -m "..." -m "..." && git push`), subject line plus one short detail line.
