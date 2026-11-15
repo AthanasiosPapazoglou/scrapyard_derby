@@ -164,17 +164,22 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   Vector2 _cameraCenter = Vector2.zero();
 
   @override
-  Color backgroundColor() => Palette.sky;
+  Color backgroundColor() => theme.skyMid;
+
+  /// The level's colours and weather.
+  late final LevelTheme theme = LevelTheme.of(level);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     world.subStepCount = Tuning.physicsSubSteps;
-    camera.backdrop.add(Background());
+    camera.backdrop.add(Background(theme));
     _sprites = await RobotSprites.load();
     await world.add(effects);
     _spawnRobot();
-    await world.add(Hill(hillGeometry, focusX: _focusX)..priority = 1);
+    await world.add(
+      Hill(hillGeometry, focusX: _focusX, theme: theme)..priority = 1,
+    );
     await world.add(LandingSight());
     // A flag at each star distance (distance is measured from the start).
     final targets = Levels.of(level).starDistances;

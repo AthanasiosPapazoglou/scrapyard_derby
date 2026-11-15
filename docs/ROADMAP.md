@@ -384,10 +384,24 @@ commit command for the developer.
   (`simulateRun`) in files without `testWidgets` (see
   `test/gadget_runs_test.dart`), or they time out.
 
-### P5 — Level scenery  ☐
+### P5 — Level scenery  ☑
 - `LevelTheme` per level (sky gradient, heap colours, dirt, props mix, sun /
   moon, weather particles), drawn by the existing dusk scene code with
   different colours. Menu and level select show each level's look.
+- Done: `LevelTheme` + `Weather` at the bottom of `lib/game/palette.dart`
+  (`LevelTheme.of(level)`; level 1 = the style-test dusk colours). Themes:
+  1 dusk; 2 late dusk, red sun, embers; 3 night, pale moon, green smog;
+  4 red storm sky, rain + lightning flashes; 5 molten sky, black heaps,
+  glowing orange dirt edge, ash + embers; 6 black and crimson, eclipse,
+  crimson sparks. `DuskScene(theme)` draws sky / sun (or eclipse) / heaps
+  and, via `lib/game/weather.dart` (`WeatherPainter`, particles placed by
+  formula, nothing stored), the weather; `paint(..., time:)` animates it.
+  `Background(theme)`, `Hill(theme:)` / `HillChunk` dirt colours and
+  `PropPainter(dirt:)` take the theme; `DerbyGame.theme`. The menu shows
+  the furthest unlocked level's scenery; level select cards have a window
+  onto each level's scenery (greyscale while locked).
+- Robot, props, flags and HUD keep their colours on every level (checked
+  on level 6, the darkest: the robot still stands out).
 
 ### P6 — Level music  ☐
 - `make_music.py` writes one loop per level, darker as levels go up;

@@ -31,7 +31,9 @@ class LevelSelectPage extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: _StillScene()),
+          CustomPaint(
+            painter: _StillScene(LevelTheme.of(profile.highestUnlockedLevel)),
+          ),
           SafeArea(
             // Rebuilds when a run (from this page) earns stars or unlocks.
             child: ListenableBuilder(
@@ -176,69 +178,96 @@ class _LevelCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: unlocked ? () => onPlay(level) : null,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: DefaultTextStyle(
-                style: TextStyle(
-                  color: unlocked ? _ink : Palette.steelLight,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$level',
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          tuning.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        if (!unlocked) ...[
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.lock,
-                            size: 18,
-                            color: Palette.steelLight,
-                          ),
-                        ],
-                      ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // A window onto the level's scenery (grey while locked).
+              Expanded(
+                flex: 2,
+                child: ColorFiltered(
+                  colorFilter: unlocked
+                      ? const ColorFilter.mode(
+                          Colors.transparent,
+                          BlendMode.dst,
+                        )
+                      : _greyscale,
+                  child: CustomPaint(
+                    painter: _StillScene(
+                      LevelTheme.of(level),
+                      cameraX: level * 37.0,
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < Levels.maxStars; i++)
-                          Icon(
-                            i < stars ? Icons.star : Icons.star_border,
-                            size: 26,
-                            color: unlocked ? _ink : Palette.steelLight,
-                          ),
-                      ],
-                    ),
-                    Text(detail),
-                    Text(
-                      '★ $distances m',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              Container(height: 3, color: _ink),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: DefaultTextStyle(
+                      style: TextStyle(
+                        color: unlocked ? _ink : Palette.steelLight,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$level',
+                                style: const TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                tuning.name.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              if (!unlocked) ...[
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.lock,
+                                  size: 18,
+                                  color: Palette.steelLight,
+                                ),
+                              ],
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (var i = 0; i < Levels.maxStars; i++)
+                                Icon(
+                                  i < stars ? Icons.star : Icons.star_border,
+                                  size: 26,
+                                  color: unlocked ? _ink : Palette.steelLight,
+                                ),
+                            ],
+                          ),
+                          Text(detail),
+                          Text(
+                            '★ $distances m',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -246,14 +275,29 @@ class _LevelCard extends StatelessWidget {
   }
 }
 
-/// The dusk sky and heaps, standing still.
+/// A level's sky, heaps and weather, standing still. [cameraX] picks the
+/// stretch of heaps shown, so the cards don't all look the same.
 class _StillScene extends CustomPainter {
-  final DuskScene _scene = DuskScene();
+  _StillScene(this.theme, {this.cameraX = 0}) : _scene = DuskScene(theme);
+
+  final LevelTheme theme;
+  final double cameraX;
+  final DuskScene _scene;
 
   @override
   void paint(Canvas canvas, Size size) =>
-      _scene.paint(canvas, size, cameraX: 0);
+      // A moment into the weather, so rain and sparks are mid-air.
+      _scene.paint(canvas, size, cameraX: cameraX, time: 2.3);
 
   @override
-  bool shouldRepaint(_StillScene old) => false;
+  bool shouldRepaint(_StillScene old) =>
+      old.theme != theme || old.cameraX != cameraX;
 }
+
+/// Turns a locked level's scenery grey.
+const ColorFilter _greyscale = ColorFilter.matrix([
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0.2126, 0.7152, 0.0722, 0, 0, //
+  0, 0, 0, 1, 0, //
+]);

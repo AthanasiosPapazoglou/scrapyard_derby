@@ -55,6 +55,11 @@ List<PropPlacement> propsForChunk(HillGeometry hill, int chunkIndex) {
 
 /// Draws scrap props in the cutout style: flat fills, thick dark outline.
 class PropPainter {
+  PropPainter({this.dirt = Palette.dirt});
+
+  /// The level's dirt colour (seen through a tire's hole).
+  final Color dirt;
+
   final Paint _fill = Paint();
   final Paint _outline = Paint()
     ..color = Palette.outline
@@ -83,7 +88,7 @@ class PropPainter {
           Path()..addOval(
             Rect.fromCircle(center: const Offset(0, -0.25), radius: 0.2),
           ),
-          Palette.dirt,
+          dirt,
         );
       case PropKind.barrel:
         final body = RRect.fromRectAndRadius(

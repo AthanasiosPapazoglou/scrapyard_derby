@@ -90,7 +90,16 @@ class _MainMenuState extends State<MainMenu>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: _DriftingScene(_time)),
+          // The scenery of the furthest level reached.
+          ListenableBuilder(
+            listenable: widget.profile,
+            builder: (context, _) => CustomPaint(
+              painter: _DriftingScene(
+                _time,
+                LevelTheme.of(widget.profile.highestUnlockedLevel),
+              ),
+            ),
+          ),
           SafeArea(
             child: Row(
               children: [
@@ -239,18 +248,26 @@ class _Stat extends StatelessWidget {
   }
 }
 
-/// The game's dusk sky and heaps, drifting slowly sideways.
+/// A level's sky, heaps and weather, drifting slowly sideways.
 class _DriftingScene extends CustomPainter {
-  _DriftingScene(this.time) : super(repaint: time);
+  _DriftingScene(this.time, this.theme)
+    : _scene = DuskScene(theme),
+      super(repaint: time);
 
   final ValueNotifier<double> time;
-  final DuskScene _scene = DuskScene();
+  final LevelTheme theme;
+  final DuskScene _scene;
 
   @override
   void paint(Canvas canvas, Size size) {
-    _scene.paint(canvas, size, cameraX: time.value * MainMenu.driftSpeed);
+    _scene.paint(
+      canvas,
+      size,
+      cameraX: time.value * MainMenu.driftSpeed,
+      time: time.value,
+    );
   }
 
   @override
-  bool shouldRepaint(_DriftingScene old) => false;
+  bool shouldRepaint(_DriftingScene old) => old.theme != theme;
 }

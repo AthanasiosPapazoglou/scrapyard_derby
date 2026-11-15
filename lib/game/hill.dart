@@ -90,9 +90,13 @@ class HillGeometry {
 
 /// Keeps hill chunks built around the robot: a few ahead, one behind.
 class Hill extends Component {
-  Hill(this.geometry, {required this.focusX});
+  Hill(this.geometry, {required this.focusX, LevelTheme? theme})
+    : theme = theme ?? LevelTheme.of(geometry.level);
 
   final HillGeometry geometry;
+
+  /// Dirt colours of the level.
+  final LevelTheme theme;
 
   /// Returns the x position the hill should be built around.
   final double Function() focusX;
@@ -129,6 +133,7 @@ class Hill extends Component {
         final chunk = HillChunk(
           geometry.chunkPoints(index),
           props: propsForChunk(geometry, index),
+          theme: theme,
         );
         _chunks[index] = chunk;
         add(chunk);
@@ -142,7 +147,12 @@ class Hill extends Component {
 /// Drawn in the cutout style: a flat fill, one lighter highlight band
 /// just under the surface, a thick dark outline, and scrap props on top.
 class HillChunk extends BodyComponent {
-  HillChunk(this.points, {this.props = const []}) : super(priority: 1);
+  HillChunk(this.points, {this.props = const [], LevelTheme? theme})
+    : theme = theme ?? LevelTheme.all.first,
+      super(priority: 1);
+
+  /// The level's dirt colours.
+  final LevelTheme theme;
 
   /// Chain points, including the ghost point at each end.
   final List<Vector2> points;
@@ -153,14 +163,14 @@ class HillChunk extends BodyComponent {
   late final Path _surfacePath = _buildSurfacePath();
   late final Path _groundPath = _buildGroundPath();
 
-  static final PropPainter _propPainter = PropPainter();
+  late final PropPainter _propPainter = PropPainter(dirt: theme.dirt);
 
-  final Paint _fillPaint = Paint()..color = Palette.dirt;
-  final Paint _shadowPaint = Paint()
-    ..color = Color.lerp(Palette.dirt, Palette.dirtSpeck, 0.55)!;
-  final Paint _speckPaint = Paint()..color = Palette.dirtSpeck;
-  final Paint _highlightPaint = Paint()
-    ..color = Palette.dirtHighlight
+  late final Paint _fillPaint = Paint()..color = theme.dirt;
+  late final Paint _shadowPaint = Paint()
+    ..color = Color.lerp(theme.dirt, theme.dirtSpeck, 0.55)!;
+  late final Paint _speckPaint = Paint()..color = theme.dirtSpeck;
+  late final Paint _highlightPaint = Paint()
+    ..color = theme.dirtHighlight
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.75
     ..strokeJoin = StrokeJoin.round;
@@ -292,7 +302,7 @@ class HillChunk extends BodyComponent {
         canvas
           ..drawCircle(Offset(b.x, b.y), b.size, _junkFill)
           ..drawCircle(Offset(b.x, b.y), b.size, _junkOutline);
-        _junkFill.color = Palette.dirt;
+        _junkFill.color = theme.dirt;
         canvas.drawCircle(Offset(b.x, b.y), b.size * 0.4, _junkFill);
       default: // buried steel plate
         _junkFill.color = Palette.steel;
