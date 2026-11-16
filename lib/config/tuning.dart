@@ -572,10 +572,12 @@ abstract final class Tuning {
 
   /// Legs: clean bounce multiplier, and the widest angle (deg) that still
   /// counts as a clean landing (must stay under [oneFootToleranceDeg]).
+  /// 1.1.1 (D33): top tier ×1.45 → ×1.3 and 34° → 31°, since the top legs
+  /// stacked with the Combo Coil made late levels very bouncy.
   static const List<double> springBounceScale = [
-    1.0, 1.06, 1.13, 1.22, 1.33, 1.45, //
+    1.0, 1.04, 1.09, 1.15, 1.22, 1.30, //
   ];
-  static const List<double> springToleranceDeg = [20, 22, 25, 28, 31, 34];
+  static const List<double> springToleranceDeg = [20, 21, 23, 25, 28, 31];
 
   /// Arms: share of the base counter-spin and release times (lower =
   /// snappier control).
@@ -645,8 +647,9 @@ abstract final class Tuning {
   /// many steps per level; each step adds this much bounce and speed along
   /// the ground (m/s) to the clean landing. Any other landing resets it.
   static const List<int> comboCoilMaxSteps = [3, 4, 5];
-  static const double comboBouncePerStep = 0.8;
-  static const double comboSpeedPerStep = 0.6;
+  /// (1.1.1, D34: 0.8 / 0.6 → 0.5 / 0.4.)
+  static const double comboBouncePerStep = 0.5;
+  static const double comboSpeedPerStep = 0.4;
 
   /// Scrap Magnet: extra scrap share per level.
   static const double scrapMagnetPerLevel = 0.10;

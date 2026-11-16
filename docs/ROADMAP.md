@@ -952,8 +952,14 @@ command for the developer.
   now leaves out the new-best bonus as its comment said (the idle run's
   longer head flight took it from 49 to 50).
 
-### W4 — Legs and Combo Coil  ☐
-- D33-D34 in the tier tables and Combo numbers; tests updated.
+### W4 — Legs and Combo Coil  ☑
+- D33: `springBounceScale` 1.0, 1.04, 1.09, 1.15, 1.22, 1.30 (was up to
+  1.45); `springToleranceDeg` 20, 21, 23, 25, 28, 31 (was up to 34).
+  Steps still grow with the tier.
+- D34: `comboBouncePerStep` 0.8 → 0.5, `comboSpeedPerStep` 0.6 → 0.4.
+- Tests: the top-legs guard in `robot_stats_test` is now ≥ ×1.3 (was
+  ≥ ×1.4); the Combo test reads the tuning values, unchanged.
+- Not re-run: the progression report (that is W6, after W5).
 
 ### W5 — Part spec sheets and extra stats  ☐
 - D35-D36: spec text per part, the 5 new tiered stats wired into the

@@ -114,7 +114,7 @@ void main() {
     expect(top(UpgradeTrack.plating).limbMaxHp / base.limbMaxHp, 2.4);
     expect(
       top(UpgradeTrack.springLegs).cleanBounce / base.cleanBounce,
-      greaterThanOrEqualTo(1.4),
+      greaterThanOrEqualTo(1.3), // 1.1.1 (D33): was ≥ 1.4
     );
     expect(
       top(UpgradeTrack.gyroArms).counterSpinTime / base.counterSpinTime,
