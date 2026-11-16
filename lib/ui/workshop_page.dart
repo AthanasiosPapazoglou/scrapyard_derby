@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
+import '../game/stat_sheet.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
@@ -220,19 +222,22 @@ class _WorkshopPageState extends State<WorkshopPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 7,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        tabs,
-                        const SizedBox(height: 8),
-                        if (_gadgets)
-                          Expanded(child: gadgetList)
-                        else ...[
-                          // Cards grow with the space, up to 124 px tall.
-                          Flexible(
-                            flex: 5,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 124),
+                    // Cards take a share of the height (up to 124 px), the
+                    // details everything left, so every stat row shows.
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          tabs,
+                          const SizedBox(height: 8),
+                          if (_gadgets)
+                            Expanded(child: gadgetList)
+                          else ...[
+                            SizedBox(
+                              height: math.min(
+                                124,
+                                constraints.maxHeight * 0.36,
+                              ),
                               child: Row(
                                 children: [
                                   for (var tier = 0; tier < tiers; tier++)
@@ -240,11 +245,11 @@ class _WorkshopPageState extends State<WorkshopPage> {
                                 ],
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(flex: 4, child: details),
+                            const SizedBox(height: 8),
+                            Expanded(child: details),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -840,7 +845,8 @@ int _levelFor(int tier) {
   return Levels.count;
 }
 
-/// Name, what the slot does, a CRT readout of the numbers, and the action.
+/// Name, the part's spec sheet, a CRT readout of every stat the slot
+/// changes (now → this part), and the action.
 class _PartDetails extends StatelessWidget {
   const _PartDetails({
     required this.slot,
@@ -862,8 +868,23 @@ class _PartDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = RobotStats.fromLevels({slot: installed}).summary(slot);
-    final then = RobotStats.fromLevels({slot: tier}).summary(slot);
+    final now = RobotStats.fromLevels({slot: installed});
+    final then = RobotStats.fromLevels({slot: tier});
+    final defs = [
+      for (final def in statDefs)
+        if (def.slot == slot) def,
+    ];
+    String nowText(StatDef def) => def.format(def.value(now));
+    final labelWidth = defs.fold(0, (w, d) => math.max(w, d.label.length));
+    final nowWidth = defs.fold(0, (w, d) => math.max(w, nowText(d).length));
+    final readout = [
+      for (final def in defs)
+        '${def.label.padRight(labelWidth)}  '
+                '${nowText(def).padRight(nowWidth)}'
+                '${tier == installed ? '' : '  →  ${def.format(def.value(then))}'}'
+            .trimRight(),
+    ].join('\n');
+    final spec = slot.spec(tier);
     final Widget action;
     if (tier == installed) {
       action = const _Pill(text: 'INSTALLED', color: Crt.green);
@@ -907,28 +928,37 @@ class _PartDetails extends StatelessWidget {
           ),
         ),
         Text(
-          slot.description,
-          style: const TextStyle(color: Palette.steelLight, fontSize: 12),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Crt.background,
-            border: Border.all(color: Crt.dim, width: 1.5),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            tier == installed ? now : '$now  →  $then',
-            style: const TextStyle(
-              color: Crt.green,
-              fontFamily: Crt.font,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          '${spec.material} · ${spec.tech}',
+          style: const TextStyle(
+            color: Palette.steelLight,
+            fontSize: 12,
+            fontStyle: FontStyle.italic,
           ),
         ),
       ],
+    );
+    // Full width, one row per stat; shrinks rather than wrapping.
+    final screen = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Crt.background,
+        border: Border.all(color: Crt.dim, width: 1.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          readout,
+          softWrap: false,
+          style: const TextStyle(
+            color: Crt.green,
+            fontFamily: Crt.font,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
@@ -937,34 +967,35 @@ class _PartDetails extends StatelessWidget {
         border: Border.all(color: _Garage.panelEdge, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
-      // Narrow: the action goes under the text. Short: the text scrolls
-      // rather than overflowing.
+      // Name and spec beside the action (narrow: the action goes under
+      // them), then the stat readout across the full width. Short: it
+      // scrolls rather than overflowing.
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 340) {
-            final stacked = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                info,
-                const SizedBox(height: 8),
-                Center(child: action),
-              ],
-            );
-            // Scrolls only when given a fixed height (landscape).
-            return constraints.hasBoundedHeight
-                ? SingleChildScrollView(child: stacked)
-                : stacked;
-          }
-          return Row(
+          final narrow = constraints.maxWidth < 340;
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Center(child: SingleChildScrollView(child: info)),
-              ),
-              const SizedBox(width: 10),
-              action,
+              if (narrow)
+                info
+              else
+                Row(
+                  children: [
+                    Expanded(child: info),
+                    const SizedBox(width: 10),
+                    action,
+                  ],
+                ),
+              const SizedBox(height: 6),
+              screen,
+              if (narrow) ...[const SizedBox(height: 8), Center(child: action)],
             ],
           );
+          // Scrolls only when given a fixed height (landscape).
+          return constraints.hasBoundedHeight
+              ? SingleChildScrollView(child: content)
+              : content;
         },
       ),
     );

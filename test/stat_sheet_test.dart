@@ -19,7 +19,15 @@ void main() {
       hp.reachable,
       RobotStats.fromLevels({UpgradeTrack.plating: 1}).limbMaxHp,
     );
-    // Every slot has at least one line, and every line can still improve.
+    // Every slot has at least two lines (1.1.1), and every line can still
+    // improve.
+    for (final slot in UpgradeTrack.values) {
+      expect(
+        lines.where((l) => l.slot == slot).length,
+        greaterThanOrEqualTo(2),
+        reason: slot.name,
+      );
+    }
     for (final slot in UpgradeTrack.values) {
       expect(lines.where((l) => l.slot == slot), isNotEmpty, reason: slot.name);
     }

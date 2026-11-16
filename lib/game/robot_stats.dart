@@ -12,7 +12,6 @@ enum UpgradeTrack {
     id: 'springLegs',
     name: 'Legs',
     art: 'legs',
-    description: 'Bouncier clean landings, and a wider angle counts as clean.',
     partNames: [
       'Scrap Springs',
       'Coil Hoppers',
@@ -21,12 +20,19 @@ enum UpgradeTrack {
       'Mag Shocks',
       'Obsidian Steps',
     ],
+    specs: [
+      PartSpec('Bent bedsprings and baling wire', 'Hope and a lot of tape'),
+      PartSpec('Salvaged truck coils', 'Twin-coil hop pistons'),
+      PartSpec('Chromed racing steel', 'Tuned rally suspension'),
+      PartSpec('Forged iron pistons', 'Hydraulic stride dampers'),
+      PartSpec('Neon-lit alloy struts', 'Magnetic levitation shocks'),
+      PartSpec('Volcanic obsidian plates', 'Ember-core gravity springs'),
+    ],
   ),
   gyroArms(
     id: 'gyroArms',
     name: 'Arms',
     art: 'arms',
-    description: 'Faster spin control when you hold and let go.',
     partNames: [
       'Hose Claws',
       'Pipe Grippers',
@@ -35,12 +41,19 @@ enum UpgradeTrack {
       'Gyro Claws',
       'Obsidian Hands',
     ],
+    specs: [
+      PartSpec('Garden hose and rusty tongs', 'Flail and pray'),
+      PartSpec('Plumbing pipe, brass joints', 'Counterweight swing'),
+      PartSpec('Carbon racing gloves', 'Quick-shift wrist bearings'),
+      PartSpec('Hardened steel pincers', 'Hydraulic balance rams'),
+      PartSpec('Neon alloy shell', 'Twin spinning gyroscopes'),
+      PartSpec('Polished obsidian knuckles', 'Ember gyro, instant recovery'),
+    ],
   ),
   plating(
     id: 'plating',
     name: 'Body',
     art: 'body',
-    description: 'Tougher frame: more damage before each limb breaks.',
     partNames: [
       'Rust Barrel',
       'Riveted Drum',
@@ -49,12 +62,19 @@ enum UpgradeTrack {
       'Neon Hull',
       'Obsidian Frame',
     ],
+    specs: [
+      PartSpec('One oil barrel, mostly rust', 'Dents soak up the hits'),
+      PartSpec('Riveted sheet steel', 'Double-wall drum frame'),
+      PartSpec('Lightweight racing alloy', 'Crumple-zone roll cage'),
+      PartSpec('Foundry-cast iron', 'Shock-mounted girder spine'),
+      PartSpec('Neon-lit composite hull', 'Energy-field impact buffer'),
+      PartSpec('Obsidian over ember steel', 'Self-bracing crash core'),
+    ],
   ),
   rocketHead(
     id: 'rocketHead',
     name: 'Head',
     art: 'head',
-    description: 'A faster head launch and a longer rocket burn.',
     partNames: [
       'Paint Can',
       'Lantern Box',
@@ -63,12 +83,19 @@ enum UpgradeTrack {
       'Neon Visor',
       'Obsidian Grin',
     ],
+    specs: [
+      PartSpec('An empty paint can', 'Bottle-rocket booster'),
+      PartSpec('Tin lantern housing', 'Kerosene burner'),
+      PartSpec('Fiberglass race helmet', 'Nitro canister'),
+      PartSpec('Hard-hat steel', 'Twin jet nozzles'),
+      PartSpec('Neon glass visor', 'Plasma thruster'),
+      PartSpec('Obsidian dome', 'Ember afterburner'),
+    ],
   ),
   energyCore(
     id: 'energyCore',
     name: 'Core',
     art: 'core',
-    description: 'More energy per spin, and a bigger energy tank.',
     partNames: [
       'Patch Battery',
       'Car Battery',
@@ -77,14 +104,22 @@ enum UpgradeTrack {
       'Plasma Cell',
       'Ember Heart',
     ],
+    specs: [
+      PartSpec('Patched dry cells', 'Spin-charged dynamo'),
+      PartSpec('Lead-acid car battery', 'Alternator spin coil'),
+      PartSpec('Glass vacuum tubes', 'Valve-boosted charge'),
+      PartSpec('Turbine-grade steel', 'Spin turbine generator'),
+      PartSpec('Sealed plasma flask', 'Plasma overdrive loop'),
+      PartSpec('Living ember crystal', 'Overdrive heart pulse'),
+    ],
   );
 
   const UpgradeTrack({
     required this.id,
     required this.name,
     required this.art,
-    required this.description,
     required this.partNames,
+    required this.specs,
   });
 
   /// Key in the saved profile. Never change it, or saves lose the level.
@@ -96,11 +131,14 @@ enum UpgradeTrack {
   /// Art file prefix: `assets/robot/<art>_<tier>.svg`.
   final String art;
 
-  /// What better parts in this slot do.
-  final String description;
-
   /// The part at each tier (0 = the starting scrap part).
   final List<String> partNames;
+
+  /// Each part's spec sheet (flavor text), by tier.
+  final List<PartSpec> specs;
+
+  /// The spec sheet of the part at [level].
+  PartSpec spec(int level) => specs[level.clamp(0, specs.length - 1)];
 
   /// The part installed at [level].
   String partName(int level) => partNames[level.clamp(0, partNames.length - 1)];
@@ -108,6 +146,16 @@ enum UpgradeTrack {
   /// Scrap price of the next level after [level], or null when maxed.
   int? priceAfter(int level) =>
       level < Tuning.upgradeMaxLevel ? Tuning.upgradePrices[level] : null;
+}
+
+/// A part's spec sheet (1.1.1, D35): what it is made of and how it works.
+/// Flavor only; the numbers live in [Tuning]'s tier tables.
+@immutable
+class PartSpec {
+  const PartSpec(this.material, this.tech);
+
+  final String material;
+  final String tech;
 }
 
 /// The robot's effective numbers: the [Tuning] base values changed by
@@ -121,6 +169,9 @@ class RobotStats {
     this.limbMaxHp = Tuning.limbMaxHp,
     this.cleanBounce = Tuning.cleanBounce,
     this.cleanToleranceDeg = Tuning.cleanLandingToleranceDeg,
+    this.oneFootSpeedKept = Tuning.oneFootSpeedMultiplier,
+    this.crashSpeedKept = Tuning.crashSpeedMultiplier,
+    this.energyForwardShare = Tuning.energyForwardShare,
     this.counterSpinTime = Tuning.counterSpinTime,
     this.releaseSpinTime = Tuning.releaseSpinTime,
     this.spinEnergyPerTurn = Tuning.spinEnergyPerTurn,
@@ -169,6 +220,9 @@ class RobotStats {
       limbMaxHp: Tuning.platingHp[plating],
       cleanBounce: Tuning.cleanBounce * Tuning.springBounceScale[spring],
       cleanToleranceDeg: Tuning.springToleranceDeg[spring],
+      oneFootSpeedKept: Tuning.legsGrip[spring],
+      crashSpeedKept: Tuning.bodyCrashArmor[plating],
+      energyForwardShare: Tuning.coreOverdrive[core],
       counterSpinTime: Tuning.counterSpinTime * gyroShare,
       releaseSpinTime: Tuning.releaseSpinTime * gyroShare,
       spinEnergyPerTurn:
@@ -210,6 +264,18 @@ class RobotStats {
 
   /// Max angle (deg) that still counts as a clean landing.
   final double cleanToleranceDeg;
+
+  /// Grip (Legs): share of the speed along the ground kept on a one-foot
+  /// landing.
+  final double oneFootSpeedKept;
+
+  /// Crash armor (Body): share of the speed along the ground kept on a
+  /// crash.
+  final double crashSpeedKept;
+
+  /// Overdrive (Core): share of the released energy bounce that also
+  /// pushes the robot forward along the ground.
+  final double energyForwardShare;
 
   /// Seconds of holding from full clockwise to full counter-clockwise, and
   /// of letting go to come back (see spin.dart).
@@ -256,19 +322,4 @@ class RobotStats {
 
   /// Leveler Treads: meters of ground averaged for the landing check.
   final double levelerSpan;
-
-  /// A short "now" value for the Workshop, e.g. "115 HP".
-  String summary(UpgradeTrack track) => switch (track) {
-    UpgradeTrack.plating => '${limbMaxHp.round()} HP per part',
-    UpgradeTrack.springLegs =>
-      '${cleanBounce.toStringAsFixed(1)} m/s, '
-          '${cleanToleranceDeg.round()}°',
-    UpgradeTrack.gyroArms => '${counterSpinTime.toStringAsFixed(2)} s flip',
-    UpgradeTrack.energyCore =>
-      '+${spinEnergyPerTurn.toStringAsFixed(1)}/turn, '
-          '${spinEnergyMaxTurns.toStringAsFixed(2)} max',
-    UpgradeTrack.rocketHead =>
-      '×${headLaunchScale.toStringAsFixed(2)}, '
-          '${headRocketBurnTime.toStringAsFixed(2)} s burn',
-  };
 }

@@ -570,6 +570,12 @@ abstract final class Tuning {
   /// N on level N stays as tough as tier 1 on level 1.
   static const List<double> platingHp = [100, 120, 145, 175, 205, 240];
 
+  /// Body Crash armor (1.1.1, D36): share of the speed along the ground
+  /// kept on a crash (tier 0 = [crashSpeedMultiplier]).
+  static const List<double> bodyCrashArmor = [
+    0.55, 0.57, 0.60, 0.63, 0.67, 0.72, //
+  ];
+
   /// Legs: clean bounce multiplier, and the widest angle (deg) that still
   /// counts as a clean landing (must stay under [oneFootToleranceDeg]).
   /// 1.1.1 (D33): top tier ×1.45 → ×1.3 and 34° → 31°, since the top legs
@@ -578,6 +584,10 @@ abstract final class Tuning {
     1.0, 1.04, 1.09, 1.15, 1.22, 1.30, //
   ];
   static const List<double> springToleranceDeg = [20, 21, 23, 25, 28, 31];
+
+  /// Legs Grip (1.1.1, D36): share of the speed along the ground kept on a
+  /// one-foot landing (tier 0 = [oneFootSpeedMultiplier]).
+  static const List<double> legsGrip = [0.85, 0.86, 0.875, 0.895, 0.92, 0.95];
 
   /// Arms: share of the base counter-spin and release times (lower =
   /// snappier control).
@@ -592,6 +602,13 @@ abstract final class Tuning {
   ];
   static const List<double> coreTankTurns = [2.5, 2.6, 2.8, 3.0, 3.2, 3.5];
   static const double coreMaxExtraBounce = 22.0;
+
+  /// Core Overdrive (1.1.1, D36): share of the released energy bounce that
+  /// also pushes the robot forward along the ground (tier 0 =
+  /// [energyForwardShare]).
+  static const List<double> coreOverdrive = [
+    0.25, 0.27, 0.30, 0.34, 0.39, 0.45, //
+  ];
 
   /// Head: launch speed multiplier (kick and caps), rocket burn time (s)
   /// and rocket thrust (m/s²). Every head got stronger in 1.1.0 (tier 0
@@ -647,6 +664,7 @@ abstract final class Tuning {
   /// many steps per level; each step adds this much bounce and speed along
   /// the ground (m/s) to the clean landing. Any other landing resets it.
   static const List<int> comboCoilMaxSteps = [3, 4, 5];
+
   /// (1.1.1, D34: 0.8 / 0.6 → 0.5 / 0.4.)
   static const double comboBouncePerStep = 0.5;
   static const double comboSpeedPerStep = 0.4;

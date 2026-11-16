@@ -421,6 +421,15 @@ class _SlotCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                Text(
+                  '${slot.spec(tier).material} · ${slot.spec(tier).tech}',
+                  style: TextStyle(
+                    color: Palette.outline.withValues(alpha: 0.7),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 for (final line in lines) _Gauge(line),
               ],
             ),
