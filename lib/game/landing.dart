@@ -60,11 +60,14 @@ LandingType classifyLanding(
 ///
 /// [energyBounce] (m/s, from [spinEnergyBounce]) is the gathered spin
 /// energy: the landing releases its share of it ([energyRelease]) into the
-/// bounce, and [Tuning.energyForwardShare] of that along the ground too.
+/// bounce, and [RobotStats.energyForwardShare] of that along the ground too
+/// (Core Overdrive).
 /// [comboSteps] (Combo Coil gadget, clean landings only) adds
 /// [Tuning.comboBouncePerStep] bounce and [Tuning.comboSpeedPerStep] speed
 /// along the ground per step.
-/// [stats] gives the clean bounce (Spring legs upgrade).
+/// [stats] gives the clean bounce (Legs), the speed kept on one-foot
+/// landings (Legs Grip) and crashes (Body Crash armor), and the forward
+/// share of the energy (Core Overdrive).
 Vector2 velocityAfterLanding(
   LandingType type,
   Vector2 velocity,
@@ -86,16 +89,12 @@ Vector2 velocityAfterLanding(
       Tuning.cleanSpeedMultiplier,
       Tuning.cleanSpeedBonus,
     ),
-    LandingType.oneFoot => (
-      Tuning.oneFootBounce,
-      Tuning.oneFootSpeedMultiplier,
-      0.0,
-    ),
-    LandingType.crash => (Tuning.crashBounce, Tuning.crashSpeedMultiplier, 0.0),
+    LandingType.oneFoot => (Tuning.oneFootBounce, stats.oneFootSpeedKept, 0.0),
+    LandingType.crash => (Tuning.crashBounce, stats.crashSpeedKept, 0.0),
   };
 
   final forward =
-      energyBounce * energyRelease(type) * Tuning.energyForwardShare +
+      energyBounce * energyRelease(type) * stats.energyForwardShare +
       combo * Tuning.comboSpeedPerStep;
   final newAlong = (alongGround * multiplier + bonus + forward).clamp(
     -Tuning.maxRobotSpeed,

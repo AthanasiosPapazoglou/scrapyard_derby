@@ -961,10 +961,30 @@ command for the developer.
   ≥ ×1.4); the Combo test reads the tuning values, unchanged.
 - Not re-run: the progression report (that is W6, after W5).
 
-### W5 — Part spec sheets and extra stats  ☐
-- D35-D36: spec text per part, the 5 new tiered stats wired into the
-  landing math (`velocityAfterLanding`) and shown as gauges (stats screen)
-  and in the Workshop details.
+### W5 — Part spec sheets and extra stats  ☑
+- D35: `PartSpec(material, tech)` per part (`UpgradeTrack.specs`, 30
+  parts), shown under the part name in the Workshop details and on the
+  stats screen cards. It replaces the per-slot `description` line (removed).
+- D36, new tier tables in tuning (tier 0 = the old flat value):
+  `legsGrip` 0.85 → 0.95 (speed kept on one-foot landings),
+  `bodyCrashArmor` 0.55 → 0.72 (speed kept on crashes), `coreOverdrive`
+  0.25 → 0.45 (share of released energy pushed forward). Wired into
+  `velocityAfterLanding` via `RobotStats.oneFootSpeedKept`,
+  `crashSpeedKept`, `energyForwardShare`. Arms Recovery (release time)
+  and Head Thrust were already in the physics; now shown.
+- `stat_sheet.dart`: one `statDefs` list (13 stats, 2-3 per slot) feeds
+  both the stats screen gauges and the Workshop's CRT readout, which now
+  has one aligned row per stat ("label  now → this part"), full width
+  under the name/spec/button row. `RobotStats.summary` removed.
+- Workshop landscape: part cards get min(124 px, 36% of the height) and
+  the details the rest, so all three stat rows show without scrolling.
+- Tests: tier 0 of the new tables equals the old values; the new tables
+  join the "steps grow" guard; grip / crash armor / overdrive change the
+  landing speed as expected; every part has a spec; every slot shows at
+  least two stats. Layout-fit tests pass.
+- Simulator: Workshop and stats screen checked in portrait and landscape.
+- Not re-run: the progression report (W6). These stats make crashes and
+  one-foot landings a bit kinder at high tiers, so W6 should look at them.
 
 ### W6 — Rebalance  ☐
 - Full progression report after W1-W5; re-set level damage, stars and

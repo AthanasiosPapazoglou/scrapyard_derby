@@ -41,8 +41,63 @@ void main() {
     expect(Tuning.rocketSpeedScale.first, 1);
     expect(Tuning.rocketBurnTime.first, Tuning.headRocketBurnTime);
     expect(Tuning.rocketThrust.first, Tuning.headRocketThrust);
+    expect(Tuning.legsGrip.first, Tuning.oneFootSpeedMultiplier);
+    expect(Tuning.bodyCrashArmor.first, Tuning.crashSpeedMultiplier);
+    expect(Tuning.coreOverdrive.first, Tuning.energyForwardShare);
     for (final table in _tables) {
       expect(table, hasLength(Tuning.upgradeMaxLevel + 1));
+    }
+  });
+
+  test('the 1.1.1 stats: grip, crash armor and overdrive keep speed', () {
+    final flat = Vector2(0, -1);
+    final incoming = Vector2(20, 6);
+    double along(LandingType type, RobotStats stats, {double energy = 0}) =>
+        velocityAfterLanding(
+          type,
+          incoming,
+          flat,
+          energyBounce: energy,
+          stats: stats,
+        ).x;
+    final top = Tuning.upgradeMaxLevel;
+    const base = RobotStats.base;
+    // Legs Grip: more speed kept on one-foot landings.
+    expect(
+      along(LandingType.oneFoot, at(UpgradeTrack.springLegs, top)),
+      closeTo(20 * Tuning.legsGrip.last, 1e-4),
+    );
+    expect(
+      along(LandingType.oneFoot, at(UpgradeTrack.springLegs, top)),
+      greaterThan(along(LandingType.oneFoot, base)),
+    );
+    // Body Crash armor: more speed kept on crashes.
+    expect(
+      along(LandingType.crash, at(UpgradeTrack.plating, top)),
+      closeTo(20 * Tuning.bodyCrashArmor.last, 1e-4),
+    );
+    // Core Overdrive: more of the released energy pushes forward (same
+    // energy bounce, so only the share differs).
+    const energy = 10.0;
+    final plainPush =
+        along(LandingType.clean, base, energy: energy) -
+        along(LandingType.clean, base);
+    final topCore = at(UpgradeTrack.energyCore, top);
+    final topPush =
+        along(LandingType.clean, topCore, energy: energy) -
+        along(LandingType.clean, topCore);
+    expect(plainPush, closeTo(energy * Tuning.energyForwardShare, 1e-4));
+    expect(topPush, closeTo(energy * Tuning.coreOverdrive.last, 1e-4));
+  });
+
+  test('every part has a spec sheet', () {
+    for (final track in UpgradeTrack.values) {
+      expect(track.specs, hasLength(Tuning.upgradeMaxLevel + 1));
+      expect(track.partNames, hasLength(Tuning.upgradeMaxLevel + 1));
+      for (final spec in track.specs) {
+        expect(spec.material.trim(), isNotEmpty);
+        expect(spec.tech.trim(), isNotEmpty);
+      }
     }
   });
 
@@ -238,6 +293,9 @@ const List<List<double>> _tables = [
   Tuning.rocketSpeedScale,
   Tuning.rocketBurnTime,
   Tuning.rocketThrust,
+  Tuning.legsGrip,
+  Tuning.bodyCrashArmor,
+  Tuning.coreOverdrive,
 ];
 
 /// Meters a head flies along a straight 35° downhill slope after a robot
