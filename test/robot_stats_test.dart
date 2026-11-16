@@ -146,11 +146,16 @@ void main() {
 
     // Rocket head: a faster launch.
     final up = Vector2(0, -1);
-    final slow = headLaunchVelocity(facing: up, groundNormal: up, speed: 10);
-    final fast = headLaunchVelocity(
+    final carried = Vector2(10, 0);
+    final slow = headLaunchVelocity(
+      carried: carried,
       facing: up,
       groundNormal: up,
-      speed: 10,
+    );
+    final fast = headLaunchVelocity(
+      carried: carried,
+      facing: up,
+      groundNormal: up,
       stats: at(UpgradeTrack.rocketHead, 3),
     );
     expect(fast.length, greaterThan(slow.length));

@@ -623,11 +623,32 @@ then the redesigns (built responsive from the start).
 - Simulator (iPhone 17 Pro): menu, Workshop (parts and gadgets) and level
   select checked in portrait, Workshop in landscape.
 
-### V4 — Head launch rework  ☐
-- D22: remember the robot's last airborne velocity; launch from it plus a
-  rocket kick; softer up bend; slow-mo kept but shorter.
-- `head_launch.dart` tests: launch keeps forward speed, never points into
-  the ground, faster robot = longer flight.
+### V4 — Head launch rework  ☑
+- `Robot` keeps `_airVelocity` (the torso's velocity at the last airborne
+  frame); a landing launch uses it, a ground-slide launch uses the current
+  velocity.
+- `headLaunchVelocity(carried:, facing:, groundNormal:, stats:)`: the
+  carried velocity minus its into-the-ground part × `headLaunchCarry`
+  (0.9), plus a rocket kick ((10 + 0.25 × speed) × angle factor, capped
+  at `headLaunchMaxKick` 18) along the facing bent by `headLaunchUpBias`
+  (1.5 → 0.7); at least `headLaunchMinLift` (6 m/s) away from the
+  ground; total capped at `headLaunchMaxSpeed` (36). Rocket head scales
+  kick and caps. Slow-mo 1.0 → 0.6 s.
+- Tests (`head_launch_test.dart`): keeps forward speed, flies on downhill
+  and up off a slope, drops the into-ground part, faster robot = faster
+  head, upright kicks harder, never into the ground, capped.
+- New tool `tool/head_flight_report_test.dart` (level 1, other slots
+  tier 1, 6 seeds). Head flight avg (m), before → after:
+
+  | Head tier | skill 0.4 | skill 0.9 |
+  |---|---|---|
+  | 0 | 84 → 147 | 64 → 164 |
+  | 5 | 201 → 296 | 179 → 304 |
+
+  Totals rose ~2-4% (2169 → 2232, 4440 → 4541 at tier 0). Tier 5 vs 0 is
+  now ~1.9×-2× flight; V6 widens it further.
+- Simulator: a no-input run's head arcs forward with its smoke trail
+  instead of popping straight up.
 
 ### V5 — Spin energy weight  ☐
 - D23 numbers in `tuning.dart`, release share by landing type in
