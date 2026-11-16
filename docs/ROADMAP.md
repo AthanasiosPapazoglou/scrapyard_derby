@@ -934,10 +934,23 @@ command for the developer.
   gauge (same sizing) checked; the marker itself was off screen in the
   captured frames.
 
-### W3 — Head launch direction  ☐
-- D32 in `head_launch.dart`: kick along the line of travel. Tests: the
-  head never turns away from its travel direction by more than a little;
-  head flight report before/after.
+### W3 — Head launch direction  ☑
+- D32 in `head_launch.dart`: the kick goes along the kept momentum (the
+  pre-landing velocity minus the part into the ground) plus
+  `headLaunchUpBias` × the ground normal. Below `headLaunchTravelSpeed`
+  (2 m/s, new) the travel direction fades out, so a robot that is barely
+  moving fires straight off the ground. Facing only sets the power.
+- `headLaunchUpBias` 0.7 → 1.6: with the kick along the slope instead of
+  off it, 0.7 halved the head flights (T0 199 → 106 m, T5 572 → 369 m).
+- Head flight report (level 1, other slots T1, avg flight | total):
+  before T0 199/185 m, T5 572/654 m (totals 2478/6372, 2389/6651);
+  after (bias 1.6) T0 164/129 m, T5 541/593 m (totals 2443/6316,
+  2358/6591). Slightly shorter; W6 rebalances.
+- Tests: launching downhill with every facing (every 30°), the head flies
+  on downhill and turns less than 10° from the upright launch; facing back
+  uphill still sends it downhill. `balance_test` "no input" scrap guard
+  now leaves out the new-best bonus as its comment said (the idle run's
+  longer head flight took it from 49 to 50).
 
 ### W4 — Legs and Combo Coil  ☐
 - D33-D34 in the tier tables and Combo numbers; tests updated.

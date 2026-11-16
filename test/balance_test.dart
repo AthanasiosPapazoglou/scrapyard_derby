@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scrapyard_derby/config/tuning.dart';
 import 'package:scrapyard_derby/game/autopilot.dart';
 
 import 'support/run_simulator.dart';
@@ -22,7 +23,8 @@ void main() {
     final result = run.result!;
     expect(result.distance, lessThan(700));
     // Little scrap for not playing (new-best bonus aside).
-    expect(result.scrapEarned, lessThan(50));
+    final bonus = result.isNewBest ? Tuning.scrapNewBestBonus : 0;
+    expect(result.scrapEarned - bonus, lessThan(30));
   });
 
   test('skill goes much further than no input', () async {
