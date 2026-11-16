@@ -46,13 +46,16 @@ class PlayerProfile extends ChangeNotifier {
     this._sfxVolume = defaultSfxVolume,
     this._hapticsOn = Tuning.hapticsEnabled,
     this._showDebugInfo = false,
+    this._showLandingSight = true,
   }) : _levelBest = Map.of(levelBest),
        _upgradeLevels = Map.of(upgradeLevels),
        _gadgetLevels = Map.of(gadgetLevels);
 
   /// Bump this when the JSON layout changes, and migrate in [fromJson].
   /// v2: best distance per level (v1 had one best, now level 1's).
-  static const int jsonVersion = 2;
+  /// v3 (1.1.0): the Landing Sight gadget is built in; saves that bought
+  /// it get the scrap back ([Tuning.retiredGadgetPrices]).
+  static const int jsonVersion = 3;
 
   static const double defaultMusicVolume = 0.7;
   static const double defaultSfxVolume = 0.8;
@@ -65,6 +68,7 @@ class PlayerProfile extends ChangeNotifier {
   double _sfxVolume;
   bool _hapticsOn;
   bool _showDebugInfo;
+  bool _showLandingSight;
 
   /// Best distance on [level], in meters (0 = never played).
   double bestOn(int level) => _levelBest[level] ?? 0;
@@ -145,6 +149,9 @@ class PlayerProfile extends ChangeNotifier {
 
   /// Show the developer numbers panel during a run.
   bool get showDebugInfo => _showDebugInfo;
+
+  /// Whether the built-in Landing Sight shows in runs (Settings).
+  bool get showLandingSight => _showLandingSight;
 
   // ---------------------------------------------------------------- Changes
 
@@ -266,6 +273,11 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  set showLandingSight(bool value) {
+    _showLandingSight = value;
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------- JSON
 
   Map<String, Object?> toJson() => {
@@ -281,6 +293,7 @@ class PlayerProfile extends ChangeNotifier {
       'sfxVolume': _sfxVolume,
       'hapticsOn': _hapticsOn,
       'showDebugInfo': _showDebugInfo,
+      'showLandingSight': _showLandingSight,
     },
   };
 
@@ -292,6 +305,19 @@ class PlayerProfile extends ChangeNotifier {
     final upgrades = json['upgrades'];
     final levelBest = json['levelBest'];
     final gadgets = json['gadgets'];
+    final gadgetLevels = <String, int>{
+      if (gadgets is Map)
+        for (final MapEntry(:key, :value) in gadgets.entries)
+          if (key is String && value is int) key: value,
+    };
+    // Gadgets taken out of the shop are refunded (once: they are dropped
+    // from the save here).
+    var refund = 0;
+    for (final MapEntry(key: id, value: prices)
+        in Tuning.retiredGadgetPrices.entries) {
+      final owned = (gadgetLevels.remove(id) ?? 0).clamp(0, prices.length);
+      refund += prices.take(owned).fold(0, (sum, price) => sum + price);
+    }
     return PlayerProfile(
       levelBest: {
         // v1 saves had one best distance: it was played on level 1.
@@ -302,21 +328,18 @@ class PlayerProfile extends ChangeNotifier {
             if (key is String && int.tryParse(key) != null && value is num)
               int.parse(key): value.toDouble(),
       },
-      scrap: math.max(0, _int(json['scrap'], 0)),
+      scrap: math.max(0, _int(json['scrap'], 0)) + refund,
       upgradeLevels: {
         if (upgrades is Map)
           for (final MapEntry(:key, :value) in upgrades.entries)
             if (key is String && value is int) key: value,
       },
-      gadgetLevels: {
-        if (gadgets is Map)
-          for (final MapEntry(:key, :value) in gadgets.entries)
-            if (key is String && value is int) key: value,
-      },
+      gadgetLevels: gadgetLevels,
       musicVolume: _double(s['musicVolume'], defaultMusicVolume),
       sfxVolume: _double(s['sfxVolume'], defaultSfxVolume),
       hapticsOn: _bool(s['hapticsOn'], Tuning.hapticsEnabled),
       showDebugInfo: _bool(s['showDebugInfo'], false),
+      showLandingSight: _bool(s['showLandingSight'], true),
     );
   }
 

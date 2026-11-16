@@ -149,6 +149,14 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// effect plays once).
   bool _announcedFull = false;
 
+  /// Clean landings in a row (any other landing resets it). With the
+  /// Combo Coil gadget each one adds a bonus step, up to
+  /// [RobotStats.comboCoilSteps].
+  int cleanStreak = 0;
+
+  /// Bonus steps the Combo Coil gives the current streak (0 without it).
+  int get comboSteps => math.min(cleanStreak, stats.comboCoilSteps);
+
   /// Spin energy gathered during the current airtime, in turns (0 to
   /// stats.spinEnergyMaxTurns). All of it is released into the next
   /// bounce on landing, then it starts again from 0. See landing.dart.
@@ -520,6 +528,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     );
     lastLanding = type;
     runStats.addLanding(type);
+    cleanStreak = type == LandingType.clean ? cleanStreak + 1 : 0;
     game.effects.landing(type, contactPoint, normal);
 
     // Change the velocity of the whole robot by the same amount, so the
@@ -530,6 +539,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       oldVelocity,
       normal,
       energyBounce: spinEnergyBounce(spinEnergy, stats: stats),
+      comboSteps: comboSteps,
       stats: stats,
     );
     // A clean landing on a full tank: the super bounce.

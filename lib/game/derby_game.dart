@@ -84,6 +84,8 @@ class HudInfo {
     this.headLaunched = false,
     this.partHp = const {},
     this.starsPassed = 0,
+    this.comboSteps = 0,
+    this.comboMax = 0,
     this.result,
   });
 
@@ -115,6 +117,11 @@ class HudInfo {
 
   /// Star distances of the level passed so far this run (0-3).
   final int starsPassed;
+
+  /// Combo Coil: bonus steps of the current clean streak, and the most it
+  /// can reach (0 = no Combo Coil).
+  final int comboSteps;
+  final int comboMax;
 
   /// Set once the run is over.
   final RunResult? result;
@@ -421,6 +428,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       headLaunched: robot.headLaunched,
       partHp: robot.partHp,
       starsPassed: _starsPassed,
+      comboSteps: robot.comboSteps,
+      comboMax: robot.stats.comboCoilSteps,
       result: _result,
     );
   }

@@ -61,15 +61,21 @@ LandingType classifyLanding(
 /// [energyBounce] (m/s, from [spinEnergyBounce]) is the gathered spin
 /// energy: the landing releases its share of it ([energyRelease]) into the
 /// bounce, and [Tuning.energyForwardShare] of that along the ground too.
+/// [comboSteps] (Combo Coil gadget, clean landings only) adds
+/// [Tuning.comboBouncePerStep] bounce and [Tuning.comboSpeedPerStep] speed
+/// along the ground per step.
 /// [stats] gives the clean bounce (Spring legs upgrade).
 Vector2 velocityAfterLanding(
   LandingType type,
   Vector2 velocity,
   Vector2 groundNormal, {
   double energyBounce = 0,
+  int comboSteps = 0,
   RobotStats stats = RobotStats.base,
 }) {
-  final extraBounce = energyBounce * energyRelease(type);
+  final combo = type == LandingType.clean ? comboSteps : 0;
+  final extraBounce =
+      energyBounce * energyRelease(type) + combo * Tuning.comboBouncePerStep;
   // Tangent pointing "forward" (to the right / downhill) along the ground.
   final tangent = Vector2(-groundNormal.y, groundNormal.x);
   final alongGround = velocity.dot(tangent);
@@ -88,7 +94,9 @@ Vector2 velocityAfterLanding(
     LandingType.crash => (Tuning.crashBounce, Tuning.crashSpeedMultiplier, 0.0),
   };
 
-  final forward = extraBounce * Tuning.energyForwardShare;
+  final forward =
+      energyBounce * energyRelease(type) * Tuning.energyForwardShare +
+      combo * Tuning.comboSpeedPerStep;
   final newAlong = (alongGround * multiplier + bonus + forward).clamp(
     -Tuning.maxRobotSpeed,
     Tuning.maxRobotSpeed,

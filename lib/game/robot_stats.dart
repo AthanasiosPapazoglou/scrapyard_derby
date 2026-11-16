@@ -129,7 +129,8 @@ class RobotStats {
     this.headLaunchScale = 1,
     this.headRocketBurnTime = Tuning.headRocketBurnTime,
     this.headRocketThrust = Tuning.headRocketThrust,
-    this.landingSightTime = 0,
+    this.landingSightTime = Tuning.landingSightTime,
+    this.comboCoilSteps = 0,
     this.scrapMagnet = 0,
     this.autoGyroWindow = 0,
     this.landingDamageScale = 1,
@@ -176,7 +177,9 @@ class RobotStats {
       headLaunchScale: Tuning.rocketSpeedScale[rocket],
       headRocketBurnTime: Tuning.rocketBurnTime[rocket],
       headRocketThrust: Tuning.rocketThrust[rocket],
-      landingSightTime: perLevel(Tuning.landingSightTimes, Gadget.landingSight),
+      comboCoilSteps: owned(Gadget.comboCoil) == 0
+          ? 0
+          : Tuning.comboCoilMaxSteps[owned(Gadget.comboCoil) - 1],
       scrapMagnet: Tuning.scrapMagnetPerLevel * owned(Gadget.scrapMagnet),
       autoGyroWindow: perLevel(Tuning.autoGyroWindows, Gadget.autoGyro),
       landingDamageScale:
@@ -230,10 +233,14 @@ class RobotStats {
   /// Rocket push (m/s²) during the burn.
   final double headRocketThrust;
 
+  /// Landing Sight (built in): seconds before touchdown the predicted
+  /// landing shows. Settings can hide it.
+  final double landingSightTime;
+
   // Gadgets (0 / 1 = off).
 
-  /// Landing Sight: seconds before touchdown the predicted landing shows.
-  final double landingSightTime;
+  /// Combo Coil: most clean landings in a row that add a bonus step.
+  final int comboCoilSteps;
 
   /// Scrap Magnet: extra scrap share, e.g. 0.2 = +20%.
   final double scrapMagnet;
