@@ -131,6 +131,26 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   @override
   void render(Canvas canvas) {
     // The canvas is already moved and rotated to this body's position.
+    // High up, the attached robot is drawn bigger around its center
+    // (visual only; the physics shapes stay the same size).
+    final k = detached ? 1.0 : robot.drawScale;
+    if (k != 1) {
+      // Move this part out from the robot's center by the same factor,
+      // in this body's own (rotated) coordinates, then scale it.
+      final shift = (robot.drawCenter - body.position)..scale(1 - k);
+      final local = body.rotation.inverseRotate(shift);
+      canvas
+        ..save()
+        ..translate(local.x, local.y)
+        ..scale(k);
+    }
+    _renderPart(canvas);
+    if (k != 1) {
+      canvas.restore();
+    }
+  }
+
+  void _renderPart(Canvas canvas) {
     // Debris fades out over its lifetime.
     final opacity = detached
         ? (1 - debrisAge / Tuning.debrisLifetime).clamp(0.0, 1.0)
