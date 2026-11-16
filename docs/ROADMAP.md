@@ -795,8 +795,22 @@ then the redesigns (built responsive from the start).
 - HUD hides Pause/Restart once the run is over (the card has Play again).
 - Simulator: checked in portrait and landscape.
 
-### V11 — Logo and reset button  ☐
-- D26 logo on the main menu (small idle wobble/shine), D25 reset button.
+### V11 — Logo and reset button  ☑
+- `art/make_logo.py` → `assets/logo/logo.svg` (new asset folder in
+  `pubspec.yaml`): letters drawn as thick rounded "tubes" on a 4 × 6 grid
+  (no fonts), each with ink outline, drop-shadow, shade, highlight streak
+  and a rivet, tilted and nudged at random (fixed seed). SCRAPYARD in
+  hazard yellow, DERBY in rust on a bolted steel banner, with a gear and
+  a cyan lightning bolt.
+- Main menu `_Logo`: `SvgPicture.asset`, bobs and tilts gently, a shine
+  sweeps across it every 4.5 s (driven by the menu's ticker). Replaces
+  the outlined-text title in both layouts.
+- HUD (`lib/ui/hud_buttons.dart`): `HudRestartButton` (bolted plate with
+  a hazard-striped frame, yellow face, replay arrow, "RESTART" stencil)
+  and `HudPauseButton` (round steel bolt head with yellow pause bars).
+  Both sink while pressed, click, and keep the "Restart" / "Pause"
+  tooltips (tests find them by tooltip).
+- Simulator: logo on the menu, buttons in a run, Restart restarts.
 
 ### V12 — Rebalance  ☐
 - V4-V7 change distances a lot: rerun `tool/progression_report_test.dart`,

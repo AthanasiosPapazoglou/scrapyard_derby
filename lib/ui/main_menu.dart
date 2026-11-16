@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../game/dusk_scene.dart';
@@ -116,9 +120,9 @@ class _MainMenuState extends State<MainMenu>
               // and buttons at the bottom.
               portrait: (context) => Column(
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
-                    child: FittedBox(fit: BoxFit.scaleDown, child: _Title()),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: _Logo(time: _time, width: 380),
                   ),
                   Expanded(
                     child: Padding(
@@ -153,7 +157,7 @@ class _MainMenuState extends State<MainMenu>
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const _Title(),
+                              _Logo(time: _time, width: 400),
                               const SizedBox(height: 10),
                               actions,
                             ],
@@ -172,18 +176,67 @@ class _MainMenuState extends State<MainMenu>
   }
 }
 
-/// The game's name. (A proper logo comes in roadmap step V11.)
-class _Title extends StatelessWidget {
-  const _Title();
+/// The title logo (`assets/logo/logo.svg`, from `art/make_logo.py`),
+/// bobbing and tilting gently, with a shine sweeping across it every few
+/// seconds. [width] is the most it takes; it shrinks on narrow screens.
+class _Logo extends StatelessWidget {
+  const _Logo({required this.time, required this.width});
+
+  final ValueListenable<double> time;
+  final double width;
+
+  /// Logo artwork's width / height.
+  static const double aspect = 820 / 430;
+
+  /// Seconds between shines, and how long one takes.
+  static const double shineEvery = 4.5;
+  static const double shineTime = 0.9;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        OutlinedText('SCRAPYARD', fontSize: 52, color: Palette.hazard),
-        OutlinedText('DERBY', fontSize: 52, color: Palette.rustLight),
-      ],
+    final logo = SvgPicture.asset(
+      'assets/logo/logo.svg',
+      semanticsLabel: 'Scrapyard Derby',
+    );
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: width),
+      child: AspectRatio(
+        aspectRatio: aspect,
+        child: ValueListenableBuilder<double>(
+          valueListenable: time,
+          child: logo,
+          builder: (context, t, child) {
+            // 0 → 1 while a shine crosses, otherwise outside the logo.
+            final shine = (t % shineEvery) / shineTime;
+            return Transform.translate(
+              offset: Offset(0, math.sin(t * 1.4) * 4),
+              child: Transform.rotate(
+                angle: math.sin(t * 0.9) * 0.02,
+                child: shine > 1
+                    ? child
+                    : ShaderMask(
+                        blendMode: BlendMode.srcATop,
+                        shaderCallback: (rect) => LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withValues(alpha: 0),
+                            Colors.white.withValues(alpha: 0.55),
+                            Colors.white.withValues(alpha: 0),
+                          ],
+                          stops: [
+                            (shine * 1.4 - 0.3).clamp(0.0, 1.0),
+                            (shine * 1.4 - 0.2).clamp(0.0, 1.0),
+                            (shine * 1.4 - 0.1).clamp(0.0, 1.0),
+                          ],
+                        ).createShader(rect),
+                        child: child,
+                      ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

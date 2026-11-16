@@ -31,7 +31,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Restart'), findsOneWidget);
+    expect(find.byTooltip('Restart'), findsOneWidget);
     expect(find.byTooltip('Pause'), findsOneWidget);
     // The distance is outlined text: drawn twice (ink outline + fill).
     expect(find.text('0 m'), findsNWidgets(2));
@@ -179,7 +179,7 @@ void main() {
       await tester.pump();
 
       final counter = tester.getRect(find.text('4321 m').first);
-      final restart = tester.getRect(find.text('Restart'));
+      final restart = tester.getRect(find.byTooltip('Restart'));
       final pause = tester.getRect(find.byTooltip('Pause'));
       expect(counter.overlaps(restart), isFalse);
       expect(counter.overlaps(pause), isFalse);

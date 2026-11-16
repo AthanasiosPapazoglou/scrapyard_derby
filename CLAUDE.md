@@ -59,6 +59,7 @@ A robot stats screen shows current vs max stats. Details, numbers and steps: `do
   `Tuning.debugShowPhysicsShapes` draws the collision shapes on top for checking.
 - World visuals (code-drawn, following the style test scene): dusk sky gradient (navy, coral, amber) with a low sun, 3 parallax layers of purple-brown scrap heaps with tire/car/girder silhouettes (camera backdrop), dirt hill with a highlight band, a deeper shadow tone, specks and buried junk, decorative scrap props on the slope (no physics). HUD text is cream with an ink outline.
 
+- Title logo: `python3 art/make_logo.py` writes `assets/logo/logo.svg` (scrap-metal tube lettering, no fonts), shown on the main menu.
 - Upgrade parts: `python3 art/make_parts.py` writes `assets/robot/<slot>_<tier>.svg` for legs/arms/body/head/core,
   tiers 0-5 (scrap cartoon → black-and-crimson obsidian, always a happy face; bodies get more athletic per tier) plus the preview `art/parts_sheet.svg`.
   Tier 0 reuses make_style_test.py's drawing. Every tier covers the same collision shapes (checked by `test/robot_sprites_test.dart`).
