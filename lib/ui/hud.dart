@@ -6,8 +6,8 @@ import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
-import '../game/sound.dart';
 import 'debug_overlay.dart';
+import 'hud_buttons.dart';
 import 'layout.dart';
 import 'outlined_text.dart';
 import 'run_summary.dart';
@@ -76,32 +76,10 @@ class Hud extends StatelessWidget {
                   child: Row(
                     children: [
                       if (onPause != null && info.result == null) ...[
-                        IconButton.filled(
-                          onPressed: () {
-                            Sound.play(Sfx.uiClick);
-                            onPause!();
-                          },
-                          tooltip: 'Pause',
-                          icon: const Icon(Icons.pause),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Palette.outline,
-                            foregroundColor: Palette.hazard,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                        HudPauseButton(onPressed: onPause!),
+                        const SizedBox(width: 10),
                       ],
-                      FilledButton.icon(
-                        onPressed: () {
-                          Sound.play(Sfx.uiClick);
-                          game.restart();
-                        },
-                        icon: const Icon(Icons.replay),
-                        label: const Text('Restart'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Palette.hazard,
-                          foregroundColor: Palette.outline,
-                        ),
-                      ),
+                      HudRestartButton(onPressed: game.restart),
                     ],
                   ),
                 ),
