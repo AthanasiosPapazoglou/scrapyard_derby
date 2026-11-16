@@ -25,9 +25,6 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
   double _slope = 0;
   Offset _robotAt = Offset.zero;
 
-  static const double _feetLength = 1.5;
-  static const double _stickLength = 1.3;
-
   final Paint _line = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.2
@@ -82,26 +79,65 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
       LandingType.crash => Palette.danger,
     };
     _renderGauge(canvas, p);
-    // Ground marker: thin lines, the same size at any zoom.
-    final scale = game.visibleWidth / Tuning.cameraBaseWidth;
-    _line.strokeWidth = 0.2 * scale;
-    _ink.strokeWidth = 0.36 * scale;
-    // The robot's feet line and "up" stick at touchdown (y points down,
-    // angles are clockwise).
+    _renderMarker(canvas, p);
+  }
+
+  /// How many meters the screen's long side spans right now (in landscape
+  /// the visible width; in portrait the visible height). Sizing by it keeps
+  /// the sight the same size on screen in both orientations.
+  double get _screenLong {
+    final screen = game.size;
+    return game.visibleWidth * math.max(screen.x, screen.y) / screen.x;
+  }
+
+  /// Ground marker at the touchdown point: a flat pad ring on the ground,
+  /// then the robot's feet line and "up" stick at touchdown (y points down,
+  /// angles are clockwise). Sized by the screen, not the world.
+  void _renderMarker(Canvas canvas, LandingPrediction p) {
+    final m = Tuning.landingSightMarkerSize * _screenLong;
+    final ground = Offset(p.groundPoint.x, p.groundPoint.y);
+
+    // Pad ring: an ellipse lying on the slope, faintly filled.
+    _padFill.color = _line.color.withValues(alpha: 0.22);
+    _line.strokeWidth = m * 0.1;
+    _ink.strokeWidth = m * 0.18;
+    canvas
+      ..save()
+      ..translate(ground.dx, ground.dy)
+      ..rotate(_slope);
+    final pad = Rect.fromCenter(
+      center: Offset.zero,
+      width: m * 1.5,
+      height: m * 0.42,
+    );
+    canvas
+      ..drawOval(pad, _padFill)
+      ..drawOval(pad, _ink)
+      ..drawOval(pad, _line)
+      ..restore();
+
+    // Feet line and up stick, thicker than the ring.
+    _line.strokeWidth = m * 0.16;
+    _ink.strokeWidth = m * 0.28;
     final a = p.angle;
     final along = Offset(math.cos(a), math.sin(a));
     final up = Offset(math.sin(a), -math.cos(a));
-    final base = Offset(p.groundPoint.x, p.groundPoint.y) + up * 0.15 * scale;
-    final feetA = base - along * (_feetLength / 2 * scale);
-    final feetB = base + along * (_feetLength / 2 * scale);
-    final top = base + up * _stickLength * scale;
+    final base = ground + up * (m * 0.12);
+    final feetA = base - along * (m / 2);
+    final feetB = base + along * (m / 2);
+    final top = base + up * (m * 0.85);
     for (final paint in [_ink, _line]) {
       canvas
         ..drawLine(feetA, feetB, paint)
         ..drawLine(base, top, paint);
     }
-    canvas.drawCircle(top, 0.22 * scale, Paint()..color = _line.color);
+    canvas
+      ..drawCircle(top, m * 0.2, _knobInk)
+      ..drawCircle(top, m * 0.14, Paint()..color = _line.color);
   }
+
+  final Paint _padFill = Paint();
+  final Paint _knobInk = Paint()..color = Palette.outline;
 
   final Paint _gaugeFill = Paint()
     ..color = Palette.outline.withValues(alpha: 0.55);
@@ -116,9 +152,7 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
   void _renderGauge(Canvas canvas, LandingPrediction p) {
     // Sized by the screen's long side, so it is as big on a portrait
     // screen (narrow view) as in landscape.
-    final screen = game.size;
-    final longShare = math.max(screen.x, screen.y) / screen.x;
-    final r = Tuning.landingSightGaugeSize * game.visibleWidth * longShare;
+    final r = Tuning.landingSightGaugeSize * _screenLong;
     final center = _robotAt + Offset(r * 3, r * 1.5);
     final groundDir = Offset(math.cos(_slope), math.sin(_slope));
     final up = Offset(math.sin(p.angle), -math.cos(p.angle));

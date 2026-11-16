@@ -920,9 +920,19 @@ command for the developer.
 - Simulator: opening drop shows a big readable robot below the HUD with
   the ground in view.
 
-### W2 — Landing marker  ☐
-- D31 in `landing_sight.dart`: screen-sized marker, thicker lines, a pad
-  ring. Simulator check both orientations.
+### W2 — Landing marker  ☑
+- D31 in `landing_sight.dart`: the ground marker is sized by the screen's
+  long side like the gauge (`landingSightMarkerSize` = 0.05 in tuning:
+  feet line length; stick, line widths and ring scale with it), so it is
+  the same on-screen size in portrait and landscape at any zoom (it used
+  to shrink to about half in portrait). Thicker lines (ink 0.28, colour
+  0.16 of the size), an outlined knob on the up stick, and a pad ring: a
+  faintly filled, outlined ellipse lying on the slope at touchdown, in the
+  landing colour.
+- Simulator (portrait): marker about the gauge's size, readable, ring
+  follows the slope; first try at 0.07 was too big in portrait. Landscape:
+  gauge (same sizing) checked; the marker itself was off screen in the
+  captured frames.
 
 ### W3 — Head launch direction  ☐
 - D32 in `head_launch.dart`: kick along the line of travel. Tests: the

@@ -628,6 +628,12 @@ abstract final class Tuning {
   /// share of the screen's long side (in landscape: the visible width).
   static const double landingSightGaugeSize = 0.035;
 
+  /// Length of the Landing Sight's ground marker (the robot's feet line at
+  /// touchdown), as a share of the screen's long side, so it is the same
+  /// size on screen in both orientations and at any zoom. The up stick,
+  /// line widths and the pad ring on the ground scale with it.
+  static const double landingSightMarkerSize = 0.05;
+
   /// Combo Coil: every clean landing in a row adds one step, up to this
   /// many steps per level; each step adds this much bounce and speed along
   /// the ground (m/s) to the clean landing. Any other landing resets it.
