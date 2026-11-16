@@ -774,12 +774,26 @@ then the redesigns (built responsive from the start).
 - Layout fit test: no known misfits left; every page fits all 6 sizes.
 - Simulator: checked in portrait and landscape.
 
-### V10 — Run card redesign  ☐
-- A "derby ticket"/scrap-metal plate: riveted frame, hazard stripe header
-  with the level name, big distance stamp, star slots that slam in one by
-  one, new-best stamp, a mini track strip showing star flags vs where the
-  head landed, landing tally (clean / one-foot / crash icons), scrap
-  earned counting up, the robot head's portrait. Responsive.
+### V10 — Run card redesign  ☑
+- `lib/ui/run_summary.dart` rewritten as a "derby ticket" on a riveted
+  steel plate (`RivetedPlate`, new shared `lib/ui/scrap_plate.dart` with
+  `HazardStripesPainter`):
+  - Header: hazard stripes, level name and why the run ended on an ink
+    label, the robot's installed head in a porthole (`RunSummary.head`,
+    passed by the HUD from `RobotSprites`).
+  - Score: "DISTANCE", the big number, stars (new ones slam in one after
+    another with an elastic pop), best, and a tilted red rubber stamp
+    (NEW BEST! / LEVEL n UNLOCKED!) that thumps down.
+  - Track strip: the run as a bar that fills up, star flags (filled when
+    reached), a dashed BEST post, the head's flight as a dashed arc.
+  - Run tally: clean / one-foot / crash tiles with icons, then highest
+    jump, limbs lost, head flight. Scrap: lines and a total that counts
+    up.
+  - Portrait: stacked, 340 wide; landscape: score | tally | scrap split by
+    perforations, track below, 720 wide. The HUD still scales it to fit.
+- Reveal takes `RunSummary.revealTime` (1.8 s).
+- HUD hides Pause/Restart once the run is over (the card has Play again).
+- Simulator: checked in portrait and landscape.
 
 ### V11 — Logo and reset button  ☐
 - D26 logo on the main menu (small idle wobble/shine), D25 reset button.

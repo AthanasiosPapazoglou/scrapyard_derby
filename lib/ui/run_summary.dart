@@ -1,14 +1,23 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
 import '../game/landing.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
+import '../game/robot_sprites.dart';
 import 'derby_button.dart';
+import 'layout.dart';
+import 'outlined_text.dart';
+import 'scrap_plate.dart';
 
-/// Shown over the wreck when a run is over: why it ended, the distance,
-/// best / NEW BEST, the run's stats, and the scrap it earned.
-class RunSummary extends StatelessWidget {
+/// Shown over the wreck when a run is over: a "derby ticket" on a riveted
+/// steel plate. A hazard-striped header (level, why it ended, the robot's
+/// head), the distance, stars that slam in one by one, a NEW BEST / LEVEL
+/// UNLOCKED stamp, a track strip (star flags, best, the head's flight),
+/// the landing tally and the scrap earned (counting up).
+class RunSummary extends StatefulWidget {
   const RunSummary({
     super.key,
     required this.result,
@@ -18,6 +27,7 @@ class RunSummary extends StatelessWidget {
     this.onMenu,
     this.onWorkshop,
     this.onNextLevel,
+    this.head,
   });
 
   final RunResult result;
@@ -37,141 +47,440 @@ class RunSummary extends StatelessWidget {
   /// Plays the next level; hidden when null (last level, or still locked).
   final VoidCallback? onNextLevel;
 
-  static const _ink = Palette.outline;
+  /// The robot's head art for the header porthole (none while loading).
+  final PartSprite? head;
+
+  /// How long the card takes to fill in (stars, stamp, scrap count).
+  static const Duration revealTime = Duration(milliseconds: 1800);
+
+  @override
+  State<RunSummary> createState() => _RunSummaryState();
+}
+
+class _RunSummaryState extends State<RunSummary>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _reveal = AnimationController(
+    vsync: this,
+    duration: RunSummary.revealTime,
+  )..forward();
+
+  @override
+  void dispose() {
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  /// 0 → 1 over the part of the reveal between [start] and [end] (0-1).
+  Animation<double> _phase(
+    double start,
+    double end, [
+    Curve curve = Curves.easeOut,
+  ]) => CurvedAnimation(
+    parent: _reveal,
+    curve: Interval(start, end, curve: curve),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final stats = result.stats;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-      decoration: BoxDecoration(
-        color: Palette.hazard,
-        border: Border.all(color: _ink, width: 4),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: DefaultTextStyle(
-        style: const TextStyle(
-          color: _ink,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+    final result = widget.result;
+    final portrait = context.isPortrait;
+    final score = _Score(
+      result: result,
+      bestDistance: widget.bestDistance,
+      starPhase: (i) =>
+          _phase(0.2 + i * 0.16, 0.45 + i * 0.16, Curves.elasticOut),
+      stampPhase: _phase(0.7, 0.9, Curves.easeOutBack),
+    );
+    final track = _TrackStrip(
+      result: result,
+      best: widget.bestDistance,
+      progress: _phase(0, 0.5),
+    );
+    final tally = _Tally(result: result);
+    final scrap = _ScrapBox(
+      result: result,
+      totalScrap: widget.totalScrap,
+      count: _phase(0.3, 1),
+    );
+    final buttons = Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        if (widget.onMenu != null)
+          DerbyButton(
+            label: 'Levels',
+            icon: Icons.map,
+            onPressed: widget.onMenu,
+          ),
+        DerbyButton(
+          label: 'Workshop',
+          icon: Icons.build,
+          onPressed: widget.onWorkshop,
+          disabledNote: 'SOON',
         ),
+        DerbyButton(
+          label: 'Play again',
+          icon: Icons.replay,
+          primary: widget.onNextLevel == null,
+          onPressed: widget.onPlayAgain,
+        ),
+        if (widget.onNextLevel != null)
+          DerbyButton(
+            label: 'Next level',
+            icon: Icons.arrow_forward,
+            primary: true,
+            onPressed: widget.onNextLevel,
+          ),
+      ],
+    );
+
+    return RivetedPlate(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: SizedBox(
+        width: portrait ? 340 : 720,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Left: the score.
-                  Column(
+            _Header(result: result, head: widget.head),
+            const SizedBox(height: 10),
+            _Ticket(
+              child: portrait
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        score,
+                        const SizedBox(height: 10),
+                        track,
+                        const SizedBox(height: 10),
+                        tally,
+                        const SizedBox(height: 10),
+                        scrap,
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(flex: 5, child: score),
+                              const _Perforation(),
+                              Expanded(flex: 4, child: tally),
+                              const _Perforation(),
+                              Expanded(flex: 4, child: scrap),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        track,
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 12),
+            buttons,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const _ink = Palette.outline;
+
+// ---------------------------------------------------------------- Header
+
+/// Hazard stripes with the level and why the run ended, and the robot's
+/// head peeking out of a porthole.
+class _Header extends StatelessWidget {
+  const _Header({required this.result, required this.head});
+
+  final RunResult result;
+  final PartSprite? head;
+
+  @override
+  Widget build(BuildContext context) {
+    final art = head;
+    return SizedBox(
+      height: 58,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                foregroundDecoration: BoxDecoration(
+                  border: Border.all(color: _ink, width: 3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const CustomPaint(painter: HazardStripesPainter()),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            left: 72,
+            right: 12,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: _ink,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'LEVEL ${result.level} · '
                         '${Levels.of(result.level).name.toUpperCase()}',
                         style: const TextStyle(
-                          fontSize: 12,
+                          color: Palette.hazard,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                           letterSpacing: 1.5,
                         ),
                       ),
                       Text(
                         result.end.label,
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '${result.distance.toStringAsFixed(0)} m',
-                        style: const TextStyle(
-                          fontSize: 48,
+                          color: Palette.cream,
+                          fontSize: 20,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
                           height: 1.1,
                         ),
                       ),
-                      _SummaryStars(
-                        before: result.starsBefore,
-                        after: result.starsAfter,
-                      ),
-                      const SizedBox(height: 4),
-                      if (result.unlockedLevel case final unlocked?)
-                        _Badge('LEVEL $unlocked UNLOCKED!')
-                      else if (result.isNewBest)
-                        const _Badge('NEW BEST!')
-                      else
-                        Text('Best: ${bestDistance.toStringAsFixed(0)} m'),
-                      if (result.unlockedLevel != null && result.isNewBest)
-                        Text('New best: ${bestDistance.toStringAsFixed(0)} m'),
                     ],
                   ),
-                  const _Divider(),
-                  // Middle: what happened.
-                  _Lines(
-                    title: 'RUN',
-                    rows: [
-                      (
-                        'Clean landings',
-                        '${stats.landingsOf(LandingType.clean)}',
-                      ),
-                      ('One-foot', '${stats.landingsOf(LandingType.oneFoot)}'),
-                      ('Crashes', '${stats.landingsOf(LandingType.crash)}'),
-                      (
-                        'Highest jump',
-                        '${stats.highestJump.toStringAsFixed(1)} m',
-                      ),
-                      ('Limbs lost', '${stats.limbsLost}/4'),
-                      if (stats.headFlight case final flight?)
-                        ('Head flight', '${flight.toStringAsFixed(0)} m'),
-                    ],
-                  ),
-                  const _Divider(),
-                  // Right: scrap earned.
-                  _Lines(
-                    title: 'SCRAP',
-                    rows: [
-                      for (final line in result.scrap)
-                        (line.label, '+${line.amount}'),
-                    ],
-                    footer: ('Total', '+${result.scrapEarned}'),
-                    note: 'You have $totalScrap',
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (onMenu != null) ...[
-                  DerbyButton(
-                    label: 'Levels',
-                    icon: Icons.map,
-                    onPressed: onMenu,
-                  ),
-                  const SizedBox(width: 10),
+          ),
+          // The porthole with the robot's head.
+          Positioned(
+            left: 4,
+            top: -6,
+            child: Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Palette.skyMid,
+                border: Border.all(color: _ink, width: 4),
+                boxShadow: const [
+                  BoxShadow(color: Palette.steelLight, spreadRadius: 3),
                 ],
-                DerbyButton(
-                  label: 'Workshop',
-                  icon: Icons.build,
-                  onPressed: onWorkshop,
-                  disabledNote: 'SOON',
-                ),
-                const SizedBox(width: 10),
-                DerbyButton(
-                  label: 'Play again',
-                  icon: Icons.replay,
-                  primary: onNextLevel == null,
-                  onPressed: onPlayAgain,
-                ),
-                if (onNextLevel != null) ...[
-                  const SizedBox(width: 10),
-                  DerbyButton(
-                    label: 'Next level',
-                    icon: Icons.arrow_forward,
-                    primary: true,
-                    onPressed: onNextLevel,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: art == null
+                  ? null
+                  : CustomPaint(painter: _SpritePainter(art)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpritePainter extends CustomPainter {
+  _SpritePainter(this.sprite);
+
+  final PartSprite sprite;
+
+  @override
+  void paint(Canvas canvas, Size size) => sprite.renderFitted(canvas, size);
+
+  @override
+  bool shouldRepaint(_SpritePainter old) => old.sprite != sprite;
+}
+
+/// The cream ticket card inside the plate.
+class _Ticket extends StatelessWidget {
+  const _Ticket({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Palette.cream,
+        border: Border.all(color: _ink, width: 3),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DefaultTextStyle(
+        style: const TextStyle(
+          color: _ink,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// A dotted tear line between ticket sections.
+class _Perforation extends StatelessWidget {
+  const _Perforation();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: 26, child: CustomPaint(painter: _DotsPainter()));
+  }
+}
+
+class _DotsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Palette.steelLight;
+    for (var y = 4.0; y < size.height; y += 9) {
+      canvas.drawCircle(Offset(size.width / 2, y), 2.2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotsPainter old) => false;
+}
+
+// ---------------------------------------------------------------- Score
+
+/// The distance, the level's stars (new ones slam in) and the stamp.
+class _Score extends StatelessWidget {
+  const _Score({
+    required this.result,
+    required this.bestDistance,
+    required this.starPhase,
+    required this.stampPhase,
+  });
+
+  final RunResult result;
+  final double bestDistance;
+  final Animation<double> Function(int star) starPhase;
+  final Animation<double> stampPhase;
+
+  @override
+  Widget build(BuildContext context) {
+    final stamp = switch (result) {
+      RunResult(unlockedLevel: final unlocked?) => 'LEVEL $unlocked UNLOCKED!',
+      RunResult(isNewBest: true) => 'NEW BEST!',
+      _ => null,
+    };
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Full width, so the score sits centered in its section.
+        SizedBox(
+          width: double.infinity,
+          child: Column(
+            children: [
+              const Text(
+                'DISTANCE',
+                style: TextStyle(fontSize: 11, letterSpacing: 2.5),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '${result.distance.toStringAsFixed(0)} m',
+                  style: const TextStyle(
+                    fontSize: 50,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
+                ),
+              ),
+              Semantics(
+                label: '${result.starsAfter} of ${Levels.maxStars} stars',
+                excludeSemantics: true,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < Levels.maxStars; i++)
+                      _Star(
+                        had: i < result.starsBefore,
+                        earned:
+                            i >= result.starsBefore && i < result.starsAfter,
+                        phase: starPhase(i - result.starsBefore),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                result.isNewBest && result.unlockedLevel != null
+                    ? 'New best: ${bestDistance.toStringAsFixed(0)} m'
+                    : 'Best: ${bestDistance.toStringAsFixed(0)} m',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        if (stamp != null)
+          Positioned(
+            right: -6,
+            top: 4,
+            child: _Stamp(text: stamp, phase: stampPhase),
+          ),
+      ],
+    );
+  }
+}
+
+/// One star: an old one (ink), a new one (slams in, glowing) or empty.
+class _Star extends StatelessWidget {
+  const _Star({required this.had, required this.earned, required this.phase});
+
+  final bool had;
+  final bool earned;
+  final Animation<double> phase;
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 36.0;
+    if (!earned) {
+      return Icon(
+        had ? Icons.star : Icons.star_border,
+        size: size,
+        color: had ? _ink : Palette.steelLight,
+      );
+    }
+    return SizedBox(
+      width: size,
+      height: size,
+      child: AnimatedBuilder(
+        animation: phase,
+        builder: (context, _) => Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(
+              Icons.star_border,
+              size: size,
+              color: Palette.steelLight,
+            ),
+            Transform.scale(
+              scale: phase.value,
+              child: const Icon(
+                Icons.star,
+                size: size,
+                color: Palette.hazard,
+                shadows: [
+                  Shadow(color: _ink, blurRadius: 0, offset: Offset(1.5, 1.5)),
+                  Shadow(color: Palette.hazard, blurRadius: 10),
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -180,54 +489,351 @@ class RunSummary extends StatelessWidget {
   }
 }
 
-/// A titled list of "label ... value" rows.
-class _Lines extends StatelessWidget {
-  const _Lines({
-    required this.title,
-    required this.rows,
-    this.footer,
-    this.note,
+/// A tilted rubber stamp that thumps down onto the ticket.
+class _Stamp extends StatelessWidget {
+  const _Stamp({required this.text, required this.phase});
+
+  final String text;
+  final Animation<double> phase;
+
+  @override
+  Widget build(BuildContext context) {
+    const red = Color(0xFFC8352B);
+    return AnimatedBuilder(
+      animation: phase,
+      builder: (context, child) => Opacity(
+        opacity: phase.value.clamp(0.0, 1.0),
+        child: Transform.rotate(
+          angle: -0.22,
+          child: Transform.scale(scale: 2.2 - 1.2 * phase.value, child: child),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          border: Border.all(color: red, width: 3),
+          borderRadius: BorderRadius.circular(6),
+          color: Palette.cream.withValues(alpha: 0.75),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: red,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------- Track
+
+/// The run along the hill: a bar to the distance reached, the level's star
+/// flags, the best distance, and the head's rocket flight as an arc.
+class _TrackStrip extends StatelessWidget {
+  const _TrackStrip({
+    required this.result,
+    required this.best,
+    required this.progress,
   });
 
-  final String title;
-  final List<(String, String)> rows;
-  final (String, String)? footer;
-  final String? note;
+  final RunResult result;
+  final double best;
+  final Animation<double> progress;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 210,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
+      height: 56,
+      child: AnimatedBuilder(
+        animation: progress,
+        builder: (context, _) => CustomPaint(
+          size: Size.infinite,
+          painter: _TrackPainter(
+            distance: result.distance * progress.value,
+            finalDistance: result.distance,
+            best: best,
+            stars: Levels.of(result.level).starDistances,
+            headFlight: result.stats.headFlight,
           ),
-          const SizedBox(height: 4),
-          for (final (label, value) in rows) _row(label, value),
-          if (footer case (final label, final value)) ...[
-            const Divider(color: RunSummary._ink, thickness: 2, height: 8),
-            _row(label, value, bold: true),
-          ],
-          if (note != null) Text(note!, style: const TextStyle(fontSize: 12)),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _row(String label, String value, {bool bold = false}) {
+class _TrackPainter extends CustomPainter {
+  _TrackPainter({
+    required this.distance,
+    required this.finalDistance,
+    required this.best,
+    required this.stars,
+    required this.headFlight,
+  });
+
+  /// Distance drawn so far (it grows as the card appears).
+  final double distance;
+  final double finalDistance;
+  final double best;
+  final List<double> stars;
+  final double? headFlight;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final end = [finalDistance, best, stars.last].reduce(math.max) * 1.06 + 1;
+    const left = 6.0;
+    final width = size.width - 12;
+    double x(double meters) => left + width * (meters / end).clamp(0, 1);
+    final y = size.height - 14;
+
+    // The track and the distance covered.
+    final track = RRect.fromLTRBR(
+      left,
+      y - 4,
+      left + width,
+      y + 4,
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(track, Paint()..color = Palette.steelLight);
+    canvas.drawRRect(
+      RRect.fromLTRBR(
+        left,
+        y - 4,
+        x(distance),
+        y + 4,
+        const Radius.circular(4),
+      ),
+      Paint()..color = Palette.rust,
+    );
+    canvas.drawRRect(
+      track,
+      Paint()
+        ..color = _ink
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+
+    // Best (a dashed post) when it isn't this run.
+    if (best > finalDistance + 0.5) {
+      final bx = x(best);
+      final dash = Paint()
+        ..color = _ink
+        ..strokeWidth = 2;
+      for (var d = y - 26; d < y + 6; d += 6) {
+        canvas.drawLine(Offset(bx, d), Offset(bx, d + 3), dash);
+      }
+      _label(canvas, 'BEST', Offset(bx, y - 36));
+    }
+
+    // Star flags.
+    for (final s in stars) {
+      final fx = x(s);
+      final reached = finalDistance >= s;
+      canvas.drawLine(
+        Offset(fx, y + 4),
+        Offset(fx, y - 24),
+        Paint()
+          ..color = _ink
+          ..strokeWidth = 2,
+      );
+      final flag = Path()
+        ..moveTo(fx, y - 24)
+        ..lineTo(fx + 13, y - 19)
+        ..lineTo(fx, y - 14)
+        ..close();
+      canvas
+        ..drawPath(
+          flag,
+          Paint()..color = reached ? Palette.hazard : Palette.cream,
+        )
+        ..drawPath(
+          flag,
+          Paint()
+            ..color = _ink
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5,
+        );
+    }
+
+    // The head's rocket flight: an arc from launch to touchdown.
+    final flight = headFlight;
+    if (flight != null && flight > 0 && distance >= finalDistance - 0.5) {
+      final from = Offset(x(finalDistance - flight), y);
+      final to = Offset(x(finalDistance), y);
+      final arc = Path()
+        ..moveTo(from.dx, from.dy)
+        ..quadraticBezierTo(
+          (from.dx + to.dx) / 2,
+          y - 2 * math.min(30, 10 + (to.dx - from.dx) * 0.4),
+          to.dx,
+          to.dy,
+        );
+      final dashPaint = Paint()
+        ..color = Palette.rustShadow
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      for (final metric in arc.computeMetrics()) {
+        for (var d = 0.0; d < metric.length; d += 7) {
+          canvas.drawPath(metric.extractPath(d, d + 4), dashPaint);
+        }
+      }
+    }
+
+    // Where the run ended: a marker on the track.
+    final mx = x(distance);
+    canvas
+      ..drawCircle(Offset(mx, y), 7, Paint()..color = Palette.eyeGlow)
+      ..drawCircle(
+        Offset(mx, y),
+        7,
+        Paint()
+          ..color = _ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5,
+      );
+  }
+
+  void _label(Canvas canvas, String text, Offset center) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: _ink,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, center - Offset(painter.width / 2, 0));
+  }
+
+  @override
+  bool shouldRepaint(_TrackPainter old) =>
+      old.distance != distance || old.best != best;
+}
+
+// ---------------------------------------------------------------- Tally
+
+/// Landings as three tiles (clean / one foot / crash), then the jump,
+/// limbs and head flight.
+class _Tally extends StatelessWidget {
+  const _Tally({required this.result});
+
+  final RunResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = result.stats;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'RUN',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            _TallyTile(
+              icon: Icons.check_circle,
+              color: const Color(0xFF2F9E5B),
+              count: stats.landingsOf(LandingType.clean),
+              label: 'Clean',
+            ),
+            _TallyTile(
+              icon: Icons.adjust,
+              color: Palette.hazardShadow,
+              count: stats.landingsOf(LandingType.oneFoot),
+              label: 'One-foot',
+            ),
+            _TallyTile(
+              icon: Icons.cancel,
+              color: const Color(0xFFC8352B),
+              count: stats.landingsOf(LandingType.crash),
+              label: 'Crash',
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _Row('Highest jump', '${stats.highestJump.toStringAsFixed(1)} m'),
+        _Row('Limbs lost', '${stats.limbsLost}/4'),
+        if (stats.headFlight case final flight?)
+          _Row('Head flight', '${flight.toStringAsFixed(0)} m'),
+      ],
+    );
+  }
+}
+
+class _TallyTile extends StatelessWidget {
+  const _TallyTile({
+    required this.icon,
+    required this.color,
+    required this.count,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color color;
+  final int count;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Semantics(
+        container: true,
+        label: '$label landings $count',
+        excludeSemantics: true,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            border: Border.all(color: color, width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 18),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label, style: const TextStyle(fontSize: 10)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Row extends StatelessWidget {
+  const _Row(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(child: Text(label)),
         Text(
           value,
           style: TextStyle(
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w800,
+            fontWeight: FontWeight.w800,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
@@ -236,70 +842,58 @@ class _Lines extends StatelessWidget {
   }
 }
 
-class _Divider extends StatelessWidget {
-  const _Divider();
+// ---------------------------------------------------------------- Scrap
+
+/// Scrap earned, line by line, with the total counting up.
+class _ScrapBox extends StatelessWidget {
+  const _ScrapBox({
+    required this.result,
+    required this.totalScrap,
+    required this.count,
+  });
+
+  final RunResult result;
+  final int totalScrap;
+  final Animation<double> count;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 3,
-      margin: const EdgeInsets.symmetric(horizontal: 18),
-      color: Palette.hazardShadow,
-    );
-  }
-}
-
-/// The level's stars after this run; the ones earned by this run glow.
-class _SummaryStars extends StatelessWidget {
-  const _SummaryStars({required this.before, required this.after});
-
-  final int before;
-  final int after;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: '$after of ${Levels.maxStars} stars',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < Levels.maxStars; i++)
-            Icon(
-              i < after ? Icons.star : Icons.star_border,
-              size: 30,
-              color: i < before
-                  ? RunSummary._ink
-                  : (i < after ? Palette.cream : Palette.hazardShadow),
-              shadows: i >= before && i < after
-                  ? const [Shadow(color: RunSummary._ink, blurRadius: 4)]
-                  : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.settings, size: 16, color: _ink),
+            SizedBox(width: 4),
+            Text(
+              'SCRAP',
+              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      decoration: BoxDecoration(
-        color: Palette.outline,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Palette.eyeGlow,
-          fontWeight: FontWeight.w900,
+          ],
         ),
-      ),
+        const SizedBox(height: 4),
+        for (final line in result.scrap) _Row(line.label, '+${line.amount}'),
+        const Divider(color: _ink, thickness: 2, height: 10),
+        AnimatedBuilder(
+          animation: count,
+          builder: (context, _) => Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Total',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              OutlinedText(
+                '+${(result.scrapEarned * count.value).round()}',
+                fontSize: 22,
+                color: Palette.hazard,
+              ),
+            ],
+          ),
+        ),
+        Text('You have $totalScrap', style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 }

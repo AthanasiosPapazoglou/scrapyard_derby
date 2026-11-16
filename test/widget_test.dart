@@ -8,6 +8,7 @@ import 'package:scrapyard_derby/game/run_stats.dart';
 import 'package:scrapyard_derby/game/scrap_reward.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
 import 'package:scrapyard_derby/ui/hud.dart';
+import 'package:scrapyard_derby/ui/run_summary.dart';
 
 void main() {
   testWidgets('HUD shows distance, debug info and the run summary', (
@@ -69,6 +70,8 @@ void main() {
       ),
     );
     await tester.pump();
+    // Let the card fill in (stars, stamp, scrap counting up).
+    await tester.pump(RunSummary.revealTime);
 
     expect(find.textContaining('12.3 m/s'), findsOneWidget);
     expect(find.textContaining('↺ 40%'), findsOneWidget);
@@ -89,7 +92,8 @@ void main() {
     expect(find.text('1/4'), findsOneWidget);
     expect(find.text('42 m'), findsOneWidget);
     expect(find.text('+41'), findsOneWidget);
-    expect(find.text('+43'), findsOneWidget);
+    // The total is outlined text (ink outline + fill).
+    expect(find.text('+43'), findsNWidgets(2));
     expect(find.text('You have 120'), findsOneWidget);
     // No pause once the run is over.
     expect(find.byTooltip('Pause'), findsNothing);
