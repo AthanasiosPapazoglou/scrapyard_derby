@@ -58,15 +58,18 @@ LandingType classifyLanding(
 ///   plus a bonus for clean landings. This is the "speed gain / loss".
 /// - away from the ground (normal): replaced with a fixed bounce speed.
 ///
-/// [extraBounce] (m/s) is added to the bounce, e.g. from spin energy.
+/// [energyBounce] (m/s, from [spinEnergyBounce]) is the gathered spin
+/// energy: the landing releases its share of it ([energyRelease]) into the
+/// bounce, and [Tuning.energyForwardShare] of that along the ground too.
 /// [stats] gives the clean bounce (Spring legs upgrade).
 Vector2 velocityAfterLanding(
   LandingType type,
   Vector2 velocity,
   Vector2 groundNormal, {
-  double extraBounce = 0,
+  double energyBounce = 0,
   RobotStats stats = RobotStats.base,
 }) {
+  final extraBounce = energyBounce * energyRelease(type);
   // Tangent pointing "forward" (to the right / downhill) along the ground.
   final tangent = Vector2(-groundNormal.y, groundNormal.x);
   final alongGround = velocity.dot(tangent);
@@ -85,7 +88,8 @@ Vector2 velocityAfterLanding(
     LandingType.crash => (Tuning.crashBounce, Tuning.crashSpeedMultiplier, 0.0),
   };
 
-  final newAlong = (alongGround * multiplier + bonus).clamp(
+  final forward = extraBounce * Tuning.energyForwardShare;
+  final newAlong = (alongGround * multiplier + bonus + forward).clamp(
     -Tuning.maxRobotSpeed,
     Tuning.maxRobotSpeed,
   );
@@ -105,8 +109,9 @@ double landingDamage(LandingType type, {RobotStats stats = RobotStats.base}) =>
 // ---------------------------------------------------------------- Spin energy
 //
 // Energy is measured in turns. Every airtime gathers energy from spinning
-// (capped), and ALL of it is released into the next bounce, whatever kind
-// of landing it is. Then the next airtime starts gathering from zero.
+// (capped), and the next landing uses ALL of it: a clean landing turns it
+// fully into bounce, sloppier ones only partly (energyRelease). Then the
+// next airtime starts gathering from zero.
 
 /// Energy after spinning [turns] more full turns (either direction counts),
 /// capped at [RobotStats.spinEnergyMaxTurns] (Energy core upgrade).
@@ -116,7 +121,23 @@ double addSpinEnergy(
   RobotStats stats = RobotStats.base,
 }) => math.min(energy + turns.abs(), stats.spinEnergyMaxTurns);
 
-/// Extra bounce (m/s) the gathered [energy] adds to the next jump, never
+/// Share of the spin energy a landing of [type] releases into its bounce:
+/// all of it on a clean landing, less on sloppy ones.
+double energyRelease(LandingType type) => switch (type) {
+  LandingType.clean => Tuning.energyReleaseClean,
+  LandingType.oneFoot => Tuning.energyReleaseOneFoot,
+  LandingType.crash => Tuning.energyReleaseCrash,
+};
+
+/// True when [energy] counts as a full tank ([Tuning.energyFullShare]).
+/// [max] is the tank size in turns (default: [stats]'s).
+bool isFullCharge(
+  double energy, {
+  RobotStats stats = RobotStats.base,
+  double? max,
+}) => energy >= (max ?? stats.spinEnergyMaxTurns) * Tuning.energyFullShare;
+
+/// Extra bounce (m/s) the gathered [energy] adds to the next clean jump, never
 /// more than [RobotStats.maxEnergyBounce].
 double spinEnergyBounce(double energy, {RobotStats stats = RobotStats.base}) =>
     math.min(

@@ -101,6 +101,42 @@ class Effects extends Component with HasGameReference<DerbyGame> {
     _haptic(HapticFeedback.heavyImpact);
   }
 
+  /// The spin energy tank just filled up, around [point] (the torso).
+  void energyFull(Vector2 point) {
+    Sound.play(Sfx.energyFull);
+    _burst(
+      point,
+      Vector2(0, -1),
+      count: 18,
+      speed: 4,
+      spreadDeg: 180,
+      lifetime: 0.45,
+      radius: 0.08,
+      colors: const [Palette.eyeGlow, Palette.cream],
+      gravity: false,
+    );
+    _haptic(HapticFeedback.selectionClick);
+  }
+
+  /// A clean landing with a full tank at [point]: the "super bounce".
+  void superBounce(Vector2 point, Vector2 normal) {
+    Sound.play(Sfx.superBounce);
+    _burst(
+      point,
+      normal,
+      count: Tuning.sparkCount * 3,
+      speed: Tuning.sparkSpeed * 1.7,
+      spreadDeg: 50,
+      lifetime: 0.6,
+      radius: 0.1,
+      colors: const [Palette.eyeGlow, Palette.hazard, Palette.cream],
+      gravity: true,
+    );
+    _dust(point, normal, Tuning.dustCount);
+    _addShake(Tuning.shakeSuperBounce);
+    _haptic(HapticFeedback.heavyImpact);
+  }
+
   /// The launched head hit the ground at [point]: the attempt is over.
   void headLanded(Vector2 point) {
     Sound.play(Sfx.headDown);

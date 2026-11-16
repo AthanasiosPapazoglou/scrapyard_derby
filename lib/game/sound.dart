@@ -19,7 +19,9 @@ enum Sfx {
   headDown('head_down'),
   uiClick('ui_click'),
   uiBuy('ui_buy'),
-  newBest('new_best');
+  newBest('new_best'),
+  energyFull('energy_full'),
+  superBounce('super_bounce');
 
   const Sfx(this.file);
 

@@ -223,6 +223,27 @@ def new_best():
     return lowpass(out, 3500)
 
 
+def energy_full():
+    """The energy tank is full: a quick bright rising chime with shimmer."""
+    notes = [784.0, 1046.5, 1568.0]
+    out = []
+    for f in notes:
+        out += envelope(tone(0.06, f, wave_type="square", duty=0.2), decay_power=1.2)
+    shimmer = ring(0.45, [(2093.0, 0.4), (3136.0, 0.25), (4186.0, 0.12)], decay=6)
+    return mix((lowpass(out, 5000), 0.45, 0), (shimmer, 0.35, 0.12))
+
+
+def super_bounce():
+    """A full-charge clean landing: a deep springy BWOING and a rising whoosh."""
+    boing = envelope(tone(0.5, 110, 440, "square", duty=0.35), decay_power=1.4)
+    boing = lowpass(boing, 1800)
+    zap = envelope(tone(0.35, 600, 2400, "saw"), attack=0.01, decay_power=2)
+    zap = lowpass(zap, 4000)
+    whoosh = envelope(lowpass(noise(0.6), 500, 5000), attack=0.05, decay_power=1.5)
+    ting = ring(0.6, [(1318.5, 0.5), (2637.0, 0.25)], decay=5)
+    return mix((boing, 0.7, 0), (zap, 0.25, 0.02), (whoosh, 0.45, 0.03), (ting, 0.3, 0.05))
+
+
 SOUNDS = {
     "land_clean": land_clean,
     "land_onefoot": land_onefoot,
@@ -233,6 +254,10 @@ SOUNDS = {
     "ui_click": ui_click,
     "ui_buy": ui_buy,
     "new_best": new_best,
+    # Added in 1.1.0; keep new sounds last so the fixed random seed gives
+    # the earlier files the same bytes.
+    "energy_full": energy_full,
+    "super_bounce": super_bounce,
 }
 
 

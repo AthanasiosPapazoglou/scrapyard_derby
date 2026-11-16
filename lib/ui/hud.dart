@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/derby_game.dart';
+import '../game/landing.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
@@ -117,11 +118,9 @@ class Hud extends StatelessWidget {
                       if (info.headLaunched)
                         const _HeadLaunchLabel()
                       else
-                        _MeterBar(
-                          icon: Icons.bolt,
-                          fraction: info.spinEnergy / info.spinEnergyMax,
-                          color: Palette.hazard,
-                          fullColor: Palette.eyeGlow,
+                        _EnergyBar(
+                          energy: info.spinEnergy,
+                          max: info.spinEnergyMax,
                         ),
                       const SizedBox(height: 4),
                       _StarProgress(
@@ -175,54 +174,101 @@ class Hud extends StatelessWidget {
   }
 }
 
-/// A small horizontal meter under the distance (the spin energy bar).
-class _MeterBar extends StatelessWidget {
-  const _MeterBar({
-    required this.icon,
-    required this.fraction,
-    required this.color,
-    required this.fullColor,
-  });
+/// The spin energy bar under the distance: one segment per turn of spin
+/// (the last one shorter when the tank holds a part turn), filling as the
+/// robot spins in the air. Full = every segment glows cyan.
+class _EnergyBar extends StatelessWidget {
+  const _EnergyBar({required this.energy, required this.max});
 
-  final IconData icon;
+  /// Gathered energy and tank size, in turns.
+  final double energy;
+  final double max;
 
-  /// 0 = empty, 1 = full.
-  final double fraction;
-  final Color color;
-
-  /// Colour when the meter is full.
-  final Color fullColor;
+  static const double _width = 180;
+  static const double _height = 16;
 
   @override
   Widget build(BuildContext context) {
-    final value = fraction.clamp(0.0, 1.0);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: Palette.cream, size: 20),
-        Container(
-          width: 160,
-          height: 14,
-          decoration: BoxDecoration(
-            color: Palette.steelLight,
-            border: Border.all(color: Palette.outline, width: 2.5),
-            borderRadius: BorderRadius.circular(7),
+    final full = isFullCharge(energy, max: max);
+    return Semantics(
+      label: 'Spin energy ${(energy / max * 100).round()}%',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.bolt,
+            color: full ? Palette.eyeGlow : Palette.cream,
+            size: 22,
+            shadows: const [Shadow(color: Palette.outline, blurRadius: 3)],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: value,
-                heightFactor: 1,
-                child: ColoredBox(color: value >= 0.999 ? fullColor : color),
-              ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_height / 2),
+              boxShadow: full
+                  ? [
+                      BoxShadow(
+                        color: Palette.eyeGlow.withValues(alpha: 0.7),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: CustomPaint(
+              size: const Size(_width, _height),
+              painter: _EnergyPainter(energy: energy, max: max, full: full),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+class _EnergyPainter extends CustomPainter {
+  _EnergyPainter({required this.energy, required this.max, required this.full});
+
+  final double energy;
+  final double max;
+  final bool full;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const gap = 3.0;
+    final turns = max.ceil();
+    final usable = size.width - gap * (turns - 1);
+    final fill = Paint()..color = full ? Palette.eyeGlow : Palette.hazard;
+    final empty = Paint()..color = Palette.steelLight;
+    final ink = Paint()
+      ..color = Palette.outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    var left = 0.0;
+    for (var i = 0; i < turns; i++) {
+      // This segment holds turns i .. i+share (the last may be partial).
+      final share = (max - i).clamp(0.0, 1.0);
+      final width = usable * share / max;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left, 0, width, size.height),
+        const Radius.circular(5),
+      );
+      canvas.drawRRect(rect, empty);
+      final filled = ((energy - i) / share).clamp(0.0, 1.0);
+      if (filled > 0) {
+        canvas
+          ..save()
+          ..clipRRect(rect)
+          ..drawRect(Rect.fromLTWH(left, 0, width * filled, size.height), fill)
+          ..restore();
+      }
+      canvas.drawRRect(rect, ink);
+      left += width + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_EnergyPainter old) =>
+      old.energy != energy || old.max != max || old.full != full;
 }
 
 /// The level's three stars under the energy bar: filled once passed this
