@@ -45,7 +45,10 @@ class EnergyAura extends Component with ParentIsA<Robot> {
     final full = isFullCharge(robot.spinEnergy, stats: robot.stats);
     final pulse = full ? 0.5 + 0.5 * math.sin(_time * 10) : 0.0;
     final radius =
-        Tuning.energyAuraRadius * (0.55 + 0.45 * fill) * (1 + 0.08 * pulse) +
+        robot.drawScale *
+            Tuning.energyAuraRadius *
+            (0.55 + 0.45 * fill) *
+            (1 + 0.08 * pulse) +
         _flash * 0.8;
     final strength =
         (Tuning.energyAuraStrength * (0.3 + 0.7 * fill) * (1 + 0.25 * pulse) +

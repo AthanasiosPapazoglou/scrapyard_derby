@@ -859,3 +859,86 @@ developer's playtest. Open questions from the steps:
   triggered by hand in the Simulator.
 - Merging `v1.1.0` into `main` publishes the web build (developer's call).
 
+
+# Block 4: Version 1.1.1 (playtest feedback on 1.1.0)
+
+Branch `v1.1.1` (from `main` at 0a45ea2, which has all of 1.1.0).
+Developer feedback from playing 1.1.0, Nov 16, 2026. Same rules: analyze
+clean, tests pass, Simulator check both orientations, commit-and-push
+command for the developer.
+
+## What the feedback points at in the code
+
+- **Camera:** the view goes from 26 m wide (on the ground) to 110 m (high
+  up), so big jumps shrink the robot to a speck. `cameraHudReserve` doesn't
+  count the Combo chip, so at max zoom-out the robot can sit behind it.
+- **Landing marker:** its ground marker is sized by `visibleWidth /
+  cameraBaseWidth`. Portrait (V2) narrows the view to 0.55×, so since
+  1.1.0 the marker is drawn at about half size in portrait.
+- **Head launch:** the kick follows where the robot FACES (bent off the
+  ground), not where it is going, so the head can veer off the line of
+  travel.
+- **Legs + Combo:** the top leg tiers (bounce ×1.45) stack with the Combo
+  Coil's flat bounce per step, so late levels get very bouncy.
+- **Parts:** each part only changes 1-2 numbers, with no flavor.
+
+## 1.1.1 decisions (defaults until the developer changes them)
+
+| # | Question | Default |
+|---|---|---|
+| D28 | Zoom range | On the ground a bit closer (26 → 22 m), max zoom-out much tighter (110 → 60 m wide). When the ground can't fit, the robot is kept on screen (as today). |
+| D29 | Robot on far zoom-outs | Drawn bigger when zoomed out, up to ~1.8× at max zoom-out (sprites only, around the torso; physics shapes untouched). |
+| D30 | HUD reserve | The camera keeps the robot below the whole HUD, Combo chip included. |
+| D31 | Landing marker | Sized by the screen like the gauge (same on-screen size both ways), thicker lines plus a ground "pad" ring at touchdown. |
+| D32 | Head launch direction | The kick goes along the robot's line of travel (its pre-landing velocity, lifted off the ground). Facing and landing angle only change the power. |
+| D33 | Legs top tiers | Bounce ×1.0 → ×1.3 (was ×1.45), clean window 20° → 31° (was 34°). |
+| D34 | Combo Coil | +0.5 m/s bounce and +0.4 m/s speed per step (was 0.8 / 0.6). |
+| D35 | Part specs | Every part gets a short spec sheet: material and technology lines (flavor text, 30 parts) shown in the Workshop and on the stats screen. |
+| D36 | More stats per part | One new real stat per slot, all tiered: Legs **Grip** (speed kept on one-foot landings), Arms **Recovery** (release time, already in the physics, now shown), Body **Crash armor** (speed kept on crashes), Head **Thrust** (rocket push, already in the physics, now shown), Core **Overdrive** (share of energy that also pushes forward). |
+
+## 1.1.1 steps
+
+### W1 — Camera range and robot size  ☑
+- Camera range: base view 26 → 22 m, max zoom-out 110 → 60 m (portrait
+  ×0.55 of both). HUD band kept clear: 0.18 → 0.3 of the screen height
+  (landscape and portrait), so the Combo chip never covers the robot.
+- `frameRobotAndGround` rewritten: zoom = just enough height for HUD band
+  + `cameraTopMargin` (2 m, new) + the robot's height + ground margin;
+  the center sits `groundBias` of the way down, but at least far enough
+  to show the ground and never so far the robot goes behind the HUD.
+  Past the cap the ground drops out of view; the robot stays on screen.
+  (The old math doubled the margin above the robot, so a bigger HUD
+  band also widened the view on the ground.)
+- Robot drawn bigger high up (visual only): `Robot.drawScale` ×1 below
+  4 m above the ground → ×1.8 at 30 m (`robotZoom*` in tuning); each
+  attached part is drawn scaled around the torso (or the flying head);
+  the energy glow scales too. Physics shapes untouched.
+- Tests: camera tests rewritten (both orientations: base view on the
+  ground, zoom rises to the cap, robot always on screen and below the
+  HUD, ground in view whenever the zoom allows).
+- Bots: head flight report identical (2478 / 6372 m), physics unchanged.
+- Simulator: opening drop shows a big readable robot below the HUD with
+  the ground in view.
+
+### W2 — Landing marker  ☐
+- D31 in `landing_sight.dart`: screen-sized marker, thicker lines, a pad
+  ring. Simulator check both orientations.
+
+### W3 — Head launch direction  ☐
+- D32 in `head_launch.dart`: kick along the line of travel. Tests: the
+  head never turns away from its travel direction by more than a little;
+  head flight report before/after.
+
+### W4 — Legs and Combo Coil  ☐
+- D33-D34 in the tier tables and Combo numbers; tests updated.
+
+### W5 — Part spec sheets and extra stats  ☐
+- D35-D36: spec text per part, the 5 new tiered stats wired into the
+  landing math (`velocityAfterLanding`) and shown as gauges (stats screen)
+  and in the Workshop details.
+
+### W6 — Rebalance  ☐
+- Full progression report after W1-W5; re-set level damage, stars and
+  prices for a smooth difficulty curve (tier N clears level N with
+  normal effort; each level a bit harder than the last). Star 1 stays
+  where it is unless a save could only gain from the change.

@@ -160,6 +160,15 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   double _limbTime = 0;
   double _lastSpinRate = 0;
 
+  /// How much bigger the robot is drawn right now (visual only, see
+  /// [Tuning.robotZoomMaxScale]): 1 near the ground, more high up.
+  double drawScale = 1;
+
+  /// The point the robot is drawn bigger around: the torso, or the
+  /// launched head.
+  Vector2 get drawCenter =>
+      headLaunched ? head.body.worldCenterOfMass : torso.body.worldCenterOfMass;
+
   /// Bonus steps the Combo Coil gives the current streak (0 without it).
   int get comboSteps => math.min(cleanStreak, stats.comboCoilSteps);
 
@@ -370,6 +379,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   void update(double dt) {
     super.update(dt);
     _updateDebris(dt);
+    _updateDrawScale();
     if (headLaunched) {
       _updateHead(dt);
       return;
@@ -444,6 +454,17 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         ..kick(spinJolt)
         ..update(dt, target);
     }
+  }
+
+  /// Draws the robot bigger the higher it is (visual only).
+  void _updateDrawScale() {
+    final p = _trackedBody.position;
+    final height = game.hillGeometry.heightAt(p.x) - p.y;
+    final share =
+        ((height - Tuning.robotZoomFromHeight) /
+                (Tuning.robotZoomFullHeight - Tuning.robotZoomFromHeight))
+            .clamp(0.0, 1.0);
+    drawScale = 1 + (Tuning.robotZoomMaxScale - 1) * share;
   }
 
   /// Tells [runStats] how high the feet are above the ground right now.

@@ -320,7 +320,8 @@ abstract final class Tuning {
 
   // ---------------------------------------------------------------- Camera
   /// How many meters of world are visible across the screen when still.
-  static const double cameraBaseWidth = 26.0;
+  /// (1.1.1: 26 → 22, a closer view on the ground.)
+  static const double cameraBaseWidth = 22.0;
 
   /// Extra visible meters per m/s of speed (zoom out when fast).
   static const double cameraZoomPerSpeed = 0.45;
@@ -331,13 +332,18 @@ abstract final class Tuning {
   /// kept above the robot and below the ground.
   static const double cameraGroundMargin = 4.0;
 
+  /// Room (m) kept between the robot (its torso) and the HUD band above it.
+  static const double cameraTopMargin = 2.0;
+
   /// How far between robot (0) and the ground below it (1) the camera
   /// centers when the robot is high up. 0.5 = exactly halfway. Once the
   /// head is launched, the camera centers on the head (0) instead.
   static const double cameraGroundBias = 0.5;
 
-  /// Max visible width (m) when zoomed fully out.
-  static const double cameraMaxWidth = 110.0;
+  /// Max visible width (m) when zoomed fully out. (1.1.1: 110 → 60, so big
+  /// jumps don't shrink the robot to a speck; past this the camera keeps
+  /// the robot on screen and lets the ground drop out of view.)
+  static const double cameraMaxWidth = 60.0;
 
   /// How quickly the camera catches up (higher = tighter follow).
   static const double cameraFollowSharpness = 6.0;
@@ -352,9 +358,10 @@ abstract final class Tuning {
   /// How far ahead the camera looks, in seconds of current velocity.
   static const double cameraLookAhead = 0.25;
 
-  /// Share of the screen height at the top kept clear for the distance
-  /// counter, so the robot is never drawn behind it.
-  static const double cameraHudReserve = 0.18;
+  /// Share of the screen height at the top kept clear for the HUD
+  /// (distance, energy bar, stars and the Combo chip), so the robot is never
+  /// drawn behind it. (1.1.1: 0.18 → 0.3; the Combo chip covered the robot.)
+  static const double cameraHudReserve = 0.3;
 
   /// Portrait screens (taller than wide). The view's width is the
   /// landscape width times this, so the robot stays a good size on a
@@ -368,7 +375,16 @@ abstract final class Tuning {
 
   /// Portrait: share of the screen height kept clear for the HUD (buttons
   /// stack above the distance counter, so it is taller).
-  static const double cameraPortraitHudReserve = 0.24;
+  static const double cameraPortraitHudReserve = 0.3;
+
+  /// High up, the robot is DRAWN bigger (its physics shapes never change),
+  /// so it stays readable when the camera zooms out: ×1 up to
+  /// [robotZoomFromHeight] m above the ground, growing to
+  /// [robotZoomMaxScale] at [robotZoomFullHeight] m. Back to ×1 before
+  /// touchdown, so it never looks sunk into the ground.
+  static const double robotZoomMaxScale = 1.8;
+  static const double robotZoomFromHeight = 4.0;
+  static const double robotZoomFullHeight = 30.0;
 
   // ---------------------------------------------------------------- Juice
   // Visual and touch feedback. None of these change the physics.
