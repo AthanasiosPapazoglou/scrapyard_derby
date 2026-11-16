@@ -211,19 +211,32 @@ abstract final class Tuning {
   /// moment the head first touches the ground; the distance is measured
   /// there.
   ///
-  /// Launch speed (m/s) = (base + robot speed × factor) × angle factor,
-  /// capped at max. The angle factor is 1 when landing upright and
+  /// The head keeps the robot's momentum (V4, 1.1.0): its velocity just
+  /// before the landing, minus the part going into the ground, times
+  /// [headLaunchCarry]. On top comes a rocket kick along where the robot
+  /// faces (bent away from the ground by [headLaunchUpBias]):
+  /// kick (m/s) = (base + robot speed × factor) × angle factor, capped at
+  /// [headLaunchMaxKick]. The angle factor is 1 when landing upright and
   /// [headLaunchMinAngleFactor] when sideways or upside down.
-  /// (Balance pass: base was 20, max 36, thrust 20; head flights were a
-  /// third of the score, now about 60-100 m.)
+  /// (1.0.0 replaced the robot's velocity with the kick alone, read after
+  /// the impact had already stopped the robot.)
+  static const double headLaunchCarry = 0.9;
   static const double headLaunchBaseSpeed = 10.0;
-  static const double headLaunchSpeedFactor = 0.6;
-  static const double headLaunchMaxSpeed = 24.0;
+  static const double headLaunchSpeedFactor = 0.25;
+  static const double headLaunchMaxKick = 18.0;
   static const double headLaunchMinAngleFactor = 0.6;
 
-  /// How strongly the launch is bent away from the ground (on top of the
-  /// direction the robot faces). Higher = steeper, more rocket-like.
-  static const double headLaunchUpBias = 1.5;
+  /// The head always leaves the ground at least this fast (m/s, along the
+  /// ground normal), so it never skims or dives into the slope.
+  static const double headLaunchMinLift = 6.0;
+
+  /// Hard cap on the launch speed (m/s), before the Rocket head's scale.
+  static const double headLaunchMaxSpeed = 36.0;
+
+  /// How strongly the kick is bent away from the ground (on top of the
+  /// direction the robot faces). Higher = steeper. (1.0.0: 1.5, which
+  /// pointed every launch nearly straight up.)
+  static const double headLaunchUpBias = 0.7;
 
   /// After launch, a rocket burn keeps pushing the head along its flight
   /// for this many seconds, with this acceleration (m/s²).
@@ -323,7 +336,7 @@ abstract final class Tuning {
   /// Slow motion on head launch: the game runs at this speed share right
   /// after the launch and eases back to normal over this many real seconds.
   static const double headLaunchSlowMo = 0.3;
-  static const double headLaunchSlowMoTime = 1.0;
+  static const double headLaunchSlowMoTime = 0.6;
 
   /// Smoke puffs behind the flying head: seconds between puffs during the
   /// rocket burn and after it, and how long a puff lasts.

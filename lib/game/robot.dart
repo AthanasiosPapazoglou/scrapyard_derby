@@ -136,6 +136,11 @@ class Robot extends Component with HasGameReference<DerbyGame> {
 
   double _airTime = 0;
 
+  /// The torso's velocity at the last moment it was in the air. Contact
+  /// events arrive after the physics step has already stopped the robot
+  /// against the ground, so the head launch reads the speed from here.
+  final Vector2 _airVelocity = Vector2.zero();
+
   /// Spin energy gathered during the current airtime, in turns (0 to
   /// stats.spinEnergyMaxTurns). All of it is released into the next
   /// bounce on landing, then it starts again from 0. See landing.dart.
@@ -351,6 +356,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
     _capSpeed();
     if (!_isOnGround) {
+      _airVelocity.setFrom(torso.body.linearVelocity);
       _airTime += dt;
       if (_hasTouchedDown) {
         _reportJumpHeight();
@@ -469,7 +475,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
     // Only torso and head left: this landing fires the head.
     if (limbsLeft == 0) {
-      _launchHead(normal);
+      _launchHead(normal, carried: _airVelocity);
       return;
     }
     final up = torso.body.rotation.rotate(Vector2(0, -1));
@@ -577,16 +583,17 @@ class Robot extends Component with HasGameReference<DerbyGame> {
 
   /// Fires the head off like a rocket. The torso is left behind as debris
   /// and the run continues with the head until it touches the ground
-  /// (see head_launch.dart).
-  void _launchHead(Vector2 groundNormal) {
+  /// (see head_launch.dart). [carried] is the robot's momentum to keep:
+  /// its velocity just before a landing, or (sliding) its velocity now.
+  void _launchHead(Vector2 groundNormal, {Vector2? carried}) {
     if (headLaunched) {
       return;
     }
     final facing = torso.body.rotation.rotate(Vector2(0, -1));
     final launch = headLaunchVelocity(
+      carried: (carried ?? torso.body.linearVelocity).clone(),
       facing: facing,
       groundNormal: groundNormal,
-      speed: torso.body.linearVelocity.length,
       stats: stats,
     );
     _neckJoint.destroy();
