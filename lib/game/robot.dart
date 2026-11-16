@@ -7,6 +7,7 @@ import '../config/tuning.dart';
 import 'autopilot.dart';
 import 'damage.dart';
 import 'derby_game.dart';
+import 'energy_aura.dart';
 import 'head_launch.dart';
 import 'hill.dart';
 import 'landing.dart';
@@ -141,6 +142,13 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// against the ground, so the head launch reads the speed from here.
   final Vector2 _airVelocity = Vector2.zero();
 
+  /// The glow showing the gathered spin energy.
+  final EnergyAura _aura = EnergyAura();
+
+  /// True once this airtime's energy reached a full tank (so the "full"
+  /// effect plays once).
+  bool _announcedFull = false;
+
   /// Spin energy gathered during the current airtime, in turns (0 to
   /// stats.spinEnergyMaxTurns). All of it is released into the next
   /// bounce on landing, then it starts again from 0. See landing.dart.
@@ -241,6 +249,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     }
 
     await addAll(parts);
+    await add(_aura);
   }
 
   RobotPart _makePart(
@@ -362,6 +371,11 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         _reportJumpHeight();
         final turns = torso.body.angularVelocity.abs() * dt / (2 * math.pi);
         spinEnergy = addSpinEnergy(spinEnergy, turns, stats: stats);
+        if (!_announcedFull && isFullCharge(spinEnergy, stats: stats)) {
+          _announcedFull = true;
+          _aura.flash();
+          game.effects.energyFull(torso.body.worldCenterOfMass);
+        }
       }
     }
     // Down to torso + head but just sliding along? Launch the head anyway.
@@ -424,13 +438,24 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     body.angularVelocity = current + change;
   }
 
-  /// Scales the robot's velocity down if it is over the speed cap.
+  /// Keeps the robot under the flight speed caps: horizontal speed (how
+  /// fast it travels) and total speed. Every part gets the same change, so
+  /// they keep moving together. (Speed along the ground is capped at each
+  /// landing too.)
   void _capSpeed() {
+    final v = velocity;
+    final excessX = v.x.abs() - Tuning.maxFlightHorizontalSpeed;
+    if (excessX > 0) {
+      final dx = -excessX * v.x.sign;
+      for (final part in attachedParts) {
+        part.body.linearVelocity = part.body.linearVelocity + Vector2(dx, 0);
+      }
+    }
     final current = speed;
-    if (current <= Tuning.maxRobotSpeed) {
+    if (current <= Tuning.maxFlightSpeed) {
       return;
     }
-    final factor = Tuning.maxRobotSpeed / current;
+    final factor = Tuning.maxFlightSpeed / current;
     for (final part in attachedParts) {
       part.body.linearVelocity = part.body.linearVelocity * factor;
     }
@@ -504,12 +529,17 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       type,
       oldVelocity,
       normal,
-      extraBounce: spinEnergyBounce(spinEnergy, stats: stats),
+      energyBounce: spinEnergyBounce(spinEnergy, stats: stats),
       stats: stats,
     );
+    // A clean landing on a full tank: the super bounce.
+    if (type == LandingType.clean && isFullCharge(spinEnergy, stats: stats)) {
+      game.effects.superBounce(contactPoint, normal);
+    }
     // All gathered energy went into this bounce; the next airtime starts
     // gathering from zero.
     spinEnergy = 0;
+    _announcedFull = false;
     final delta = newVelocity - oldVelocity;
     for (final p in attachedParts) {
       p.body.linearVelocity = p.body.linearVelocity + delta;

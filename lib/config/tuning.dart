@@ -89,15 +89,30 @@ abstract final class Tuning {
 
   // ---------------------------------------------------------------- Spin energy
   /// Every full turn the robot makes in the air (either direction) gathers
-  /// one unit of energy. On every landing, whatever kind, ALL gathered
-  /// energy is released into that bounce, adding this much (m/s) per unit;
-  /// then the next airtime gathers from zero. More spins = higher launch.
-  static const double spinEnergyPerTurn = 4.0;
+  /// one unit of energy. On every landing, ALL gathered energy is used up:
+  /// the bounce gets this much (m/s) per unit, times the landing's release
+  /// share below; then the next airtime gathers from zero. More spins =
+  /// higher launch. (1.0.0: 4 per turn, 2 turns max.)
+  static const double spinEnergyPerTurn = 5.0;
 
-  /// Most energy (in turns) one airtime can gather. Caps the extra bounce
-  /// at spinEnergyMaxTurns × spinEnergyPerTurn = +8 m/s: jumps go from
-  /// ≈ 8 m to at most ≈ 21 m high, and no more.
-  static const double spinEnergyMaxTurns = 2.0;
+  /// Most energy (in turns) one airtime can gather. A full charge adds
+  /// 2.5 × 5 = +12.5 m/s to a clean bounce (13.5): nearly double the bounce
+  /// speed, jumps ≈ 8 m → ≈ 30 m high.
+  static const double spinEnergyMaxTurns = 2.5;
+
+  /// Share of the energy bounce each landing type releases. The landing
+  /// angle still matters most: a sloppy landing wastes the charge.
+  static const double energyReleaseClean = 1.0;
+  static const double energyReleaseOneFoot = 0.6;
+  static const double energyReleaseCrash = 0.25;
+
+  /// Share of the released energy bounce that is also added as speed along
+  /// the ground (a charged landing shoots you forward too).
+  static const double energyForwardShare = 0.25;
+
+  /// Energy at least this share of the tank counts as a full charge: the
+  /// bar glows, and a clean landing with it is a "super bounce".
+  static const double energyFullShare = 0.98;
 
   /// How hard the robot holds its wanted spin speed (rad/s²), e.g. to
   /// recover after scraping the ground. This is NOT the hold/release speed.
@@ -132,8 +147,16 @@ abstract final class Tuning {
   static const double crashBounce = 5.0;
   static const double crashSpeedMultiplier = 0.55;
 
-  /// Hard cap on the robot's speed (m/s), so it can't run away.
+  /// Cap on the robot's speed along the ground after a landing (m/s), so
+  /// it can't run away.
   static const double maxRobotSpeed = 28.0;
+
+  /// Caps on the robot's speed in the air (m/s): horizontal (how fast it
+  /// travels, so distances stay in check) and total (safety). 1.0.0 capped
+  /// the TOTAL at 28, which squashed every energy bounce; now a charged
+  /// jump goes as high as its energy sends it, at the same travel speed.
+  static const double maxFlightHorizontalSpeed = 28.0;
+  static const double maxFlightSpeed = 42.0;
 
   // ---------------------------------------------------------------- Hill
   // Each level's slope and bump size are in [levels] below; the numbers
@@ -328,7 +351,13 @@ abstract final class Tuning {
   static const double shakeCrash = 0.6;
   static const double shakeLimbLost = 0.5;
   static const double shakeHeadLaunch = 0.8;
+  static const double shakeSuperBounce = 0.4;
   static const double shakeDecay = 7.0;
+
+  /// Spin energy glow around the robot: radius (m) when the tank is full,
+  /// and how strongly it shows (0-1 opacity at full).
+  static const double energyAuraRadius = 1.9;
+  static const double energyAuraStrength = 0.55;
 
   /// Bits of scrap thrown off when a limb breaks.
   static const int limbBreakBits = 8;
@@ -487,7 +516,7 @@ abstract final class Tuning {
   /// level. The total extra bounce from spin energy is capped (m/s).
   static const double corePerTurnPerLevel = 0.10;
   static const double coreCapPerLevel = 0.25;
-  static const double coreMaxExtraBounce = 16.0;
+  static const double coreMaxExtraBounce = 22.0;
 
   /// Rocket head: launch speed +8% and rocket burn +0.08 s per level.
   static const double rocketSpeedPerLevel = 0.08;

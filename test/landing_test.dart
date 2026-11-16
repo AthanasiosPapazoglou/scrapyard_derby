@@ -116,20 +116,53 @@ void main() {
       expect(spinEnergyBounce(0), 0);
     });
 
-    test('the energy boosts every landing type the same', () {
+    test('a clean landing releases all the energy, sloppy ones less', () {
       final flat = Vector2(0, -1);
       final boost = spinEnergyBounce(1);
-      for (final type in LandingType.values) {
-        final plain = velocityAfterLanding(type, Vector2(10, 5), flat);
-        final boosted = velocityAfterLanding(
-          type,
-          Vector2(10, 5),
-          flat,
-          extraBounce: boost,
-        );
-        expect(-boosted.y, closeTo(-plain.y + boost, 1e-4), reason: '$type');
-        expect(boosted.x, closeTo(plain.x, 1e-4), reason: '$type');
-      }
+      double lift(LandingType type) =>
+          -velocityAfterLanding(
+            type,
+            Vector2(10, 5),
+            flat,
+            energyBounce: boost,
+          ).y -
+          -velocityAfterLanding(type, Vector2(10, 5), flat).y;
+      expect(lift(LandingType.clean), closeTo(boost, 1e-4));
+      expect(
+        lift(LandingType.oneFoot),
+        closeTo(boost * Tuning.energyReleaseOneFoot, 1e-4),
+      );
+      expect(
+        lift(LandingType.crash),
+        closeTo(boost * Tuning.energyReleaseCrash, 1e-4),
+      );
+    });
+
+    test('released energy also pushes the robot forward', () {
+      final flat = Vector2(0, -1);
+      final boost = spinEnergyBounce(2);
+      final plain = velocityAfterLanding(
+        LandingType.clean,
+        Vector2(10, 5),
+        flat,
+      );
+      final boosted = velocityAfterLanding(
+        LandingType.clean,
+        Vector2(10, 5),
+        flat,
+        energyBounce: boost,
+      );
+      expect(
+        boosted.x - plain.x,
+        closeTo(boost * Tuning.energyForwardShare, 1e-4),
+      );
+    });
+
+    test('a full charge nearly doubles a clean bounce', () {
+      final full = spinEnergyBounce(Tuning.spinEnergyMaxTurns);
+      expect(full, greaterThan(Tuning.cleanBounce * 0.85));
+      expect(isFullCharge(Tuning.spinEnergyMaxTurns), isTrue);
+      expect(isFullCharge(Tuning.spinEnergyMaxTurns * 0.5), isFalse);
     });
   });
 }

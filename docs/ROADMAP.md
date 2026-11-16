@@ -650,10 +650,40 @@ then the redesigns (built responsive from the start).
 - Simulator: a no-input run's head arcs forward with its smoke trail
   instead of popping straight up.
 
-### V5 — Spin energy weight  ☐
-- D23 numbers in `tuning.dart`, release share by landing type in
-  `velocityAfterLanding`, segmented energy bar and charge effects, a sound
-  for full charge and for the big release.
+### V5 — Spin energy weight  ☑
+- **Found:** 1.0.0 capped the robot's TOTAL speed at 28 m/s every frame;
+  with forward speed near the cap, most of an energy bounce was scaled
+  away at once. That is the main reason energy felt unremarkable.
+- Speed caps now: along the ground at each landing (`maxRobotSpeed` 28, as
+  before), and in the air horizontal (`maxFlightHorizontalSpeed` 28) plus
+  a total safety cap (`maxFlightSpeed` 42). Jumps go as high as their
+  energy sends them.
+- Energy: 5 m/s per turn (was 4), tank 2.5 turns (was 2), so a full
+  charge adds +12.5 m/s to a 13.5 m/s clean bounce. Release share by
+  landing (`energyRelease`): clean 100%, one-foot 60%, crash 25%; 25% of
+  the released bounce also pushes forward (`energyForwardShare`). Core
+  cap `coreMaxExtraBounce` 16 → 22. `velocityAfterLanding(energyBounce:)`
+  replaces `extraBounce`. Full tank = 98% (`isFullCharge`).
+- Feedback: segmented HUD bar (a segment per turn, last one partial;
+  cyan with a glow when full); `EnergyAura` glow behind the robot (amber
+  growing with the charge, pulsing cyan when full); full tank = flash,
+  cyan sparks, `energy_full` chime; clean landing on a full tank = "super
+  bounce" (big cyan spark fountain, dust, shake, `super_bounce` BWOING).
+  Both sounds from `art/make_sfx.py` (added last, so older files keep
+  their bytes).
+- Measured (head flight tool, level 1, other slots tier 1; totals, m):
+
+  | | V4 | V5 (cap 28 total) | V5 (no flight cap) | **V5 final** |
+  |---|---|---|---|---|
+  | skill 0.4 | 2232 | 2005 | 3853 | **2367** |
+  | skill 0.9 | 4541 | 4770 | 9229 | **5927** |
+
+  Good spinners gain much more than sloppy ones (energy rewards skill).
+  Star targets are now too easy for strong players; re-set in V12.
+- Note: a full 2.5-turn charge needs a long flight (base spin ≈ 0.35
+  turns/s); most jumps gather ~1 turn. Full charge is a reward moment.
+  Not seen by hand in the Simulator (no-input runs crash too much);
+  developer to check the full-charge flash and super bounce in play.
 
 ### V6 — Tier tables and head ceiling  ☐
 - D20/D21: replace per-level steps with per-tier lists; `RobotStats` reads
