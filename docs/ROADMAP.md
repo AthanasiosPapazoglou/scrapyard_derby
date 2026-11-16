@@ -581,11 +581,25 @@ then the redesigns (built responsive from the start).
 - Simulator (iPhone 17 Pro): opens in portrait, menu → levels → game fade
   correctly, rotating mid-run keeps the run going.
 
-### V2 — Portrait gameplay  ☐
-- Camera framing for portrait (D16) in `camera_framing.dart` (tested pure
-  logic), parallax backdrop and sky fill a tall screen.
-- HUD, status panel, pause menu, Landing Sight gauge sized by the short side.
-- Simulator check both ways, rotating mid-run.
+### V2 — Portrait gameplay  ☑
+- Camera (`frameRobotAndGround`, portrait = `screenAspect > 1`): the view
+  is `cameraPortraitWidthScale` (0.55) of the landscape widths (base,
+  speed zoom, max), so the robot is about as many pixels as in landscape;
+  the robot sits `cameraPortraitLead` (12% of the visible height) above
+  the middle so more slope ahead shows below; a taller HUD reserve
+  (`cameraPortraitHudReserve` 0.24). Landscape framing is unchanged.
+  Tests in `camera_framing_test.dart` (portrait group).
+- Backdrop (`dusk_scene.dart`, also used by the menus): sun and heap sizes
+  follow the screen's short side, so portrait has no giant sun; landscape
+  unchanged (its short side is the height).
+- HUD: in portrait the distance counter sits under the button row (and the
+  debug panel under it), the status panel is drawn at 80%. Test: the
+  counter never overlaps Pause/Restart, both orientations.
+- Landing Sight gauge sized by the screen's long side (same pixels both
+  ways). Pause menu already fit.
+- Simulator (iPhone 17 Pro): portrait run reads well (robot upper middle,
+  slope ahead visible), rotating mid-run keeps the run going, landscape
+  looks as before.
 
 ### V3 — Responsive menus  ☐
 - Workshop: portrait = bay on top, slot tabs as a row, part cards in a

@@ -152,4 +152,34 @@ void main() {
     await tester.tap(find.text('Next level'));
     expect(next, 1);
   });
+
+  for (final MapEntry(key: name, value: size) in const {
+    'portrait': Size(390, 844),
+    'landscape': Size(844, 390),
+  }.entries) {
+    testWidgets('$name HUD: buttons never cover the distance counter', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final game = DerbyGame(profile: PlayerProfile());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Hud(game: game, onPause: () {}),
+          ),
+        ),
+      );
+      game.hud.value = const HudInfo(distance: 4321);
+      await tester.pump();
+
+      final counter = tester.getRect(find.text('4321 m').first);
+      final restart = tester.getRect(find.text('Restart'));
+      final pause = tester.getRect(find.byTooltip('Pause'));
+      expect(counter.overlaps(restart), isFalse);
+      expect(counter.overlaps(pause), isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

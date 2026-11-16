@@ -100,4 +100,59 @@ void main() {
       expect(robotY, greaterThan(hudBottom), reason: 'height $height');
     }
   });
+
+  group('portrait', () {
+    /// Portrait phone: height / width.
+    const tall = 956 / 440;
+
+    CameraFraming frameTall(double heightAboveGround) => frameRobotAndGround(
+      robotPosition: Vector2(100, 50 - heightAboveGround),
+      velocity: Vector2.zero(),
+      groundY: 50,
+      screenAspect: tall,
+    );
+
+    test('the view is narrower, so the robot stays a good size', () {
+      final width = frameTall(0).visibleWidth;
+      expect(
+        width,
+        closeTo(Tuning.cameraBaseWidth * Tuning.cameraPortraitWidthScale, 1),
+      );
+      // Pixels per meter on a 440 px wide portrait screen vs a 956 px wide
+      // landscape one: within 30% of each other.
+      final portraitPpm = 440 / width;
+      final landscapePpm = 956 / frameAt(0).visibleWidth;
+      expect(portraitPpm / landscapePpm, greaterThan(0.7));
+    });
+
+    test('on the ground the robot sits above the middle', () {
+      final framing = frameTall(0);
+      expect(framing.center.y, greaterThan(50));
+    });
+
+    test('robot and ground both fit, and the robot stays below the HUD', () {
+      for (final height in [0.0, 5.0, 20.0, 60.0, 500.0]) {
+        final robotY = 50 - height;
+        final framing = frameTall(height);
+        final visibleHeight = framing.visibleWidth * tall;
+        final top = framing.center.y - visibleHeight / 2;
+        final hudBottom = top + visibleHeight * Tuning.cameraPortraitHudReserve;
+        expect(robotY, greaterThan(hudBottom), reason: 'height $height');
+        if (height <= 60) {
+          expect(
+            top + visibleHeight,
+            greaterThan(50),
+            reason: 'ground $height',
+          );
+        }
+      }
+    });
+
+    test('zoom out is capped at the portrait max', () {
+      expect(
+        frameTall(10000).visibleWidth,
+        closeTo(Tuning.cameraMaxWidth * Tuning.cameraPortraitWidthScale, 1e-4),
+      );
+    });
+  });
 }

@@ -113,7 +113,11 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
   /// and the robot's up stick at touchdown, sized to stay readable at any
   /// zoom.
   void _renderGauge(Canvas canvas, LandingPrediction p) {
-    final r = Tuning.landingSightGaugeSize * game.visibleWidth;
+    // Sized by the screen's long side, so it is as big on a portrait
+    // screen (narrow view) as in landscape.
+    final screen = game.size;
+    final longShare = math.max(screen.x, screen.y) / screen.x;
+    final r = Tuning.landingSightGaugeSize * game.visibleWidth * longShare;
     final center = _robotAt + Offset(r * 3, r * 1.5);
     final groundDir = Offset(math.cos(_slope), math.sin(_slope));
     final up = Offset(math.sin(p.angle), -math.cos(p.angle));
