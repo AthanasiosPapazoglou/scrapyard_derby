@@ -17,7 +17,7 @@ and see how far your robot gets before it falls apart.
 
 ### [▶ Play in your browser](https://athanasiospapazoglou.github.io/scrapyard_derby/)
 
-<sub>Best played in landscape. Your progress is saved in your browser.</sub>
+<sub>Plays in portrait or landscape. Your progress is saved in your browser.</sub>
 
 </div>
 
@@ -31,14 +31,17 @@ Your robot is dropped onto a steep, bumpy hill of scrap and starts **spinning cl
 - 🦿 **Land on both feet** for a big bounce and more speed. One foot costs you speed; anything else is a crash.
 - 🌀 **Spin in the air** to charge energy. Every turn adds height to your next bounce, so brave spins mean huge jumps.
 - 🔩 **Bad landings break you apart.** Arms go first, then legs.
-- 🚀 **Out of limbs?** Your head fires off like a rocket for one last flight. Where it lands is your score.
+- 🚀 **Out of limbs?** Your head fires off like a rocket along your line of travel for one last flight. Where it lands is your score.
+- 🎯 **Not sure how you'll land?** The built-in **Landing Sight** shows it just before touchdown: a gauge beside the robot
+  and a marker on the ground, green for clean, amber for one foot, red for a crash. (Settings can hide it.)
 
 The feel is deliberately calm and floaty: the whole game runs a little slowed down, the jumps are tall,
-and the camera zooms out to keep both the robot and the ground in view.
+and the camera zooms out to keep both the robot and the ground in view, drawing the robot bigger the higher it flies
+so it never shrinks to a speck.
 
 <div align="center">
 <img src="docs/images/cinder-flats.jpg" alt="In-game on Cinder Flats: the robot mid-jump above an ember-filled dusk" width="49%">
-<img src="docs/images/landing-sight.jpg" alt="The Landing Sight gadget: a gauge beside the robot predicting a bad landing in red" width="49%">
+<img src="docs/images/landing-sight.jpg" alt="The built-in Landing Sight: a gauge beside the robot predicting a bad landing in red" width="49%">
 </div>
 
 ## Six levels, each one meaner
@@ -70,6 +73,16 @@ Every run pays out **scrap**. Spend it in the **Workshop** on five part slots
 (legs, arms, body, head, core), each with six tiers from a rusty paint can to obsidian armor.
 Each level you unlock opens the next tier, and your robot wears whatever you install.
 
+Every part comes with a little spec sheet (what it's made of, how it works) and changes two or three real stats:
+
+| Slot | Stats |
+|---|---|
+| 🦿 **Legs** | **Jump** (clean bounce), **Landing window** (how tilted still counts as clean), **Grip** (speed kept on one foot) |
+| 🦾 **Arms** | **Flip speed** (swinging the spin around), **Recovery** (spinning back when you let go) |
+| 🛢️ **Body** | **Toughness** (damage before a part breaks), **Crash armor** (speed kept when you crash) |
+| 🤖 **Head** | **Rocket power**, **Rocket burn** and **Thrust** for the final flight |
+| 🔋 **Core** | **Spin power**, **Energy tank**, and **Overdrive** (spin energy that also shoots you forward) |
+
 <div align="center">
 <img src="docs/images/workshop.jpg" alt="The Workshop: trying on Mag Shocks legs, with every legs tier on display" width="80%">
 <br><br>
@@ -80,7 +93,7 @@ Struggling? **Gadgets** are there to help, not just to make good players better:
 
 | Gadget | What it does |
 |---|---|
-| 🎯 **Landing Sight** | Shows how you'll land: green clean, amber one foot, red crash |
+| 🔁 **Combo Coil** | Clean landings in a row stack extra bounce and speed |
 | 🧲 **Scrap Magnet** | More scrap from every run |
 | 🌀 **Auto-Gyro** | Holds for you just before a bad landing, if that helps |
 | 🛞 **Shock Pads** | Softens one-foot landings and crashes |
@@ -91,7 +104,8 @@ Struggling? **Gadgets** are there to help, not just to make good players better:
 <img src="docs/images/gadgets.jpg" alt="The Workshop's Gadgets tab with prices and level locks" width="80%">
 </div>
 
-A **Robot Stats** screen shows every stat against its maximum, plus your stars and scrap bonuses.
+A **Robot Stats** screen shows every stat as a gauge against its maximum, with what the next part would bring,
+plus your stars and scrap bonuses.
 
 ## Everything is made by code
 
@@ -120,7 +134,7 @@ flutter pub get
 flutter run
 ```
 
-The game is landscape-only. In debug builds, **Settings → Developer → Unlock everything**
+The game plays in portrait and landscape. In debug builds, **Settings → Developer → Unlock everything**
 maxes the robot and opens every level, handy for trying the later hills.
 
 **Tests and tools**
@@ -130,6 +144,7 @@ flutter analyze
 flutter test                                     # unit, widget and headless-physics tests
 flutter test tool/simulate_runs_test.dart        # balance report: bots of different skill
 flutter test tool/progression_report_test.dart   # every level × tier × skill (slow)
+flutter test tool/head_flight_report_test.dart --timeout none   # how far the launched head flies
 ```
 
 The balance tools play full runs of the real game, physics and all, with an autopilot
@@ -162,7 +177,9 @@ python3 art/make_music.py
 
 ## Status
 
-**In development.** Fully playable: six levels, stars, Workshop, gadgets, generated art and music.
+**In development (version 1.1.1).** Fully playable: six levels, stars, Workshop, gadgets, generated art and music.
+1.1.1 brought a tighter camera, a clearer landing marker, a head launch that flies true,
+part spec sheets with a new stat per slot, and a rebalance so every level is a little meaner than the last.
 Next up: an Android build checked on a real phone, then store prep.
 The working plan lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
