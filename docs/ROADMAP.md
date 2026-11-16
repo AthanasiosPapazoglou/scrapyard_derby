@@ -986,8 +986,45 @@ command for the developer.
 - Not re-run: the progression report (W6). These stats make crashes and
   one-foot landings a bit kinder at high tiers, so W6 should look at them.
 
-### W6 — Rebalance  ☐
-- Full progression report after W1-W5; re-set level damage, stars and
-  prices for a smooth difficulty curve (tier N clears level N with
-  normal effort; each level a bit harder than the last). Star 1 stays
-  where it is unless a save could only gain from the change.
+### W6 — Rebalance  ☑
+- **Before** (after W1-W5, V12 tuning; robot at the level's tier, 6
+  seeds): runs got shorter than in 1.1.0 (skill 0.9 ~5500-6000 m, was
+  ~5700-6350), so third stars dropped to 2.3-2.8, and the curve was
+  bumpy: level 3 the hardest early level, levels 4-5 the easiest of all
+  (skill 0.7: 4569 / 4543 / 4284 / 5210 / 5447 / 4622 m).
+- **Changes** (tuning only):
+  - Level `damageScale` 1.0 / 1.5 / 2.0 / 2.9 / 3.55 / 3.95 (was 1.0 /
+    1.5 / 2.0 / 2.5 / 3.0 / 3.5). Steeper levels run faster, so the late
+    levels need much more damage to stay harder. Toughness guard holds
+    (120 / 96.7 / 87.5 / 70.7 / 67.6 / 60.8 HP per unit of damage).
+  - Star 1: 1600 / 1650 / 1700 / 1750 / 1800 / 1850 (levels 4-6 were
+    1800 / 1900 / 2000; only lowered, so saves can only gain).
+  - Star 3: 5300-5550 (was 5500-5750), lowered with the shorter runs.
+    Star 2 unchanged (3900-4150).
+  - Prices unchanged (80 / 150 / 300 / 550 / 900): the next full tier set
+    costs ≈ 3.7 / 3.8 / 6.1 / 7.5 / 8.5 repeat runs at skill 0.4.
+- **Results** (10 seeds, robot at the level's tier; avg distance m /
+  avg stars):
+
+  | Level | skill 0.4 | 0.7 | 0.9 | avg 0.7 + 0.9 |
+  |---|---|---|---|---|
+  | 1 | 2080 / 0.9 | 4696 / 1.9 | 5787 / 2.9 | 5242 |
+  | 2 | 2730 / 1.0 | 4620 / 2.1 | 5534 / 2.8 | 5077 |
+  | 3 | 2190 / 0.9 | 4424 / 1.7 | 5507 / 2.7 | 4966 |
+  | 4 | 2292 / 0.8 | 4860 / 2.0 | 5146 / 2.1 | 5003 |
+  | 5 | 2536 / 0.9 | 4466 / 1.8 | 5418 / 2.6 | 4942 |
+  | 6 | 2783 / 0.9 | 4516 / 1.6 | 5003 / 2.0 | 4760 |
+
+  Noise is about ±150 m even at 10 seeds (levels 3 and 4 are within it).
+  One tier lower (full report, 4 seeds) still clears star 1 at skill 0.4
+  on most levels but gets ~1 fewer star at skill 0.9.
+- Not covered by bots: real thumbs, and how the W1 camera, W3 head launch
+  and W4-W5 part changes feel. Developer playtest on the Simulator and the
+  Android phone, both orientations.
+
+## Block 4 status (Nov 16, 2026)
+
+All 6 steps done on branch `v1.1.1`. Waiting on the developer's playtest
+(Simulator and Android phone, both orientations). Open:
+- Version is already `1.1.1+3` in `pubspec.yaml`.
+- Merging `v1.1.1` into `main` publishes the web build (developer's call).
