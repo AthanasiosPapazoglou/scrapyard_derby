@@ -750,12 +750,29 @@ then the redesigns (built responsive from the start).
 - Bots: head flight report totals identical to V6/V7 to the meter.
 - Simulator: arms fling out and legs tuck in the air.
 
-### V9 — Robot stats screen redesign  ☐
-- Big robot figure in its installed parts with call-outs per slot (part
-  name, tier pips, part art); stats as chunky gauges (current vs max, next
-  tier ghosted) in plain words ("Jump", "Toughness", "Flip speed",
-  "Spin power", "Head rocket") instead of rows of small numbers; gadget
-  badges. Garage/CRT styling, portrait and landscape layouts.
+### V9 — Robot stats screen redesign  ☑
+- `lib/ui/robot_stats_page.dart` rewritten (garage look like the
+  Workshop):
+  - Showcase: rank plate (title from `powerRank`: Scrap Rookie → Junk
+    Jumper → Rust Racer → Iron Flyer → Neon Ace → Obsidian Legend, and
+    "POWER n%" = installed tiers / max, hazard-striped meter), the robot
+    in its installed parts in a spotlight, chips (stars, level, star
+    scrap bonus, best tier on sale).
+  - One cream card per slot: part art in a display window, slot name,
+    tier pips, part name, and plain-word gauges (Jump, Landing window,
+    Flip speed, Toughness, Rocket power, Rocket burn, Spin power, Energy
+    tank): value now → next part's value (or MAX), a bar split into tier
+    sections, rust fill to now, yellow ghost to the next part, a tick at
+    the best part on sale. Long-press = what the stat means (`hint`).
+  - Gadget badges: lit with level pips when owned, dim when on sale,
+    locked with the unlocking level.
+  - Portrait: one scrolling column; landscape: showcase left, cards right.
+- `stat_sheet.dart`: `StatLine` gains `hint` and `next`; 8 gauges (the
+  duplicate "Recover time" and "Max energy boost" dropped);
+  `powerShare` / `powerRank`.
+- Gauges, badges and the rank plate are their own semantics nodes.
+- Layout fit test: no known misfits left; every page fits all 6 sizes.
+- Simulator: checked in portrait and landscape.
 
 ### V10 — Run card redesign  ☐
 - A "derby ticket"/scrap-metal plate: riveted frame, hazard stripe header

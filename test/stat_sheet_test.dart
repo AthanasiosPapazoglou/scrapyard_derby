@@ -12,7 +12,7 @@ void main() {
     final best = RobotStats.fromLevels({
       for (final slot in UpgradeTrack.values) slot: Tuning.upgradeMaxLevel,
     });
-    final hp = lines.firstWhere((l) => l.label == 'Part HP');
+    final hp = lines.firstWhere((l) => l.label == 'Toughness');
     expect(hp.now, Tuning.limbMaxHp);
     expect(hp.max, best.limbMaxHp);
     expect(
@@ -40,7 +40,7 @@ void main() {
       installed: (_) => Tuning.upgradeMaxLevel,
       maxPartTier: 5,
     );
-    final flip = lines.firstWhere((l) => l.label == 'Flip time');
+    final flip = lines.firstWhere((l) => l.label == 'Flip speed');
     expect(flip.lowerIsBetter, isTrue);
     expect(flip.max, lessThan(Tuning.counterSpinTime));
     expect(flip.share(flip.now), 1);
@@ -55,7 +55,37 @@ void main() {
     }
   });
 
-  testWidgets('stats page shows each stat and the progress bonuses', (
+  test('next shows the slot\'s next part, and nothing at the top', () {
+    final lines = statSheet(
+      installed: (slot) =>
+          slot == UpgradeTrack.plating ? Tuning.upgradeMaxLevel : 1,
+      maxPartTier: 5,
+    );
+    final hp = lines.firstWhere((l) => l.label == 'Toughness');
+    expect(hp.next, isNull);
+    final jump = lines.firstWhere((l) => l.label == 'Jump');
+    expect(
+      jump.next,
+      RobotStats.fromLevels({UpgradeTrack.springLegs: 2}).cleanBounce,
+    );
+    expect(jump.next, greaterThan(jump.now));
+    for (final line in lines) {
+      expect(line.hint, isNotEmpty);
+    }
+  });
+
+  test('power rank climbs with the installed tiers', () {
+    expect(powerShare((_) => 0), 0);
+    expect(powerShare((_) => Tuning.upgradeMaxLevel), 1);
+    expect(powerRank(0), 'Scrap Rookie');
+    expect(powerRank(1), 'Obsidian Legend');
+    final ranks = [
+      for (var t = 0; t <= 5; t++) powerRank(powerShare((_) => t)),
+    ];
+    expect(ranks.toSet().length, greaterThanOrEqualTo(5));
+  });
+
+  testWidgets('stats page shows the parts, gauges, rank and progress', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(2400, 1100);
@@ -64,20 +94,37 @@ void main() {
     final profile = PlayerProfile(
       levelBest: {1: Tuning.levels[0].starDistances[1]},
       upgradeLevels: {'plating': 2},
+      gadgetLevels: {'scrapMagnet': 1},
     );
     await tester.pumpWidget(
       MaterialApp(home: RobotStatsPage(profile: profile)),
     );
-    final hp = RobotStats.fromLevels({UpgradeTrack.plating: 2}).limbMaxHp;
-    expect(
-      find.bySemanticsLabel(
-        RegExp('^Part HP ${hp.toStringAsFixed(0)} HP, max'),
+    await tester.pump();
+    // The cards scroll; bring each thing into view before checking it.
+    Future<void> reveal(Finder finder) => tester.scrollUntilVisible(
+      finder,
+      150,
+      scrollable: find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
       ),
+    );
+
+    expect(find.text('2 / 18'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('^Power 8%, Scrap Rookie')),
       findsOneWidget,
     );
-    expect(find.textContaining('Racer Chassis'), findsOneWidget);
-    expect(find.text('2 / 18'), findsOneWidget);
-    expect(find.text('+6% / +54%'), findsOneWidget);
-    expect(find.text('tier 2 / 5'), findsOneWidget);
+    expect(find.text(UpgradeTrack.springLegs.partName(0)), findsOneWidget);
+    final hp = RobotStats.fromLevels({UpgradeTrack.plating: 2}).limbMaxHp;
+    final toughness = find.bySemanticsLabel(
+      RegExp('^Toughness ${hp.toStringAsFixed(0)} HP, max'),
+    );
+    await reveal(toughness);
+    expect(toughness, findsOneWidget);
+    expect(find.text('Racer Chassis'), findsOneWidget);
+    final magnet = find.bySemanticsLabel(RegExp('^Scrap Magnet level 1 of 3'));
+    await reveal(magnet);
+    expect(magnet, findsOneWidget);
   });
 }
