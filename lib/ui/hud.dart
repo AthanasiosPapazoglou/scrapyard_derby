@@ -5,6 +5,7 @@ import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
 import 'debug_overlay.dart';
+import 'layout.dart';
 import 'outlined_text.dart';
 import 'run_summary.dart';
 import 'status_panel.dart';
@@ -44,11 +45,14 @@ class Hud extends StatelessWidget {
       child: ValueListenableBuilder<HudInfo>(
         valueListenable: game.hud,
         builder: (context, info, _) {
+          // Portrait: the buttons get their own row at the top and the
+          // distance counter sits under them, so they never overlap.
+          final portrait = context.isPortrait;
           return Stack(
             children: [
               Positioned(
                 left: 12,
-                top: 12,
+                top: portrait ? 150 : 12,
                 // IgnorePointer: taps on the panel still reach the game.
                 child: IgnorePointer(
                   // Developer numbers, only with Settings > Show debug info.
@@ -97,7 +101,7 @@ class Hud extends StatelessWidget {
               ),
               // The score: distance covered, big and centered at the top.
               Positioned(
-                top: 8,
+                top: portrait ? 64 : 8,
                 left: 0,
                 right: 0,
                 child: IgnorePointer(
@@ -132,7 +136,14 @@ class Hud extends StatelessWidget {
               Positioned(
                 left: 12,
                 bottom: 12,
-                child: IgnorePointer(child: StatusPanel(partHp: info.partHp)),
+                child: IgnorePointer(
+                  // Smaller on a narrow portrait screen.
+                  child: Transform.scale(
+                    scale: portrait ? 0.8 : 1,
+                    alignment: Alignment.bottomLeft,
+                    child: StatusPanel(partHp: info.partHp),
+                  ),
+                ),
               ),
               if (info.result case final result?)
                 Center(

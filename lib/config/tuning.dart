@@ -282,6 +282,20 @@ abstract final class Tuning {
   /// counter, so the robot is never drawn behind it.
   static const double cameraHudReserve = 0.18;
 
+  /// Portrait screens (taller than wide). The view's width is the
+  /// landscape width times this, so the robot stays a good size on a
+  /// narrow screen; the tall screen shows more hill below instead.
+  /// Applies to the base, speed and max widths alike.
+  static const double cameraPortraitWidthScale = 0.55;
+
+  /// Portrait: the robot sits this share of the visible height above the
+  /// screen's middle, so more of the slope ahead (below) is in view.
+  static const double cameraPortraitLead = 0.12;
+
+  /// Portrait: share of the screen height kept clear for the HUD (buttons
+  /// stack above the distance counter, so it is taller).
+  static const double cameraPortraitHudReserve = 0.24;
+
   // ---------------------------------------------------------------- Juice
   // Visual and touch feedback. None of these change the physics.
 
@@ -491,7 +505,7 @@ abstract final class Tuning {
   static const List<double> landingSightTimes = [0.6, 1.2, 10.0];
 
   /// Size (radius) of the Landing Sight gauge next to the robot, as a
-  /// share of the visible screen width in meters.
+  /// share of the screen's long side (in landscape: the visible width).
   static const double landingSightGaugeSize = 0.035;
 
   /// Scrap Magnet: extra scrap share per level.

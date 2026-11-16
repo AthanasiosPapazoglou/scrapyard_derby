@@ -83,8 +83,11 @@ class DuskScene {
         [0, 0.55, 1],
       );
     }
-    final sunCenter = Offset(size.width * 0.72, horizonY - size.height * 0.04);
-    final sunRadius = size.height * theme.sunSize;
+    // Sizes follow the short side, so portrait screens don't get a giant
+    // sun (in landscape the short side is the height, as before).
+    final unit = size.shortestSide;
+    final sunCenter = Offset(size.width * 0.72, horizonY - unit * 0.04);
+    final sunRadius = unit * theme.sunSize;
     canvas
       ..drawRect(Offset.zero & skySize, _skyPaint)
       // A big low sun (or moon), partly behind the heaps.
@@ -110,9 +113,10 @@ class DuskScene {
     // Nearer layers: bigger heaps, sitting a little lower on screen.
     final scale = 1.0 + layer * 0.6;
     final cellWidth = 170.0 * scale;
-    final baseY =
-        size.height * Tuning.horizonHeight + layer * size.height * 0.06;
-    final maxHeight = size.height * 0.10 * scale;
+    // Heights follow the short side (see _renderSky).
+    final unit = size.shortestSide;
+    final baseY = size.height * Tuning.horizonHeight + layer * unit * 0.06;
+    final maxHeight = unit * 0.10 * scale;
     final color = _layerColors[layer % _layerColors.length];
 
     _fill.color = color;
