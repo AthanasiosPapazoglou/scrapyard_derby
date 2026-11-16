@@ -79,7 +79,7 @@ A robot stats screen shows current vs max stats. Details, numbers and steps: `do
    (biomes / difficulty ramping with distance), full art set.
 4. **Launch**: Play closed testing, iOS build, store listings, final name/app IDs/icon, optional online leaderboard.
 
-**Current work plan: `docs/ROADMAP.md`**, Block 2: Progression (levels, stars, stats screen, gadgets, level scenery/music), with steps, decisions,
+**Current work plan: `docs/ROADMAP.md`**, Block 3: Version 1.1.0 (responsive layouts, redesigns, gameplay feedback), with steps, decisions,
 code map and known gotchas. Read it before starting; tick steps off there as they land.
 
 ## Working rules
