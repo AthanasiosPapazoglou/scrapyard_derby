@@ -9,6 +9,7 @@ import 'damage.dart';
 import 'derby_game.dart';
 import 'energy_aura.dart';
 import 'head_launch.dart';
+import 'limb_motion.dart';
 import 'hill.dart';
 import 'landing.dart';
 import 'levels.dart';
@@ -153,6 +154,11 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// Combo Coil gadget each one adds a bonus step, up to
   /// [RobotStats.comboCoilSteps].
   int cleanStreak = 0;
+
+  /// Seconds of limb motion (drives the arm flail and leg kicks), and the
+  /// torso's spin last frame (sudden spin changes jolt the limbs).
+  double _limbTime = 0;
+  double _lastSpinRate = 0;
 
   /// Bonus steps the Combo Coil gives the current streak (0 without it).
   int get comboSteps => math.min(cleanStreak, stats.comboCoilSteps);
@@ -371,6 +377,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     if (_hasTouchedDown) {
       _updateSpin(dt);
     }
+    _updateLimbMotion(dt);
     _capSpeed();
     if (!_isOnGround) {
       _airVelocity.setFrom(torso.body.linearVelocity);
@@ -394,6 +401,48 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       }
     } else {
       _noLimbsGroundTime = 0;
+    }
+  }
+
+  /// The arms and legs' drawn swing (visual only, see limb_motion.dart):
+  /// arms flail and trail the spin in the air, legs tuck and then reach
+  /// out before touchdown, and sudden spin changes jolt them.
+  void _updateLimbMotion(double dt) {
+    _limbTime += dt;
+    final spinRate = torso.body.angularVelocity;
+    final spinJolt = ((_lastSpinRate - spinRate) * Tuning.limbKickPerSpinChange)
+        .clamp(-4.0, 4.0);
+    _lastSpinRate = spinRate;
+
+    final inAir = !_isOnGround;
+    double? landingIn;
+    if (inAir) {
+      final p = torso.body.position;
+      final height = game.hillGeometry.heightAt(p.x) - p.y - _feetBelowTorso;
+      landingIn = timeToFall(height, torso.body.linearVelocity.y);
+    }
+    for (final limb in limbs) {
+      if (limb.detached) {
+        continue;
+      }
+      final left =
+          limb.slot == RobotSlot.leftArm || limb.slot == RobotSlot.leftLeg;
+      final target = limb.kind == PartKind.arm
+          ? armTarget(
+              time: _limbTime,
+              left: left,
+              inAir: inAir,
+              spinRate: spinRate,
+            )
+          : legTarget(
+              time: _limbTime,
+              left: left,
+              inAir: inAir,
+              timeToLanding: landingIn,
+            );
+      limb.wiggle
+        ..kick(spinJolt)
+        ..update(dt, target);
     }
   }
 
@@ -529,6 +578,12 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     lastLanding = type;
     runStats.addLanding(type);
     cleanStreak = type == LandingType.clean ? cleanStreak + 1 : 0;
+    // The landing jolts the limbs (the two sides a little differently).
+    for (final limb in limbs) {
+      final left =
+          limb.slot == RobotSlot.leftArm || limb.slot == RobotSlot.leftLeg;
+      limb.wiggle.kick(landingKick(type) * (left ? 1 : -0.8));
+    }
     game.effects.landing(type, contactPoint, normal);
 
     // Change the velocity of the whole robot by the same amount, so the

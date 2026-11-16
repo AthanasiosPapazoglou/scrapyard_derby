@@ -733,10 +733,22 @@ then the redesigns (built responsive from the start).
   gadget (checked with a temporary whole-flight build). The combo chip
   needs real clean streaks; developer to check in play.
 
-### V8 — Lively limbs  ☐
-- D24 in `robot.dart` / `robot_part.dart`, numbers in a new "Limb motion"
-  section of `tuning.dart`. Check that bots' distances don't change much
-  (landing results must not depend on limb motion).
+### V8 — Lively limbs  ☑
+- **Visual only** (changed from D24's "light physics"): an arm touching
+  the ground first is a crash (`classifyLanding`), so moving the real
+  limbs would change landings. Instead each limb's SPRITE turns around
+  its joint by `RobotPart.wiggle.angle`; physics shapes are untouched.
+- `lib/game/limb_motion.dart` (tested): `LimbWiggle` (damped spring,
+  3 Hz, damping 0.3, capped at 0.9 rad), `armTarget` (flail in the air,
+  stronger with spin, the two arms opposite; trail the spin; gentle sway
+  on the ground), `legTarget` (tuck feet-forward and kick in the air,
+  reach out straight in the last 0.35 s; straight on the ground),
+  `landingKick` (clean < one-foot < crash), `timeToFall`.
+- `Robot._updateLimbMotion` drives it every frame; sudden spin changes
+  and landings jolt the limbs. Numbers in the "Limb motion" section of
+  `tuning.dart`.
+- Bots: head flight report totals identical to V6/V7 to the meter.
+- Simulator: arms fling out and legs tuck in the air.
 
 ### V9 — Robot stats screen redesign  ☐
 - Big robot figure in its installed parts with call-outs per slot (part

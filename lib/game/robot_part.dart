@@ -7,6 +7,7 @@ import '../config/tuning.dart';
 import 'damage.dart';
 import 'hill.dart';
 import 'landing.dart';
+import 'limb_motion.dart';
 import 'palette.dart';
 import 'robot.dart';
 import 'robot_sprites.dart';
@@ -62,6 +63,10 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   double debrisAge = 0;
 
   bool get isLimb => kind == PartKind.arm || kind == PartKind.leg;
+
+  /// Arms and legs: the extra swing the sprite is drawn with (visual only;
+  /// driven by the robot, see limb_motion.dart).
+  final LimbWiggle wiggle = LimbWiggle();
 
   /// Creates this part's body in [world] at [position], turned by [rotation].
   ///
@@ -147,6 +152,20 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   final Paint _fadePaint = Paint();
 
   void _renderSprite(Canvas canvas, PartSprite art, double opacity) {
+    // Limbs swing around their joint (the body origin).
+    final swing = isLimb ? wiggle.angle : 0.0;
+    if (swing != 0) {
+      canvas
+        ..save()
+        ..rotate(swing);
+    }
+    _renderSpriteLayers(canvas, art, opacity);
+    if (swing != 0) {
+      canvas.restore();
+    }
+  }
+
+  void _renderSpriteLayers(Canvas canvas, PartSprite art, double opacity) {
     if (opacity >= 1) {
       art.render(canvas);
       overlay?.render(canvas);

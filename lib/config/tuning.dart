@@ -72,6 +72,44 @@ abstract final class Tuning {
   static const double jointSpringHertz = 8.0;
   static const double jointSpringDamping = 0.6;
 
+  // ---------------------------------------------------------------- Limb motion
+  // Arms and legs swing, flail and jiggle (1.1.0, roadmap V8). Purely
+  // VISUAL: the sprites turn around their joints, the physics shapes don't,
+  // so landings and distances are unchanged. Angles in radians (+ =
+  // clockwise on screen).
+
+  /// How the drawn limbs follow their target pose: spring frequency (Hz)
+  /// and damping (0 = wobbles forever, 1 = no overshoot). Low damping =
+  /// jiggly.
+  static const double limbSpringHz = 3.0;
+  static const double limbSpringDamping = 0.3;
+
+  /// Never turned further than this from the real limb.
+  static const double limbMaxAngle = 0.9;
+
+  /// Arms flail in the air: swing size, swings per second (the two arms
+  /// swing opposite), and how far they trail the spin (per rad/s).
+  static const double armFlailAngle = 0.55;
+  static const double armFlailHz = 1.6;
+  static const double armSpinLag = 0.1;
+
+  /// Arms on the ground: a gentle sway.
+  static const double armGroundSway = 0.12;
+
+  /// Legs in the air tuck up (feet forward) and kick a little, then reach
+  /// out straight in the last [legReachTime] seconds before touchdown.
+  static const double legTuckAngle = -0.45;
+  static const double legKickAngle = 0.12;
+  static const double legKickHz = 2.2;
+  static const double legReachTime = 0.35;
+
+  /// Jolts (rad/s) given to every limb by a landing, by type, and by a
+  /// sudden change of spin (per rad/s of change).
+  static const double limbKickClean = 3.0;
+  static const double limbKickOneFoot = 6.0;
+  static const double limbKickCrash = 10.0;
+  static const double limbKickPerSpinChange = 0.6;
+
   // ---------------------------------------------------------------- Spin
   /// Full spin speed of the robot, in radians per second. The robot spins
   /// clockwise at this speed by default. Slow and calm: roughly one turn
