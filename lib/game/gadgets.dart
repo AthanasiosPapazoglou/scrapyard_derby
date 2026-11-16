@@ -5,10 +5,12 @@ import '../config/tuning.dart';
 /// once its [unlockLevel] is unlocked. They mostly help players who
 /// struggle with landings. Effects are read through `RobotStats`.
 enum Gadget {
-  landingSight(
-    id: 'landingSight',
-    name: 'Landing Sight',
-    description: 'Shows how you will land: green = clean, amber = one foot.',
+  // Landing Sight ('landingSight') was here until 1.1.0; it is now built
+  // into every robot. Never reuse that id (old saves are refunded).
+  comboCoil(
+    id: 'comboCoil',
+    name: 'Combo Coil',
+    description: 'Clean landings in a row build up extra bounce and speed.',
     unlockLevel: 1,
   ),
   scrapMagnet(
@@ -68,10 +70,9 @@ enum Gadget {
     }
     final i = level.clamp(1, Tuning.gadgetMaxLevel) - 1;
     return switch (this) {
-      landingSight =>
-        level >= Tuning.gadgetMaxLevel
-            ? 'Shown the whole flight'
-            : 'Shown ${Tuning.landingSightTimes[i]} s before landing',
+      comboCoil =>
+        'Up to ${Tuning.comboCoilMaxSteps[i]} in a row: '
+            '+${Tuning.comboBouncePerStep} m/s each',
       scrapMagnet =>
         '+${(Tuning.scrapMagnetPerLevel * level * 100).round()}% scrap',
       autoGyro => 'Helps in the last ${Tuning.autoGyroWindows[i]} s',

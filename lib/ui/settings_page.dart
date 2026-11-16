@@ -63,6 +63,12 @@ class SettingsPage extends StatelessWidget {
                             onChanged: (v) => profile.hapticsOn = v,
                           ),
                           _SwitchRow(
+                            label: 'Landing Sight',
+                            icon: Icons.track_changes,
+                            value: profile.showLandingSight,
+                            onChanged: (v) => profile.showLandingSight = v,
+                          ),
+                          _SwitchRow(
                             label: 'Show debug info',
                             icon: Icons.bug_report,
                             value: profile.showDebugInfo,

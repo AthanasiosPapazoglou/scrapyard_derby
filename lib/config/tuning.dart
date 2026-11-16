@@ -548,7 +548,7 @@ abstract final class Tuning {
   /// Scrap price of each gadget level (index 0 = buying level 1), by
   /// gadget id.
   static const Map<String, List<int>> gadgetPrices = {
-    'landingSight': [60, 150, 300],
+    'comboCoil': [80, 200, 400],
     'scrapMagnet': [100, 250, 500],
     'autoGyro': [200, 450, 800],
     'shockPads': [300, 600, 1000],
@@ -556,13 +556,28 @@ abstract final class Tuning {
     'levelerTreads': [500, 1000, 1600],
   };
 
-  /// Landing Sight: shows the predicted landing this many seconds (game
-  /// time) before touchdown, per level. The last level covers any flight.
-  static const List<double> landingSightTimes = [0.6, 1.2, 10.0];
+  /// Gadgets taken out of the shop, with what their levels cost, so saves
+  /// that bought them get the scrap back (PlayerProfile.fromJson).
+  /// Landing Sight became a built-in feature in 1.1.0.
+  static const Map<String, List<int>> retiredGadgetPrices = {
+    'landingSight': [60, 150, 300],
+  };
+
+  /// Landing Sight (built into every robot since 1.1.0; Settings can hide
+  /// it): shows the predicted landing this many seconds (game time) before
+  /// touchdown.
+  static const double landingSightTime = 0.6;
 
   /// Size (radius) of the Landing Sight gauge next to the robot, as a
   /// share of the screen's long side (in landscape: the visible width).
   static const double landingSightGaugeSize = 0.035;
+
+  /// Combo Coil: every clean landing in a row adds one step, up to this
+  /// many steps per level; each step adds this much bounce and speed along
+  /// the ground (m/s) to the clean landing. Any other landing resets it.
+  static const List<int> comboCoilMaxSteps = [3, 4, 5];
+  static const double comboBouncePerStep = 0.8;
+  static const double comboSpeedPerStep = 0.6;
 
   /// Scrap Magnet: extra scrap share per level.
   static const double scrapMagnetPerLevel = 0.10;

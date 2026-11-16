@@ -9,10 +9,10 @@ import 'derby_game.dart';
 import 'landing.dart';
 import 'palette.dart';
 
-/// The Landing Sight gadget: how the robot will touch down if the player
-/// keeps doing what they do now (holding or not). Green = clean, amber =
-/// one foot, red = crash. Shown only in the last
-/// [RobotStats.landingSightTime] seconds.
+/// The Landing Sight (built into every robot since 1.1.0; Settings can hide
+/// it): how the robot will touch down if the player keeps doing what they
+/// do now (holding or not). Green = clean, amber = one foot, red = crash.
+/// Shown only in the last [RobotStats.landingSightTime] seconds.
 ///
 /// Two parts: a gauge next to the robot (always on screen: a dim line for
 /// the ground's slope at touchdown and a coloured stick for the robot's
@@ -45,6 +45,7 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
     final robot = game.robot;
     final stats = robot.stats;
     if (stats.landingSightTime <= 0 ||
+        !game.profile.showLandingSight ||
         !robot.isLoaded ||
         !robot.hasTouchedDown ||
         robot.headLaunched ||

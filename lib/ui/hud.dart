@@ -127,6 +127,11 @@ class Hud extends StatelessWidget {
                         targets: Levels.of(game.level).starDistances,
                         passed: info.starsPassed,
                       ),
+                      // Combo Coil streak, while one is going.
+                      if (info.comboMax > 0 &&
+                          info.comboSteps > 0 &&
+                          !info.headLaunched)
+                        _ComboChip(steps: info.comboSteps, max: info.comboMax),
                     ],
                   ),
                 ),
@@ -300,6 +305,57 @@ class _StarProgress extends StatelessWidget {
           color: Palette.cream,
         ),
       ],
+    );
+  }
+}
+
+/// The Combo Coil streak: "COMBO ×n" and a pip per step; cyan at the max.
+class _ComboChip extends StatelessWidget {
+  const _ComboChip({required this.steps, required this.max});
+
+  final int steps;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxed = steps >= max;
+    final color = maxed ? Palette.eyeGlow : Palette.hazard;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: Palette.outline,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'COMBO ×$steps',
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(width: 6),
+            for (var i = 1; i <= max; i++)
+              Container(
+                width: 7,
+                height: 7,
+                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i <= steps ? color : null,
+                  border: Border.all(color: color, width: 1.2),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

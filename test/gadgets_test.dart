@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flame_forge2d/flame_forge2d.dart' show Vector2;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
@@ -30,19 +31,20 @@ void main() {
   });
 
   test('no gadgets = the plain robot; each gadget moves its own value', () {
-    expect(RobotStats.fromLevels({}).landingSightTime, 0);
+    // The Landing Sight is built in, gadget or not.
+    expect(RobotStats.fromLevels({}).landingSightTime, Tuning.landingSightTime);
     final none = RobotStats.fromLevels({});
     final all = RobotStats.fromLevels(
       {},
       gadgets: {for (final g in Gadget.values) g: Tuning.gadgetMaxLevel},
     );
-    expect(none.landingSightTime, 0);
+    expect(none.comboCoilSteps, 0);
     expect(none.scrapMagnet, 0);
     expect(none.autoGyroWindow, 0);
     expect(none.landingDamageScale, 1);
     expect(none.crashCageCrashes, 0);
     expect(none.levelerSpan, 0);
-    expect(all.landingSightTime, Tuning.landingSightTimes.last);
+    expect(all.comboCoilSteps, Tuning.comboCoilMaxSteps.last);
     expect(all.scrapMagnet, closeTo(3 * Tuning.scrapMagnetPerLevel, 1e-9));
     expect(all.autoGyroWindow, Tuning.autoGyroWindows.last);
     expect(
@@ -54,6 +56,34 @@ void main() {
     // Gadgets don't touch the part stats.
     expect(all.limbMaxHp, none.limbMaxHp);
     expect(all.cleanBounce, none.cleanBounce);
+  });
+
+  test('Combo Coil adds a step per clean landing in a row, clean only', () {
+    final flat = Vector2(0, -1);
+    final start = Vector2(10, 5);
+    final plain = velocityAfterLanding(LandingType.clean, start, flat);
+    final combo = velocityAfterLanding(
+      LandingType.clean,
+      start,
+      flat,
+      comboSteps: 3,
+    );
+    expect(-combo.y + plain.y, closeTo(3 * Tuning.comboBouncePerStep, 1e-4));
+    expect(combo.x - plain.x, closeTo(3 * Tuning.comboSpeedPerStep, 1e-4));
+    // A crash gets nothing from the streak.
+    expect(
+      velocityAfterLanding(LandingType.crash, start, flat, comboSteps: 3),
+      velocityAfterLanding(LandingType.crash, start, flat),
+    );
+    for (var level = 1; level <= Tuning.gadgetMaxLevel; level++) {
+      expect(
+        RobotStats.fromLevels(
+          {},
+          gadgets: {Gadget.comboCoil: level},
+        ).comboCoilSteps,
+        Tuning.comboCoilMaxSteps[level - 1],
+      );
+    }
   });
 
   test('Shock Pads soften one-foot and crash damage, not clean wear', () {
@@ -102,9 +132,9 @@ void main() {
   group('profile', () {
     test('gadgets open with their level, cost scrap and are saved', () {
       final p = PlayerProfile(scrap: 100000);
-      expect(p.buyGadget(Gadget.landingSight), isTrue);
-      expect(p.gadgetLevel(Gadget.landingSight), 1);
-      expect(p.scrap, 100000 - Tuning.gadgetPrices['landingSight']![0]);
+      expect(p.buyGadget(Gadget.comboCoil), isTrue);
+      expect(p.gadgetLevel(Gadget.comboCoil), 1);
+      expect(p.scrap, 100000 - Tuning.gadgetPrices['comboCoil']![0]);
       // Auto-Gyro needs level 2.
       expect(p.isGadgetUnlocked(Gadget.autoGyro), isFalse);
       expect(p.buyGadget(Gadget.autoGyro), isFalse);
@@ -127,7 +157,7 @@ void main() {
         gadgetLevels: {'scrapMagnet': Tuning.gadgetMaxLevel},
       );
       expect(p.buyGadget(Gadget.scrapMagnet), isFalse);
-      expect(p.buyGadget(Gadget.landingSight), isFalse);
+      expect(p.buyGadget(Gadget.comboCoil), isFalse);
       expect(p.scrap, 10);
     });
   });
@@ -136,7 +166,7 @@ void main() {
     tester.view.physicalSize = const Size(2400, 1100);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    final price = Tuning.gadgetPrices['landingSight']![0];
+    final price = Tuning.gadgetPrices['comboCoil']![0];
     final profile = PlayerProfile(scrap: price);
     await tester.pumpWidget(MaterialApp(home: WorkshopPage(profile: profile)));
     await tester.tap(find.bySemanticsLabel('Gadgets, 0 owned'));
@@ -147,7 +177,7 @@ void main() {
     expect(find.text('UNLOCKS WITH LEVEL 5'), findsOneWidget);
     await tester.tap(find.text('BUY $price').first);
     await tester.pump();
-    expect(profile.gadgetLevel(Gadget.landingSight), 1);
+    expect(profile.gadgetLevel(Gadget.comboCoil), 1);
     expect(find.bySemanticsLabel('Gadgets, 1 owned'), findsOneWidget);
   });
 }

@@ -25,13 +25,17 @@ void main() {
   testWidgets('switches change the profile', (tester) async {
     await openSettings(tester);
     expect(profile.hapticsOn, isTrue);
+    expect(profile.showLandingSight, isTrue);
     expect(profile.showDebugInfo, isFalse);
 
+    // Vibration, Landing Sight, debug info.
     await tester.tap(find.byType(Switch).at(0));
     await tester.tap(find.byType(Switch).at(1));
+    await tester.tap(find.byType(Switch).at(2));
     await tester.pump();
 
     expect(profile.hapticsOn, isFalse);
+    expect(profile.showLandingSight, isFalse);
     expect(profile.showDebugInfo, isTrue);
   });
 

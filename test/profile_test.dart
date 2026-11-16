@@ -141,7 +141,34 @@ void main() {
       });
       expect(p.bestOn(1), 1234);
       expect(p.bestOn(2), 0);
-      expect(p.toJson()['version'], 2);
+      expect(p.toJson()['version'], PlayerProfile.jsonVersion);
+    });
+
+    test('a bought Landing Sight is refunded once (it is built in now)', () {
+      final p = PlayerProfile.fromJson({
+        'version': 2,
+        'scrap': 10,
+        'gadgets': {'landingSight': 2, 'scrapMagnet': 1},
+      });
+      final paid = Tuning.retiredGadgetPrices['landingSight']!;
+      expect(p.scrap, 10 + paid[0] + paid[1]);
+      expect(p.gadgetLevels.containsKey('landingSight'), isFalse);
+      expect(p.gadgetLevels['scrapMagnet'], 1);
+      // Saving and loading again doesn't refund twice.
+      final again = PlayerProfile.fromJson(
+        jsonDecode(jsonEncode(p.toJson())) as Map<String, Object?>,
+      );
+      expect(again.scrap, p.scrap);
+    });
+
+    test('the Landing Sight setting is on by default and saved', () {
+      final p = PlayerProfile();
+      expect(p.showLandingSight, isTrue);
+      p.showLandingSight = false;
+      final back = PlayerProfile.fromJson(
+        jsonDecode(jsonEncode(p.toJson())) as Map<String, Object?>,
+      );
+      expect(back.showLandingSight, isFalse);
     });
 
     test('resetProgress wipes progress and keeps settings', () {
