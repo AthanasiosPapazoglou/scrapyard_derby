@@ -5,6 +5,7 @@ import '../game/derby_game.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
+import 'derby_route.dart';
 import 'derby_button.dart';
 import 'hud.dart';
 import 'outlined_text.dart';
@@ -55,7 +56,7 @@ class _GamePageState extends State<GamePage> {
   /// From the run summary: this page is replaced by the next level's.
   void _nextLevel() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
+      DerbyRoute<void>(
         builder: (_) =>
             GamePage(profile: widget.profile, level: widget.level + 1),
       ),
@@ -63,12 +64,16 @@ class _GamePageState extends State<GamePage> {
   }
 
   /// From the run summary. Coming back, "Play again" uses the new upgrades.
-  void _openWorkshop() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => WorkshopPage(profile: widget.profile),
-      ),
+  /// The game's own loop keeps ticking under a covering page, so it is
+  /// paused until the Workshop closes.
+  Future<void> _openWorkshop() async {
+    _game.pauseEngine();
+    await Navigator.of(context).push(
+      DerbyRoute<void>(builder: (_) => WorkshopPage(profile: widget.profile)),
     );
+    if (mounted && !_game.overlays.isActive(_pauseKey)) {
+      _game.resumeEngine();
+    }
   }
 
   @override
@@ -83,8 +88,11 @@ class _GamePageState extends State<GamePage> {
         }
       },
       child: Scaffold(
+        // Sky colour, not white, while the game loads and during fades.
+        backgroundColor: Palette.skyTop,
         body: GameWidget<DerbyGame>(
           game: _game,
+          loadingBuilder: (_) => const ColoredBox(color: Palette.skyTop),
           overlayBuilderMap: {
             Hud.overlayKey: (context, game) => Hud(
               game: game,

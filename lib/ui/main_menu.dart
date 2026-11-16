@@ -5,6 +5,7 @@ import '../game/dusk_scene.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../profile/player_profile.dart';
+import 'derby_route.dart';
 import 'derby_button.dart';
 import 'level_select_page.dart';
 import 'outlined_text.dart';
@@ -53,31 +54,25 @@ class _MainMenuState extends State<MainMenu>
 
   void _openWorkshop() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => WorkshopPage(profile: widget.profile),
-      ),
+      DerbyRoute<void>(builder: (_) => WorkshopPage(profile: widget.profile)),
     );
   }
 
   void _openStats() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => RobotStatsPage(profile: widget.profile),
-      ),
+      DerbyRoute<void>(builder: (_) => RobotStatsPage(profile: widget.profile)),
     );
   }
 
   void _openSettings() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => SettingsPage(profile: widget.profile),
-      ),
+      DerbyRoute<void>(builder: (_) => SettingsPage(profile: widget.profile)),
     );
   }
 
   void _play() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      DerbyRoute<void>(
         builder: (_) => LevelSelectPage(profile: widget.profile),
       ),
     );

@@ -12,6 +12,7 @@ import '../game/robot_stats.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
+import 'derby_route.dart';
 import 'derby_button.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
@@ -130,9 +131,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
           scrap: _profile.scrap,
           onBack: () => Navigator.of(context).pop(),
           onStats: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => RobotStatsPage(profile: _profile),
-            ),
+            DerbyRoute<void>(builder: (_) => RobotStatsPage(profile: _profile)),
           ),
         ),
         Expanded(

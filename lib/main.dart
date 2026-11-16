@@ -10,8 +10,10 @@ import 'ui/main_menu.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // A downhill racer reads best sideways.
+  // Plays both ways: pages switch layout when the screen is taller than
+  // wide (see ui/layout.dart). Upside-down portrait is left out (phones).
   await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);

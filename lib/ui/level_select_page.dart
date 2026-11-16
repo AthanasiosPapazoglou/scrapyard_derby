@@ -6,6 +6,7 @@ import '../game/palette.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'game_page.dart';
+import 'derby_route.dart';
 import 'outlined_text.dart';
 
 /// Opened with Play: the six levels as cards, with stars, best distance and
@@ -18,7 +19,7 @@ class LevelSelectPage extends StatelessWidget {
   void _play(BuildContext context, int level) {
     Sound.play(Sfx.uiClick);
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      DerbyRoute<void>(
         builder: (_) => GamePage(profile: profile, level: level),
       ),
     );
