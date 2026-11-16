@@ -5,9 +5,10 @@ import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
-import 'game_page.dart';
 import 'derby_route.dart';
-import 'outlined_text.dart';
+import 'game_page.dart';
+import 'layout.dart';
+import 'page_header.dart';
 
 /// Opened with Play: the six levels as cards, with stars, best distance and
 /// star distances. Locked levels say what opens them.
@@ -40,36 +41,55 @@ class LevelSelectPage extends StatelessWidget {
               listenable: profile,
               builder: (context, _) => Column(
                 children: [
-                  _Header(
-                    stars: profile.totalStars,
-                    scrap: profile.scrap,
+                  PageHeader(
+                    title: 'LEVELS',
                     onBack: () => Navigator.of(context).pop(),
+                    trailing: [
+                      HeaderCount(
+                        icon: Icons.star,
+                        text:
+                            '${profile.totalStars} / '
+                            '${Levels.count * Levels.maxStars}',
+                      ),
+                      HeaderCount(
+                        icon: Icons.settings,
+                        text: '${profile.scrap}',
+                        label: 'Scrap',
+                      ),
+                    ],
                   ),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Column(
-                        children: [
-                          for (var row = 0; row < 2; row++)
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  for (var col = 1; col <= 3; col++)
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(5),
-                                        child: _LevelCard(
-                                          level: row * 3 + col,
-                                          profile: profile,
-                                          onPlay: (level) =>
-                                              _play(context, level),
+                      // 3 × 2 cards in landscape, 2 × 3 in portrait.
+                      child: Builder(
+                        builder: (context) {
+                          final columns = context.isPortrait ? 2 : 3;
+                          final rows = (Levels.count / columns).ceil();
+                          return Column(
+                            children: [
+                              for (var row = 0; row < rows; row++)
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      for (var col = 1; col <= columns; col++)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(5),
+                                            child: _LevelCard(
+                                              level: row * columns + col,
+                                              profile: profile,
+                                              onPlay: (level) =>
+                                                  _play(context, level),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                        ],
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -77,47 +97,6 @@ class LevelSelectPage extends StatelessWidget {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.stars,
-    required this.scrap,
-    required this.onBack,
-  });
-
-  final int stars;
-  final int scrap;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 2, 16, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onBack,
-            tooltip: 'Back',
-            icon: const Icon(Icons.arrow_back, color: Palette.cream, size: 28),
-          ),
-          const OutlinedText('LEVELS', fontSize: 28, color: Palette.hazard),
-          const Spacer(),
-          const Icon(Icons.star, color: Palette.hazard, size: 24),
-          const SizedBox(width: 4),
-          OutlinedText(
-            '$stars / ${Levels.count * Levels.maxStars}',
-            fontSize: 22,
-            color: Palette.cream,
-          ),
-          const SizedBox(width: 20),
-          const Icon(Icons.settings, color: Palette.hazard, size: 22),
-          const SizedBox(width: 6),
-          OutlinedText('$scrap Scrap', fontSize: 22, color: Palette.cream),
         ],
       ),
     );

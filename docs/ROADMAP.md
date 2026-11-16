@@ -601,11 +601,27 @@ then the redesigns (built responsive from the start).
   slope ahead visible), rotating mid-run keeps the run going, landscape
   looks as before.
 
-### V3 — Responsive menus  ☐
-- Workshop: portrait = bay on top, slot tabs as a row, part cards in a
-  scrollable list; landscape keeps today's layout with fewer fixed sizes.
-- Main menu, level select, settings, pause menu: portrait variants.
-  (Stats screen and run card are redone in V9/V10.)
+### V3 — Responsive menus  ☑
+- Shared `lib/ui/page_header.dart`: `PageHeader` (back, title, trailing
+  counters that shrink to fit) and `HeaderCount` (drops its "Scrap" label
+  in portrait). Used by Workshop, level select and settings.
+- Workshop: portrait = bay on top, tabs, a sideways-scrolling strip of
+  part cards, details; landscape keeps the old layout but the card row
+  and details share the height (cards up to 124 px). Tabs, card labels
+  and gadget names shrink to fit; details and gadget rows put the action
+  under the text when narrow. "All stats" is an icon in portrait.
+- Level select: 2 × 3 grid in portrait, 3 × 2 in landscape.
+- Settings: one column in portrait or under 760 px wide, two otherwise.
+- Main menu: portrait = title on top, robot in the middle, numbers and
+  buttons at the bottom.
+- `DerbyButton` labels shrink instead of overflowing.
+- Fit tests: Workshop (both tabs), level select and settings now pass at
+  all 6 sizes; only robot stats (V9) is still skipped. The test now lets
+  Flutter report overflows itself, so failures name the widget and line.
+  (The test font draws every letter as a square, so tests are stricter
+  than real text.)
+- Simulator (iPhone 17 Pro): menu, Workshop (parts and gadgets) and level
+  select checked in portrait, Workshop in landscape.
 
 ### V4 — Head launch rework  ☐
 - D22: remember the robot's last airborne velocity; launch from it plus a

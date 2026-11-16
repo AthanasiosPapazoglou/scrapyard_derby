@@ -6,6 +6,7 @@ import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../profile/player_profile.dart';
 import 'derby_route.dart';
+import 'layout.dart';
 import 'derby_button.dart';
 import 'level_select_page.dart';
 import 'outlined_text.dart';
@@ -80,6 +81,28 @@ class _MainMenuState extends State<MainMenu>
 
   @override
   Widget build(BuildContext context) {
+    // The robot idling in the air, in its installed parts.
+    final robot = FutureBuilder<RobotSprites>(
+      future: _sprites,
+      builder: (context, snapshot) {
+        final sprites = snapshot.data;
+        if (sprites == null) {
+          return const SizedBox.shrink();
+        }
+        return ValueListenableBuilder<double>(
+          valueListenable: _time,
+          builder: (context, t, _) =>
+              IdleRobot(look: sprites.look(widget.profile.tierOf), time: t),
+        );
+      },
+    );
+    final actions = _MenuActions(
+      profile: widget.profile,
+      onPlay: _play,
+      onSettings: _openSettings,
+      onWorkshop: _openWorkshop,
+      onStats: _openStats,
+    );
     return Scaffold(
       backgroundColor: Palette.skyTop,
       body: Stack(
@@ -88,49 +111,59 @@ class _MainMenuState extends State<MainMenu>
           // The happy baseline: level 1's dusk, whatever level is reached.
           CustomPaint(painter: _DriftingScene(_time, LevelTheme.of(1))),
           SafeArea(
-            child: Row(
-              children: [
-                // Left: the robot idling in the air.
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: FutureBuilder<RobotSprites>(
-                      future: _sprites,
-                      builder: (context, snapshot) {
-                        final sprites = snapshot.data;
-                        if (sprites == null) {
-                          return const SizedBox.shrink();
-                        }
-                        return ValueListenableBuilder<double>(
-                          valueListenable: _time,
-                          builder: (context, t, _) => IdleRobot(
-                            look: sprites.look(widget.profile.tierOf),
-                            time: t,
-                          ),
-                        );
-                      },
+            child: OrientationSwitch(
+              // Portrait: title on top, the robot in the middle, numbers
+              // and buttons at the bottom.
+              portrait: (context) => Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+                    child: FittedBox(fit: BoxFit.scaleDown, child: _Title()),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 48,
+                        vertical: 16,
+                      ),
+                      child: robot,
                     ),
                   ),
-                ),
-                // Right: title, numbers and buttons.
-                Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: _MenuPanel(
-                          profile: widget.profile,
-                          onPlay: _play,
-                          onSettings: _openSettings,
-                          onWorkshop: _openWorkshop,
-                          onStats: _openStats,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: FittedBox(fit: BoxFit.scaleDown, child: actions),
+                  ),
+                ],
+              ),
+              // Landscape: the robot on the left, everything else right.
+              landscape: (context) => Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: robot,
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _Title(),
+                              const SizedBox(height: 10),
+                              actions,
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -139,9 +172,25 @@ class _MainMenuState extends State<MainMenu>
   }
 }
 
-/// Title, best distance, scrap and the buttons.
-class _MenuPanel extends StatelessWidget {
-  const _MenuPanel({
+/// The game's name. (A proper logo comes in roadmap step V11.)
+class _Title extends StatelessWidget {
+  const _Title();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        OutlinedText('SCRAPYARD', fontSize: 52, color: Palette.hazard),
+        OutlinedText('DERBY', fontSize: 52, color: Palette.rustLight),
+      ],
+    );
+  }
+}
+
+/// Level, stars, scrap and the buttons.
+class _MenuActions extends StatelessWidget {
+  const _MenuActions({
     required this.profile,
     required this.onPlay,
     required this.onSettings,
@@ -163,9 +212,6 @@ class _MenuPanel extends StatelessWidget {
       builder: (context, _) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const OutlinedText('SCRAPYARD', fontSize: 52, color: Palette.hazard),
-          const OutlinedText('DERBY', fontSize: 52, color: Palette.rustLight),
-          const SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [

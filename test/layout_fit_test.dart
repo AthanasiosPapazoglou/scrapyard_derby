@@ -32,24 +32,6 @@ const _screens = {
 /// Block 3 lands; nothing may be added.
 const Map<String, Set<String>> _knownMisfits = {
   // V3
-  'workshop': {
-    'phone portrait',
-    'phone landscape',
-    'small phone portrait',
-    'small phone landscape',
-    'tablet portrait',
-  },
-  'level select': {
-    'phone portrait',
-    'small phone portrait',
-    'small phone landscape',
-  },
-  'settings': {
-    'phone portrait',
-    'small phone portrait',
-    'small phone landscape',
-    'tablet portrait',
-  },
   // V9
   'robot stats': {
     'phone portrait',
@@ -107,6 +89,7 @@ final Map<String, Widget Function()> _pages = {
   'main menu': () => MainMenu(profile: _midGameProfile()),
   'level select': () => LevelSelectPage(profile: _midGameProfile()),
   'workshop': () => WorkshopPage(profile: _midGameProfile()),
+  'workshop gadgets': () => WorkshopPage(profile: _midGameProfile()),
   'robot stats': () => RobotStatsPage(profile: _midGameProfile()),
   'settings': () => SettingsPage(profile: _midGameProfile()),
   'run summary': _hudWithSummary,
@@ -123,6 +106,9 @@ void main() {
           addTearDown(tester.view.reset);
 
           await tester.pumpWidget(MaterialApp(home: build()));
+          if (page == 'workshop gadgets') {
+            await tester.tap(find.text('GADGETS'));
+          }
           // A few frames: sprites load, animations start. (Pages with
           // endless tickers never "settle".)
           for (var i = 0; i < 5; i++) {
@@ -133,7 +119,8 @@ void main() {
             () => Future<void>.delayed(const Duration(milliseconds: 200)),
           );
           await tester.pump(const Duration(milliseconds: 100));
-          expect(tester.takeException(), isNull);
+          // Overflow errors fail the test on their own, with the full
+          // report (which widget, where in the source).
         });
       }
     });

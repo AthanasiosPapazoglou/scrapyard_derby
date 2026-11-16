@@ -5,7 +5,8 @@ import '../game/palette.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
 import 'derby_button.dart';
-import 'outlined_text.dart';
+import 'layout.dart';
+import 'page_header.dart';
 
 /// Volumes, vibration, debug info, reset progress and credits. Every change
 /// goes straight into the [PlayerProfile], which saves itself.
@@ -23,99 +24,90 @@ class SettingsPage extends StatelessWidget {
           listenable: profile,
           builder: (context, _) => Column(
             children: [
-              _Header(onBack: () => Navigator.of(context).pop()),
+              PageHeader(
+                title: 'SETTINGS',
+                onBack: () => Navigator.of(context).pop(),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _Panel(
-                              title: 'SOUND',
-                              children: [
-                                _VolumeRow(
-                                  label: 'Music',
-                                  icon: Icons.music_note,
-                                  value: profile.musicVolume,
-                                  onChanged: (v) => profile.musicVolume = v,
-                                ),
-                                _VolumeRow(
-                                  label: 'Sound effects',
-                                  icon: Icons.volume_up,
-                                  value: profile.sfxVolume,
-                                  onChanged: (v) => profile.sfxVolume = v,
-                                  // A sample at the new volume.
-                                  onChangeEnd: (_) => Sound.play(Sfx.landClean),
-                                ),
-                              ],
+                  child: _Columns(
+                    left: [
+                      _Panel(
+                        title: 'SOUND',
+                        children: [
+                          _VolumeRow(
+                            label: 'Music',
+                            icon: Icons.music_note,
+                            value: profile.musicVolume,
+                            onChanged: (v) => profile.musicVolume = v,
+                          ),
+                          _VolumeRow(
+                            label: 'Sound effects',
+                            icon: Icons.volume_up,
+                            value: profile.sfxVolume,
+                            onChanged: (v) => profile.sfxVolume = v,
+                            // A sample at the new volume.
+                            onChangeEnd: (_) => Sound.play(Sfx.landClean),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _Panel(
+                        title: 'GAME',
+                        children: [
+                          _SwitchRow(
+                            label: 'Vibration',
+                            icon: Icons.vibration,
+                            value: profile.hapticsOn,
+                            onChanged: (v) => profile.hapticsOn = v,
+                          ),
+                          _SwitchRow(
+                            label: 'Show debug info',
+                            icon: Icons.bug_report,
+                            value: profile.showDebugInfo,
+                            onChanged: (v) => profile.showDebugInfo = v,
+                          ),
+                        ],
+                      ),
+                    ],
+                    right: [
+                      _Panel(
+                        title: 'PROGRESS',
+                        children: [
+                          Text(
+                            '${profile.totalStars} stars'
+                            '  ·  Best ${profile.bestDistance.toStringAsFixed(0)} m'
+                            '  ·  ${profile.scrap} Scrap',
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: DerbyButton(
+                              label: 'Reset progress',
+                              icon: Icons.delete_forever,
+                              onPressed: () =>
+                                  confirmResetProgress(context, profile),
                             ),
-                            const SizedBox(height: 12),
-                            _Panel(
-                              title: 'GAME',
-                              children: [
-                                _SwitchRow(
-                                  label: 'Vibration',
-                                  icon: Icons.vibration,
-                                  value: profile.hapticsOn,
-                                  onChanged: (v) => profile.hapticsOn = v,
-                                ),
-                                _SwitchRow(
-                                  label: 'Show debug info',
-                                  icon: Icons.bug_report,
-                                  value: profile.showDebugInfo,
-                                  onChanged: (v) => profile.showDebugInfo = v,
-                                ),
-                              ],
+                          ),
+                        ],
+                      ),
+                      // Developer shortcut; never in release builds.
+                      if (kDebugMode) ...[
+                        const SizedBox(height: 12),
+                        _Panel(
+                          title: 'DEVELOPER',
+                          children: [
+                            DerbyButton(
+                              label: 'Unlock everything',
+                              icon: Icons.lock_open,
+                              onPressed: profile.debugUnlockAll,
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _Panel(
-                              title: 'PROGRESS',
-                              children: [
-                                Text(
-                                  '${profile.totalStars} stars'
-                                  '  ·  Best ${profile.bestDistance.toStringAsFixed(0)} m'
-                                  '  ·  ${profile.scrap} Scrap',
-                                ),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: DerbyButton(
-                                    label: 'Reset progress',
-                                    icon: Icons.delete_forever,
-                                    onPressed: () =>
-                                        confirmResetProgress(context, profile),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // Developer shortcut; never in release builds.
-                            if (kDebugMode) ...[
-                              const SizedBox(height: 12),
-                              _Panel(
-                                title: 'DEVELOPER',
-                                children: [
-                                  DerbyButton(
-                                    label: 'Unlock everything',
-                                    icon: Icons.lock_open,
-                                    onPressed: profile.debugUnlockAll,
-                                  ),
-                                ],
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            const _Credits(),
-                          ],
-                        ),
-                      ),
+                      ],
+                      const SizedBox(height: 12),
+                      const _Credits(),
                     ],
                   ),
                 ),
@@ -124,6 +116,36 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Two columns side by side on wide landscape screens, one column (left
+/// then right) on portrait or narrow ones.
+class _Columns extends StatelessWidget {
+  const _Columns({required this.left, required this.right});
+
+  final List<Widget> left;
+  final List<Widget> right;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (context.isPortrait || constraints.maxWidth < 760) {
+          return Column(
+            children: [...left, const SizedBox(height: 12), ...right],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Column(children: left)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(children: right)),
+          ],
+        );
+      },
     );
   }
 }
@@ -167,30 +189,6 @@ Future<bool> confirmResetProgress(
     return true;
   }
   return false;
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onBack,
-            tooltip: 'Back',
-            icon: const Icon(Icons.arrow_back, color: Palette.cream, size: 30),
-          ),
-          const SizedBox(width: 8),
-          const OutlinedText('SETTINGS', fontSize: 32, color: Palette.hazard),
-        ],
-      ),
-    );
-  }
 }
 
 /// A cream card with a small title, in the cutout style.
@@ -257,7 +255,7 @@ class _VolumeRow extends StatelessWidget {
       children: [
         Icon(icon, color: Palette.outline),
         const SizedBox(width: 8),
-        SizedBox(width: 120, child: Text(label)),
+        SizedBox(width: 104, child: Text(label)),
         Expanded(
           child: Slider(
             value: value,
