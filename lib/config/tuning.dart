@@ -274,8 +274,9 @@ abstract final class Tuning {
   ///
   /// The head keeps the robot's momentum (V4, 1.1.0): its velocity just
   /// before the landing, minus the part going into the ground, times
-  /// [headLaunchCarry]. On top comes a rocket kick along where the robot
-  /// faces (bent away from the ground by [headLaunchUpBias]):
+  /// [headLaunchCarry]. On top comes a rocket kick along the robot's line
+  /// of travel (bent away from the ground by [headLaunchUpBias]; 1.1.1,
+  /// D32: it used to follow where the robot faced, which could veer off):
   /// kick (m/s) = (base + robot speed × factor) × angle factor, capped at
   /// [headLaunchMaxKick]. The angle factor is 1 when landing upright and
   /// [headLaunchMinAngleFactor] when sideways or upside down.
@@ -295,9 +296,15 @@ abstract final class Tuning {
   static const double headLaunchMaxSpeed = 36.0;
 
   /// How strongly the kick is bent away from the ground (on top of the
-  /// direction the robot faces). Higher = steeper. (1.0.0: 1.5, which
-  /// pointed every launch nearly straight up.)
-  static const double headLaunchUpBias = 0.7;
+  /// robot's line of travel). Higher = steeper. (1.0.0: 1.5 on top of the
+  /// facing, nearly straight up; 1.1.0: 0.7; 1.1.1: 1.6, since the kick
+  /// now follows the travel, which runs along the slope.)
+  static const double headLaunchUpBias = 1.6;
+
+  /// Below this speed (m/s, kept momentum) the kick's travel direction
+  /// fades out, so a robot that is barely moving fires its head straight
+  /// off the ground.
+  static const double headLaunchTravelSpeed = 2.0;
 
   /// After launch, a rocket burn keeps pushing the head along its flight
   /// for this many seconds, with this acceleration (m/s²).

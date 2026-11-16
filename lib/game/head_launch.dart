@@ -12,10 +12,12 @@ import 'robot_stats.dart';
 ///   before the landing), minus the part going into the ground, times
 ///   [Tuning.headLaunchCarry]. A robot racing downhill launches its head
 ///   onward, downhill, instead of stopping dead.
-/// - Rocket kick: on top, a push along where the robot is facing, bent
-///   away from the ground ([Tuning.headLaunchUpBias]). It grows with speed
-///   and is strongest when the robot lands upright (facing along
-///   [groundNormal]).
+/// - Rocket kick: on top, a push along the robot's line of travel (the
+///   kept momentum), bent away from the ground ([Tuning.headLaunchUpBias]),
+///   so the head flies on where the robot was going. Barely moving, it
+///   points straight off the ground. Where the robot faces only
+///   changes the power ([facing]): the kick grows with speed and is strongest when
+///   the robot lands upright (facing along [groundNormal]).
 /// - It always leaves the ground at least [Tuning.headLaunchMinLift] fast,
 ///   and never faster than [Tuning.headLaunchMaxSpeed].
 ///
@@ -35,12 +37,19 @@ Vector2 headLaunchVelocity({
   final momentum = (carried - groundNormal * intoGround)
     ..scale(Tuning.headLaunchCarry);
 
-  // The rocket kick.
-  var direction = facing.normalized() + groundNormal * Tuning.headLaunchUpBias;
-  if (direction.length2 < 1e-6) {
-    direction = groundNormal.clone();
-  }
-  direction.normalize();
+  // The rocket kick, along the line of travel (lifted off the ground).
+  // Below [Tuning.headLaunchTravelSpeed] the travel direction fades out,
+  // so a robot that is barely moving fires its head straight up.
+  final travelWeight = (momentum.length / Tuning.headLaunchTravelSpeed).clamp(
+    0.0,
+    1.0,
+  );
+  final travel = momentum.length2 > 1e-9
+      ? momentum.normalized()
+      : Vector2.zero();
+  final direction =
+      (travel * travelWeight + groundNormal * Tuning.headLaunchUpBias)
+        ..normalize();
   // 1 when landing upright, 0 when sideways or upside down.
   final alignment = math.max(0.0, facing.normalized().dot(groundNormal));
   final anglePower =

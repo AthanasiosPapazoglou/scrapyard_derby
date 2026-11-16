@@ -86,6 +86,37 @@ void main() {
       }
     });
 
+    test('the kick follows the line of travel, not where the robot faces', () {
+      // Racing downhill, landing facing every which way: the head always
+      // flies on downhill, in nearly the same direction (facing only
+      // changes how hard).
+      final reference = launch(carried: downhill * 18, normal: slopeNormal);
+      for (var deg = 0; deg < 360; deg += 30) {
+        final a = deg * math.pi / 180;
+        final facing = Vector2(math.sin(a), -math.cos(a));
+        final v = launch(
+          carried: downhill * 18,
+          facing: facing,
+          normal: slopeNormal,
+        );
+        expect(v.dot(downhill), greaterThan(10), reason: '$deg°');
+        final turn = math.acos(
+          (v.normalized().dot(reference.normalized())).clamp(-1.0, 1.0),
+        );
+        // A weaker kick (bad facing) tilts the sum a few degrees, no more.
+        expect(turn * 180 / math.pi, lessThan(10), reason: '$deg°');
+      }
+    });
+
+    test('facing backwards uphill still sends the head on downhill', () {
+      final v = launch(
+        carried: downhill * 12,
+        facing: -downhill,
+        normal: slopeNormal,
+      );
+      expect(v.dot(downhill), greaterThan(8));
+    });
+
     test('the launch speed is capped', () {
       final v = launch(carried: Vector2(1000, 0));
       expect(v.length, closeTo(Tuning.headLaunchMaxSpeed, 1e-3));
