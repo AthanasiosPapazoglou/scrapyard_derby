@@ -27,18 +27,9 @@ const _screens = {
   'tablet landscape': Size(1180, 820),
 };
 
-/// Pages not yet made responsive, per screen: skipped until the roadmap
-/// step that fixes them (V3 menus, V9 stats screen). Empty this as
-/// Block 3 lands; nothing may be added.
-const Map<String, Set<String>> _knownMisfits = {
-  // V3
-  // V9
-  'robot stats': {
-    'phone portrait',
-    'small phone portrait',
-    'small phone landscape',
-  },
-};
+/// Pages known not to fit, per screen, skipped. Empty since 1.1.0 (V9);
+/// keep it that way.
+const Map<String, Set<String>> _knownMisfits = {};
 
 /// A player part-way through the game, so pages show realistic content.
 PlayerProfile _midGameProfile() => PlayerProfile(
