@@ -812,9 +812,50 @@ then the redesigns (built responsive from the start).
   tooltips (tests find them by tooltip).
 - Simulator: logo on the menu, buttons in a run, Restart restarts.
 
-### V12 — Rebalance  ☐
-- V4-V7 change distances a lot: rerun `tool/progression_report_test.dart`,
-  re-set star distances, prices and level damage so tier N still clears
-  level N with normal effort. Record results here.
-- Developer playtest on the Simulator and on the Android phone, both
-  orientations.
+### V12 — Rebalance  ☑
+- Fix: `simulateRun` (test/support/run_simulator.dart) now destroys each
+  run's physics world; Box2D only allows ~128 at once, so the full report
+  crashed after 128 runs. The whole report now takes about a minute.
+- **Before** (V11 tuning; level's tier): strong bots got 3 stars on every
+  level, and later levels were *easier* (skill 0.7: 5973 m on level 1 →
+  8017 m on level 4; skill 0.9 runs ~7-8 min). The bigger upgrade tiers
+  outgrew the level damage, which only matched body HP.
+- **Changes:**
+  - Level `damageScale` 1.0 / 1.5 / 2.0 / 2.5 / 3.0 / 3.5 (was 1.0 /
+    1.21 / 1.46 / 1.71 / 2.0 / 2.25). Toughness (body HP per damage) now
+    drops a little every level; `progression_balance_test.dart` guards
+    "always less than the level before, never below half of level 1".
+  - Stars 2 and 3: 3900-4150 and 5500-5750 m (was 3100-3700 and
+    4300-4800). Star 1 kept at the 1.0.0 values (1600-2000) so no save
+    loses an unlock (stars come from best distances).
+  - Part prices 80 / 150 / 300 / 550 / 900 (was 50 / 120 / 250 / 450 /
+    750): longer runs earn more scrap.
+- **Results** (avg distance m / avg stars; robot at the level's tier):
+
+  | Level | skill 0 | 0.4 | 0.7 | 0.9 | 0.9, one tier lower |
+  |---|---|---|---|---|---|
+  | 1 | 1594 / 0.3 | 2185 / 1.0 | 5973 / 3.0 | 6353 / 3.0 | 4488 / 2.0 (tier 0) |
+  | 2 | 1465 / 0.3 | 2744 / 1.0 | 5095 / 2.3 | 5684 / 3.0 | 4355 / 2.0 |
+  | 3 | 1604 / 0.3 | 3080 / 0.8 | 5415 / 2.5 | 6013 / 3.0 | 4343 / 2.0 |
+  | 4 | 1253 / 0.0 | 2558 / 0.8 | 4798 / 2.0 | 6050 / 3.0 | 4986 / 2.0 |
+  | 5 | 2146 / 0.5 | 3477 / 1.3 | 4833 / 2.0 | 6241 / 3.0 | 5157 / 2.0 |
+  | 6 | 1781 / 0.0 | 2821 / 0.8 | 5102 / 2.0 | 5767 / 2.5 | 4596 / 2.0 |
+
+  Skill 0.9 runs ~5-5.5 min again. The third star needs the level's
+  tier. Economy (repeat-run scrap at skill 0.4): 119 / 219 / 323 / 368 /
+  611 / 645 per run on levels 1-6; next full tier set ≈ 3 / 6 / 7 / 8.5 /
+  12 runs (P7: 4 / 5.5 / 8.5 / 11 / 10).
+- Not covered by bots: how it feels to a real thumb, especially the
+  energy weight (V5), head launch (V4) and Combo Coil (V7). Developer
+  playtest on the Simulator and the Android phone, both orientations.
+
+## Block 3 status (Nov 16, 2026)
+
+All 12 steps done on branch `v1.1.0` (version 1.1.0+2). Waiting on the
+developer's playtest. Open questions from the steps:
+- The screen glitch on page changes (V1): fade transitions and the sky
+  background are in; still waiting on which screen showed it.
+- Full-charge flash, super bounce (V5) and the Combo chip (V7) weren't
+  triggered by hand in the Simulator.
+- Merging `v1.1.0` into `main` publishes the web build (developer's call).
+

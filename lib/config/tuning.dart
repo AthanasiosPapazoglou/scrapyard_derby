@@ -454,10 +454,12 @@ abstract final class Tuning {
   // distances. 1 star (the goal) unlocks the next level. Later levels are
   // steeper and bumpier, so landing angles vary more, and pay more scrap.
   // Part tier N can be bought once level N is unlocked.
-  // Star distances come from tool/progression_report_test.dart (P7 in
-  // docs/ROADMAP.md): with every slot at the level's tier, star 1 is ~80%
-  // of a skill-0.4 bot's average, star 2 ~80% of skill 0.7, star 3 ~95%
-  // of skill 0.9. Level 6's third star needs gadgets.
+  // Star distances come from tool/progression_report_test.dart (P7, then
+  // Block 3 V12 in docs/ROADMAP.md): with every slot at the level's tier,
+  // star 1 is ~60-80% of a skill-0.4 bot's average (kept at the 1.0.0
+  // values so no save loses an unlock), star 2 ~65-85% of skill 0.7, star
+  // 3 ~90-100% of skill 0.9. Level 6 is the harshest. damageScale grows
+  // faster than body HP (V12), since the other upgrades are strong too.
   //
   // Bump scale check: the ground must never go uphill. The bumps' steepest
   // possible slope is about 0.51 × bumpScale; keep it below tan(slopeDeg)
@@ -467,7 +469,7 @@ abstract final class Tuning {
       name: 'Rust Hollow',
       slopeDeg: 35,
       bumpScale: 1.0,
-      starDistances: [1600, 3100, 4300],
+      starDistances: [1600, 3900, 5500],
       scrapMultiplier: 1.0,
       partTier: 1,
     ),
@@ -475,46 +477,46 @@ abstract final class Tuning {
       name: 'Cinder Flats',
       slopeDeg: 36,
       bumpScale: 1.2,
-      starDistances: [1650, 3200, 4400],
+      starDistances: [1650, 3950, 5550],
       scrapMultiplier: 1.3,
       partTier: 2,
-      damageScale: 1.21,
+      damageScale: 1.5,
     ),
     LevelTuning(
       name: 'Smog Ridge',
       slopeDeg: 38,
       bumpScale: 1.4,
-      starDistances: [1700, 3300, 4500],
+      starDistances: [1700, 4000, 5600],
       scrapMultiplier: 1.7,
       partTier: 3,
-      damageScale: 1.46,
+      damageScale: 2.0,
     ),
     LevelTuning(
       name: 'Crusher Pass',
       slopeDeg: 40,
       bumpScale: 1.55,
-      starDistances: [1800, 3500, 4600],
+      starDistances: [1800, 4050, 5650],
       scrapMultiplier: 2.2,
       partTier: 4,
-      damageScale: 1.71,
+      damageScale: 2.5,
     ),
     LevelTuning(
       name: 'Furnace Drop',
       slopeDeg: 42,
       bumpScale: 1.7,
-      starDistances: [1900, 3600, 4700],
+      starDistances: [1900, 4100, 5700],
       scrapMultiplier: 2.6,
       partTier: 5,
-      damageScale: 2.0,
+      damageScale: 3.0,
     ),
     LevelTuning(
       name: 'Obsidian Maw',
       slopeDeg: 44,
       bumpScale: 1.85,
-      starDistances: [2000, 3700, 4800],
+      starDistances: [2000, 4150, 5750],
       scrapMultiplier: 3.0,
       partTier: 5,
-      damageScale: 2.25,
+      damageScale: 3.5,
     ),
   ];
 
@@ -533,7 +535,7 @@ abstract final class Tuning {
   static const int upgradeMaxLevel = 5;
 
   /// Scrap price of each level (index 0 = buying level 1).
-  static const List<int> upgradePrices = [50, 120, 250, 450, 750];
+  static const List<int> upgradePrices = [80, 150, 300, 550, 900];
 
   // Per-tier tables (1.1.0, roadmap V6): index = tier 0..5. Tier 0 is the
   // plain robot (equal to the base values above, checked by a test). The

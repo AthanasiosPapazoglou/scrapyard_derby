@@ -3,7 +3,8 @@ import 'package:scrapyard_derby/config/tuning.dart';
 import 'package:scrapyard_derby/game/levels.dart';
 import 'package:scrapyard_derby/game/robot_stats.dart';
 
-/// Guards the shape of the progression from docs/ROADMAP.md P7. The
+/// Guards the shape of the progression from docs/ROADMAP.md P7 (re-set
+/// in Block 3, V12). The
 /// distances themselves are measured with tool/progression_report_test.dart
 /// (full runs take too long for the normal test run).
 void main() {
@@ -32,10 +33,13 @@ void main() {
     }
   });
 
-  test('the level tier\'s plating keeps up with the level\'s damage', () {
-    // Part HP of a robot at the level's tier, per unit of landing damage,
-    // stays close to level 1 with tier 1 (tier N clears level N), and
-    // never gets easier. Level 6 (tier 5, the last) is meant to be harsher.
+  test('levels get harsher faster than the body plating grows', () {
+    // Part HP of a robot at the level's tier, per unit of landing damage.
+    // Since 1.1.0 (V12) the other upgrades (legs, core, head) are strong
+    // too, so level damage outgrows the body's HP: toughness drops a
+    // little every level (level 6 the harshest) but never below half of
+    // level 1's. Distances are measured with
+    // tool/progression_report_test.dart.
     double toughness(int level) {
       final tier = Levels.of(level).partTier;
       final hp = RobotStats.fromLevels({UpgradeTrack.plating: tier}).limbMaxHp;
@@ -43,11 +47,14 @@ void main() {
     }
 
     final first = toughness(1);
-    for (var level = 2; level < Levels.count; level++) {
-      expect(toughness(level), closeTo(first, first * 0.1), reason: '$level');
-      expect(toughness(level), lessThanOrEqualTo(first));
+    for (var level = 2; level <= Levels.count; level++) {
+      expect(
+        toughness(level),
+        lessThan(toughness(level - 1)),
+        reason: '$level',
+      );
+      expect(toughness(level), greaterThan(first * 0.5), reason: '$level');
     }
-    expect(toughness(Levels.count), lessThan(toughness(Levels.count - 1)));
   });
 
   test('every level unlocks a tier no lower than the one before', () {
