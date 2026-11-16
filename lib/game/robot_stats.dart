@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
@@ -130,6 +128,7 @@ class RobotStats {
     this.maxEnergyBounce = Tuning.coreMaxExtraBounce,
     this.headLaunchScale = 1,
     this.headRocketBurnTime = Tuning.headRocketBurnTime,
+    this.headRocketThrust = Tuning.headRocketThrust,
     this.landingSightTime = 0,
     this.scrapMagnet = 0,
     this.autoGyroWindow = 0,
@@ -142,58 +141,41 @@ class RobotStats {
   static const RobotStats base = RobotStats();
 
   /// Stats for the given upgrade levels (missing tracks = level 0; levels
-  /// are clamped to 0..[Tuning.upgradeMaxLevel]) and [gadgets] levels
+  /// are clamped to 0..[Tuning.upgradeMaxLevel]), read from the per-tier
+  /// tables in [Tuning] (Upgrades section), and [gadgets] levels
   /// (missing = not owned).
   factory RobotStats.fromLevels(
     Map<UpgradeTrack, int> levels, {
     Map<Gadget, int> gadgets = const {},
   }) {
-    double level(UpgradeTrack track) =>
-        (levels[track] ?? 0).clamp(0, Tuning.upgradeMaxLevel).toDouble();
+    // The tier installed in a slot, as an index into the Tuning tables.
+    int tier(UpgradeTrack track) =>
+        (levels[track] ?? 0).clamp(0, Tuning.upgradeMaxLevel);
 
-    final plating = level(UpgradeTrack.plating);
-    final spring = level(UpgradeTrack.springLegs);
-    final gyro = level(UpgradeTrack.gyroArms);
-    final core = level(UpgradeTrack.energyCore);
-    final rocket = level(UpgradeTrack.rocketHead);
+    final plating = tier(UpgradeTrack.plating);
+    final spring = tier(UpgradeTrack.springLegs);
+    final gyro = tier(UpgradeTrack.gyroArms);
+    final core = tier(UpgradeTrack.energyCore);
+    final rocket = tier(UpgradeTrack.rocketHead);
 
     int owned(Gadget gadget) =>
         (gadgets[gadget] ?? 0).clamp(0, Tuning.gadgetMaxLevel);
     double perLevel(List<double> values, Gadget gadget) =>
         owned(gadget) == 0 ? 0 : values[owned(gadget) - 1];
 
-    final gyroShare = math.max(
-      Tuning.gyroTimeMinShare,
-      1 - Tuning.gyroTimePerLevel * gyro,
-    );
+    final gyroShare = Tuning.gyroTimeShare[gyro];
     return RobotStats(
-      limbMaxHp: math.min(
-        Tuning.platingHpMax,
-        Tuning.limbMaxHp * (1 + Tuning.platingHpPerLevel * plating),
-      ),
-      cleanBounce: math.min(
-        Tuning.springBounceMax,
-        Tuning.cleanBounce * (1 + Tuning.springBouncePerLevel * spring),
-      ),
-      cleanToleranceDeg: math.min(
-        Tuning.springToleranceMax,
-        Tuning.cleanLandingToleranceDeg +
-            Tuning.springTolerancePerLevel * spring,
-      ),
+      limbMaxHp: Tuning.platingHp[plating],
+      cleanBounce: Tuning.cleanBounce * Tuning.springBounceScale[spring],
+      cleanToleranceDeg: Tuning.springToleranceDeg[spring],
       counterSpinTime: Tuning.counterSpinTime * gyroShare,
       releaseSpinTime: Tuning.releaseSpinTime * gyroShare,
       spinEnergyPerTurn:
-          Tuning.spinEnergyPerTurn * (1 + Tuning.corePerTurnPerLevel * core),
-      spinEnergyMaxTurns:
-          Tuning.spinEnergyMaxTurns + Tuning.coreCapPerLevel * core,
-      headLaunchScale: math.min(
-        Tuning.rocketSpeedMaxScale,
-        1 + Tuning.rocketSpeedPerLevel * rocket,
-      ),
-      headRocketBurnTime: math.min(
-        Tuning.rocketBurnMax,
-        Tuning.headRocketBurnTime + Tuning.rocketBurnPerLevel * rocket,
-      ),
+          Tuning.spinEnergyPerTurn * Tuning.corePerTurnScale[core],
+      spinEnergyMaxTurns: Tuning.coreTankTurns[core],
+      headLaunchScale: Tuning.rocketSpeedScale[rocket],
+      headRocketBurnTime: Tuning.rocketBurnTime[rocket],
+      headRocketThrust: Tuning.rocketThrust[rocket],
       landingSightTime: perLevel(Tuning.landingSightTimes, Gadget.landingSight),
       scrapMagnet: Tuning.scrapMagnetPerLevel * owned(Gadget.scrapMagnet),
       autoGyroWindow: perLevel(Tuning.autoGyroWindows, Gadget.autoGyro),
@@ -244,6 +226,9 @@ class RobotStats {
 
   /// Seconds of rocket burn after the head launch.
   final double headRocketBurnTime;
+
+  /// Rocket push (m/s²) during the burn.
+  final double headRocketThrust;
 
   // Gadgets (0 / 1 = off).
 

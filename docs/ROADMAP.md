@@ -685,10 +685,32 @@ then the redesigns (built responsive from the start).
   Not seen by hand in the Simulator (no-input runs crash too much);
   developer to check the full-charge flash and super bounce in play.
 
-### V6 — Tier tables and head ceiling  ☐
-- D20/D21: replace per-level steps with per-tier lists; `RobotStats` reads
-  them. Workshop and stats screen show the bigger jumps.
-- Test: head flight distance tier 5 ≥ 2 × tier 0 on a flat launch.
+### V6 — Tier tables and head ceiling  ☑
+- Per-tier tables in `tuning.dart` (Upgrades section, index = tier 0-5;
+  tier 0 = plain robot), replacing "+x% per level" and the old caps.
+  `RobotStats.fromLevels` reads them; new stat `headRocketThrust`.
+
+  | Slot | Tier 0 → 5 |
+  |---|---|
+  | Body HP | 100, 120, 145, 175, 205, 240 (×2.4; was ×1.75) |
+  | Legs bounce | 13.5 → 19.6 m/s (×1.45; was ×1.3), clean angle 20° → 34° |
+  | Arms flip | 0.20 → 0.08 s (×0.4; was ×0.5) |
+  | Core | 5.0 → 9.0 m/s per turn (×1.8), tank 2.5 → 3.5 turns |
+  | Head | speed ×1.0 → ×1.5, burn 0.6 → 1.3 s, thrust 16 → 20 |
+
+- Every head is stronger (tier 0 burn 0.5 → 0.6 s, thrust 14 → 16).
+- Level damage (`damageScale`) follows the body table (hp tier N / hp
+  tier 1): 1.0, 1.21, 1.46, 1.71, 2.0, 2.25, so tier N on level N stays
+  as tough as tier 1 on level 1 (guarded by
+  `progression_balance_test.dart`).
+- Tests: tier 0 = base; steps grow (or stay) tier to tier; top tier far
+  above tier 0; head flight on a straight 35° slope: every head beats
+  the one before, top ≥ 2× tier 0.
+- Measured head flights (head flight tool; m, avg of 6): tier 0 ≈ 185-200,
+  tier 5 ≈ 570-650 (≈ 3×; 1.0.0 was ≈ 1.4× in speed, ~2.4× in flight).
+  A first try (×1.8 speed, 1.5 s burn) flew ~900-1000 m, a third of a
+  whole run, so the top was toned down.
+- Star balance for the new tiers is re-measured in V12.
 
 ### V7 — Built-in Landing Sight + Combo Coil  ☐
 - D17-D19: sight always on at level 1 (Settings toggle), Combo Coil gadget

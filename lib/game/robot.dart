@@ -416,7 +416,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       rocketBurnLeft -= burn;
       head.body.linearVelocity =
           head.body.linearVelocity +
-          _rocketDirection * (Tuning.headRocketThrust * burn);
+          _rocketDirection * (stats.headRocketThrust * burn);
     }
   }
 
