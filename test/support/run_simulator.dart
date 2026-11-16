@@ -37,5 +37,9 @@ Future<SimulatedRun> simulateRun({
     await game.ready();
     t += frame;
   }
-  return SimulatedRun(game.hud.value.result, t);
+  final result = game.hud.value.result;
+  // Box2D allows only so many worlds at once; free this one, or long
+  // reports (many runs) fail after ~128 runs.
+  game.world.physicsWorld.destroy();
+  return SimulatedRun(result, t);
 }
