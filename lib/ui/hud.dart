@@ -4,6 +4,8 @@ import '../game/derby_game.dart';
 import '../game/landing.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
+import '../game/robot_sprites.dart';
+import '../game/robot_stats.dart';
 import '../game/sound.dart';
 import 'debug_overlay.dart';
 import 'layout.dart';
@@ -65,41 +67,44 @@ class Hud extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Row(
-                  children: [
-                    if (onPause != null && info.result == null) ...[
-                      IconButton.filled(
+              // Pause and Restart; hidden once the run is over (the run
+              // card has its own Play again).
+              if (info.result == null)
+                Positioned(
+                  right: 12,
+                  top: 12,
+                  child: Row(
+                    children: [
+                      if (onPause != null && info.result == null) ...[
+                        IconButton.filled(
+                          onPressed: () {
+                            Sound.play(Sfx.uiClick);
+                            onPause!();
+                          },
+                          tooltip: 'Pause',
+                          icon: const Icon(Icons.pause),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Palette.outline,
+                            foregroundColor: Palette.hazard,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      FilledButton.icon(
                         onPressed: () {
                           Sound.play(Sfx.uiClick);
-                          onPause!();
+                          game.restart();
                         },
-                        tooltip: 'Pause',
-                        icon: const Icon(Icons.pause),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Palette.outline,
-                          foregroundColor: Palette.hazard,
+                        icon: const Icon(Icons.replay),
+                        label: const Text('Restart'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Palette.hazard,
+                          foregroundColor: Palette.outline,
                         ),
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    FilledButton.icon(
-                      onPressed: () {
-                        Sound.play(Sfx.uiClick);
-                        game.restart();
-                      },
-                      icon: const Icon(Icons.replay),
-                      label: const Text('Restart'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Palette.hazard,
-                        foregroundColor: Palette.outline,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
               // The score: distance covered, big and centered at the top.
               Positioned(
                 top: portrait ? 64 : 8,
@@ -155,18 +160,27 @@ class Hud extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Padding(
                       padding: const EdgeInsets.all(12),
-                      child: RunSummary(
-                        result: result,
-                        bestDistance: info.bestDistance,
-                        totalScrap: game.profile.scrap,
-                        onPlayAgain: game.restart,
-                        onMenu: onMenu,
-                        onWorkshop: onWorkshop,
-                        onNextLevel:
-                            game.level < Levels.count &&
-                                game.profile.isUnlocked(game.level + 1)
-                            ? onNextLevel
-                            : null,
+                      // The robot's installed head for the card's porthole
+                      // (the sprites are loaded once and cached).
+                      child: FutureBuilder<RobotSprites>(
+                        future: RobotSprites.load(),
+                        builder: (context, sprites) => RunSummary(
+                          head: sprites.data?.part(
+                            UpgradeTrack.rocketHead,
+                            game.profile.tierOf(UpgradeTrack.rocketHead),
+                          ),
+                          result: result,
+                          bestDistance: info.bestDistance,
+                          totalScrap: game.profile.scrap,
+                          onPlayAgain: game.restart,
+                          onMenu: onMenu,
+                          onWorkshop: onWorkshop,
+                          onNextLevel:
+                              game.level < Levels.count &&
+                                  game.profile.isUnlocked(game.level + 1)
+                              ? onNextLevel
+                              : null,
+                        ),
                       ),
                     ),
                   ),
