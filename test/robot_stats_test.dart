@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame_forge2d/flame_forge2d.dart' show Vector2;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
@@ -29,34 +31,56 @@ void main() {
     );
   });
 
+  test('tier 0 of every table is the plain robot', () {
+    expect(Tuning.platingHp.first, Tuning.limbMaxHp);
+    expect(Tuning.springBounceScale.first, 1);
+    expect(Tuning.springToleranceDeg.first, Tuning.cleanLandingToleranceDeg);
+    expect(Tuning.gyroTimeShare.first, 1);
+    expect(Tuning.corePerTurnScale.first, 1);
+    expect(Tuning.coreTankTurns.first, Tuning.spinEnergyMaxTurns);
+    expect(Tuning.rocketSpeedScale.first, 1);
+    expect(Tuning.rocketBurnTime.first, Tuning.headRocketBurnTime);
+    expect(Tuning.rocketThrust.first, Tuning.headRocketThrust);
+    for (final table in _tables) {
+      expect(table, hasLength(Tuning.upgradeMaxLevel + 1));
+    }
+  });
+
   test('each track moves only its own values', () {
     const base = RobotStats.base;
     final plating = at(UpgradeTrack.plating, 1);
-    expect(plating.limbMaxHp, closeTo(Tuning.limbMaxHp * 1.15, 1e-9));
+    expect(plating.limbMaxHp, Tuning.platingHp[1]);
     expect(plating.cleanBounce, base.cleanBounce);
 
     final spring = at(UpgradeTrack.springLegs, 2);
-    expect(spring.cleanBounce, closeTo(Tuning.cleanBounce * 1.12, 1e-9));
-    expect(spring.cleanToleranceDeg, Tuning.cleanLandingToleranceDeg + 4);
+    expect(
+      spring.cleanBounce,
+      closeTo(Tuning.cleanBounce * Tuning.springBounceScale[2], 1e-9),
+    );
+    expect(spring.cleanToleranceDeg, Tuning.springToleranceDeg[2]);
     expect(spring.limbMaxHp, base.limbMaxHp);
 
     final gyro = at(UpgradeTrack.gyroArms, 3);
-    expect(gyro.counterSpinTime, closeTo(Tuning.counterSpinTime * 0.7, 1e-9));
-    expect(gyro.releaseSpinTime, closeTo(Tuning.releaseSpinTime * 0.7, 1e-9));
+    expect(
+      gyro.counterSpinTime,
+      closeTo(Tuning.counterSpinTime * Tuning.gyroTimeShare[3], 1e-9),
+    );
+    expect(
+      gyro.releaseSpinTime,
+      closeTo(Tuning.releaseSpinTime * Tuning.gyroTimeShare[3], 1e-9),
+    );
 
     final core = at(UpgradeTrack.energyCore, 1);
     expect(
       core.spinEnergyPerTurn,
-      closeTo(Tuning.spinEnergyPerTurn * 1.1, 1e-9),
+      closeTo(Tuning.spinEnergyPerTurn * Tuning.corePerTurnScale[1], 1e-9),
     );
-    expect(core.spinEnergyMaxTurns, Tuning.spinEnergyMaxTurns + 0.25);
+    expect(core.spinEnergyMaxTurns, Tuning.coreTankTurns[1]);
 
     final rocket = at(UpgradeTrack.rocketHead, 2);
-    expect(rocket.headLaunchScale, closeTo(1.16, 1e-9));
-    expect(
-      rocket.headRocketBurnTime,
-      closeTo(Tuning.headRocketBurnTime + 0.16, 1e-9),
-    );
+    expect(rocket.headLaunchScale, Tuning.rocketSpeedScale[2]);
+    expect(rocket.headRocketBurnTime, Tuning.rocketBurnTime[2]);
+    expect(rocket.headRocketThrust, Tuning.rocketThrust[2]);
   });
 
   test('more levels never make a value worse', () {
@@ -84,35 +108,62 @@ void main() {
     }
   });
 
-  test('caps hold, even for levels past the max', () {
+  test('every tier is a real step: the top tier is far above tier 0', () {
+    RobotStats top(UpgradeTrack track) => at(track, Tuning.upgradeMaxLevel);
+    const base = RobotStats.base;
+    expect(top(UpgradeTrack.plating).limbMaxHp / base.limbMaxHp, 2.4);
+    expect(
+      top(UpgradeTrack.springLegs).cleanBounce / base.cleanBounce,
+      greaterThanOrEqualTo(1.4),
+    );
+    expect(
+      top(UpgradeTrack.gyroArms).counterSpinTime / base.counterSpinTime,
+      lessThanOrEqualTo(0.5),
+    );
+    expect(
+      top(UpgradeTrack.energyCore).spinEnergyPerTurn / base.spinEnergyPerTurn,
+      greaterThanOrEqualTo(1.8),
+    );
+    // Steps grow (or stay) from tier to tier, so later tiers feel bigger.
+    for (final table in _tables) {
+      final rising = table.last > table.first;
+      for (var i = 2; i < table.length; i++) {
+        final step = (table[i] - table[i - 1]) * (rising ? 1 : -1);
+        final before = (table[i - 1] - table[i - 2]) * (rising ? 1 : -1);
+        expect(step, greaterThan(0), reason: '$table');
+        expect(step, greaterThanOrEqualTo(before - 1e-9), reason: '$table');
+      }
+    }
+  });
+
+  test('the top head flies at least twice as far as the first one', () {
+    final first = _headFlight(RobotStats.base);
+    final top = _headFlight(
+      at(UpgradeTrack.rocketHead, Tuning.upgradeMaxLevel),
+    );
+    expect(top, greaterThanOrEqualTo(2 * first));
+    // Every head flies further than the one before.
+    for (var tier = 1; tier <= Tuning.upgradeMaxLevel; tier++) {
+      expect(
+        _headFlight(at(UpgradeTrack.rocketHead, tier)),
+        greaterThan(_headFlight(at(UpgradeTrack.rocketHead, tier - 1))),
+      );
+    }
+  });
+
+  test('levels past the max count as the max', () {
     final maxed = RobotStats.fromLevels({
       for (final track in UpgradeTrack.values) track: 99,
     });
-    expect(maxed.limbMaxHp, lessThanOrEqualTo(Tuning.platingHpMax));
-    expect(maxed.cleanBounce, lessThanOrEqualTo(Tuning.springBounceMax));
     expect(
-      maxed.cleanToleranceDeg,
-      lessThanOrEqualTo(Tuning.springToleranceMax),
+      maxed.limbMaxHp,
+      at(UpgradeTrack.plating, Tuning.upgradeMaxLevel).limbMaxHp,
     );
     // Clean must stay stricter than one-foot.
     expect(maxed.cleanToleranceDeg, lessThan(Tuning.oneFootToleranceDeg));
     expect(
-      maxed.counterSpinTime,
-      greaterThanOrEqualTo(Tuning.counterSpinTime * Tuning.gyroTimeMinShare),
-    );
-    expect(
       spinEnergyBounce(100, stats: maxed),
       lessThanOrEqualTo(Tuning.coreMaxExtraBounce),
-    );
-    expect(
-      maxed.headLaunchScale,
-      lessThanOrEqualTo(Tuning.rocketSpeedMaxScale),
-    );
-    expect(maxed.headRocketBurnTime, lessThanOrEqualTo(Tuning.rocketBurnMax));
-    // Levels past the max count as the max.
-    expect(
-      maxed.limbMaxHp,
-      at(UpgradeTrack.plating, Tuning.upgradeMaxLevel).limbMaxHp,
     );
   });
 
@@ -174,4 +225,46 @@ void main() {
       expect(track.priceAfter(Tuning.upgradeMaxLevel), isNull);
     }
   });
+}
+
+/// Every per-tier table.
+const List<List<double>> _tables = [
+  Tuning.platingHp,
+  Tuning.springBounceScale,
+  Tuning.springToleranceDeg,
+  Tuning.gyroTimeShare,
+  Tuning.corePerTurnScale,
+  Tuning.coreTankTurns,
+  Tuning.rocketSpeedScale,
+  Tuning.rocketBurnTime,
+  Tuning.rocketThrust,
+];
+
+/// Meters a head flies along a straight 35° downhill slope after a robot
+/// lands upright at 20 m/s: launch, rocket burn, gravity, until it drops
+/// back onto the slope. (Real hills have bumps; this compares heads.)
+double _headFlight(RobotStats stats) {
+  final slope = 35 * math.pi / 180;
+  final normal = Vector2(math.sin(slope), -math.cos(slope));
+  final downhill = Vector2(math.cos(slope), math.sin(slope));
+  final v = headLaunchVelocity(
+    carried: downhill * 20,
+    facing: normal,
+    groundNormal: normal,
+    stats: stats,
+  );
+  final rocket = v.normalized();
+  final p = Vector2(0, -0.3);
+  const dt = 1 / 240;
+  for (var t = 0.0; t < 60; t += dt) {
+    if (t < stats.headRocketBurnTime) {
+      v.add(rocket * (stats.headRocketThrust * dt));
+    }
+    v.y += Tuning.gravity * dt;
+    p.add(v * dt);
+    if (t > 0.3 && p.y > p.x * math.tan(slope)) {
+      return p.x;
+    }
+  }
+  return p.x;
 }

@@ -263,8 +263,8 @@ abstract final class Tuning {
 
   /// After launch, a rocket burn keeps pushing the head along its flight
   /// for this many seconds, with this acceleration (m/s²).
-  static const double headRocketBurnTime = 0.5;
-  static const double headRocketThrust = 14.0;
+  static const double headRocketBurnTime = 0.6;
+  static const double headRocketThrust = 16.0;
 
   /// Ground touches in the first moments after launch don't end the run
   /// (the head starts right next to the ground). Seconds.
@@ -440,7 +440,7 @@ abstract final class Tuning {
       starDistances: [1650, 3200, 4400],
       scrapMultiplier: 1.3,
       partTier: 2,
-      damageScale: 1.15,
+      damageScale: 1.21,
     ),
     LevelTuning(
       name: 'Smog Ridge',
@@ -449,7 +449,7 @@ abstract final class Tuning {
       starDistances: [1700, 3300, 4500],
       scrapMultiplier: 1.7,
       partTier: 3,
-      damageScale: 1.3,
+      damageScale: 1.46,
     ),
     LevelTuning(
       name: 'Crusher Pass',
@@ -458,7 +458,7 @@ abstract final class Tuning {
       starDistances: [1800, 3500, 4600],
       scrapMultiplier: 2.2,
       partTier: 4,
-      damageScale: 1.45,
+      damageScale: 1.71,
     ),
     LevelTuning(
       name: 'Furnace Drop',
@@ -467,7 +467,7 @@ abstract final class Tuning {
       starDistances: [1900, 3600, 4700],
       scrapMultiplier: 2.6,
       partTier: 5,
-      damageScale: 1.6,
+      damageScale: 2.0,
     ),
     LevelTuning(
       name: 'Obsidian Maw',
@@ -476,7 +476,7 @@ abstract final class Tuning {
       starDistances: [2000, 3700, 4800],
       scrapMultiplier: 3.0,
       partTier: 5,
-      damageScale: 1.8,
+      damageScale: 2.25,
     ),
   ];
 
@@ -497,32 +497,46 @@ abstract final class Tuning {
   /// Scrap price of each level (index 0 = buying level 1).
   static const List<int> upgradePrices = [50, 120, 250, 450, 750];
 
-  /// Plating (body): limb HP (damage between part breaks) +15% per level.
-  static const double platingHpPerLevel = 0.15;
-  static const double platingHpMax = 180.0;
+  // Per-tier tables (1.1.0, roadmap V6): index = tier 0..5. Tier 0 is the
+  // plain robot (equal to the base values above, checked by a test). The
+  // steps grow with the tier, so every upgrade is clearly felt and the top
+  // tiers feel special. (1.0.0 used small equal steps per level.)
 
-  /// Spring legs: clean bounce +6% and clean-landing tolerance +2° per level.
-  static const double springBouncePerLevel = 0.06;
-  static const double springBounceMax = 18.0;
-  static const double springTolerancePerLevel = 2.0;
-  static const double springToleranceMax = 36.0;
+  /// Body: HP per part (damage between part breaks). ×2.4 at the top.
+  /// Level damage (`LevelTuning.damageScale`) follows this table, so tier
+  /// N on level N stays as tough as tier 1 on level 1.
+  static const List<double> platingHp = [100, 120, 145, 175, 205, 240];
 
-  /// Gyro arms: counter-spin and release times −10% per level (faster
-  /// control), never below this share of the base times.
-  static const double gyroTimePerLevel = 0.10;
-  static const double gyroTimeMinShare = 0.5;
+  /// Legs: clean bounce multiplier, and the widest angle (deg) that still
+  /// counts as a clean landing (must stay under [oneFootToleranceDeg]).
+  static const List<double> springBounceScale = [
+    1.0, 1.06, 1.13, 1.22, 1.33, 1.45, //
+  ];
+  static const List<double> springToleranceDeg = [20, 22, 25, 28, 31, 34];
 
-  /// Energy core: spin energy per turn +10% and energy cap +0.25 turn per
-  /// level. The total extra bounce from spin energy is capped (m/s).
-  static const double corePerTurnPerLevel = 0.10;
-  static const double coreCapPerLevel = 0.25;
+  /// Arms: share of the base counter-spin and release times (lower =
+  /// snappier control).
+  static const List<double> gyroTimeShare = [
+    1.0, 0.9, 0.79, 0.67, 0.54, 0.4, //
+  ];
+
+  /// Core: spin energy per turn multiplier, and the tank size in turns.
+  /// Total extra bounce from energy is capped at [coreMaxExtraBounce] (m/s).
+  static const List<double> corePerTurnScale = [
+    1.0, 1.12, 1.26, 1.42, 1.6, 1.8, //
+  ];
+  static const List<double> coreTankTurns = [2.5, 2.6, 2.8, 3.0, 3.2, 3.5];
   static const double coreMaxExtraBounce = 22.0;
 
-  /// Rocket head: launch speed +8% and rocket burn +0.08 s per level.
-  static const double rocketSpeedPerLevel = 0.08;
-  static const double rocketSpeedMaxScale = 1.4;
-  static const double rocketBurnPerLevel = 0.08;
-  static const double rocketBurnMax = 0.9;
+  /// Head: launch speed multiplier (kick and caps), rocket burn time (s)
+  /// and rocket thrust (m/s²). Every head got stronger in 1.1.0 (tier 0
+  /// burn 0.5 → 0.6 s, thrust 14 → 16), and the top head flies at least
+  /// twice as far as tier 0 (test/robot_stats_test.dart).
+  static const List<double> rocketSpeedScale = [
+    1.0, 1.08, 1.17, 1.27, 1.38, 1.5, //
+  ];
+  static const List<double> rocketBurnTime = [0.6, 0.7, 0.8, 0.95, 1.1, 1.3];
+  static const List<double> rocketThrust = [16, 16.5, 17, 18, 19, 20];
 
   // ---------------------------------------------------------------- Gadgets
   // Extra helpers bought in the Workshop's Gadgets tab (see
