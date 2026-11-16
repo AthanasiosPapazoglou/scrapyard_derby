@@ -478,11 +478,13 @@ abstract final class Tuning {
   // steeper and bumpier, so landing angles vary more, and pay more scrap.
   // Part tier N can be bought once level N is unlocked.
   // Star distances come from tool/progression_report_test.dart (P7, then
-  // Block 3 V12 in docs/ROADMAP.md): with every slot at the level's tier,
-  // star 1 is ~60-80% of a skill-0.4 bot's average (kept at the 1.0.0
-  // values so no save loses an unlock), star 2 ~65-85% of skill 0.7, star
-  // 3 ~90-100% of skill 0.9. Level 6 is the harshest. damageScale grows
-  // faster than body HP (V12), since the other upgrades are strong too.
+  // V12 and 1.1.1 W6 in docs/ROADMAP.md): with every slot at the level's
+  // tier, a skill-0.4 bot averages about 1 star on every level, skill 0.7
+  // about 2, and skill 0.9 2-3 (fewer third stars on later levels). Star
+  // 1 never went up (no save loses an unlock); 1.1.1 lowered star 1 on
+  // levels 4-6 and star 3 everywhere. damageScale grows faster than body
+  // HP (V12) and is set so the same skill goes about 2% less far on each
+  // level (level 6 the harshest).
   //
   // Bump scale check: the ground must never go uphill. The bumps' steepest
   // possible slope is about 0.51 × bumpScale; keep it below tan(slopeDeg)
@@ -492,7 +494,7 @@ abstract final class Tuning {
       name: 'Rust Hollow',
       slopeDeg: 35,
       bumpScale: 1.0,
-      starDistances: [1600, 3900, 5500],
+      starDistances: [1600, 3900, 5300],
       scrapMultiplier: 1.0,
       partTier: 1,
     ),
@@ -500,7 +502,7 @@ abstract final class Tuning {
       name: 'Cinder Flats',
       slopeDeg: 36,
       bumpScale: 1.2,
-      starDistances: [1650, 3950, 5550],
+      starDistances: [1650, 3950, 5350],
       scrapMultiplier: 1.3,
       partTier: 2,
       damageScale: 1.5,
@@ -509,7 +511,7 @@ abstract final class Tuning {
       name: 'Smog Ridge',
       slopeDeg: 38,
       bumpScale: 1.4,
-      starDistances: [1700, 4000, 5600],
+      starDistances: [1700, 4000, 5400],
       scrapMultiplier: 1.7,
       partTier: 3,
       damageScale: 2.0,
@@ -518,28 +520,28 @@ abstract final class Tuning {
       name: 'Crusher Pass',
       slopeDeg: 40,
       bumpScale: 1.55,
-      starDistances: [1800, 4050, 5650],
+      starDistances: [1750, 4050, 5450],
       scrapMultiplier: 2.2,
       partTier: 4,
-      damageScale: 2.5,
+      damageScale: 2.9,
     ),
     LevelTuning(
       name: 'Furnace Drop',
       slopeDeg: 42,
       bumpScale: 1.7,
-      starDistances: [1900, 4100, 5700],
+      starDistances: [1800, 4100, 5500],
       scrapMultiplier: 2.6,
       partTier: 5,
-      damageScale: 3.0,
+      damageScale: 3.55,
     ),
     LevelTuning(
       name: 'Obsidian Maw',
       slopeDeg: 44,
       bumpScale: 1.85,
-      starDistances: [2000, 4150, 5750],
+      starDistances: [1850, 4150, 5550],
       scrapMultiplier: 3.0,
       partTier: 5,
-      damageScale: 3.5,
+      damageScale: 3.95,
     ),
   ];
 
