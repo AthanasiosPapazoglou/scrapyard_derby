@@ -65,7 +65,10 @@ class DerbyButton extends StatelessWidget {
                 Icon(icon, size: fontSize + 4),
                 const SizedBox(width: 6),
               ],
-              Text(label),
+              // Shrinks rather than overflowing on narrow screens.
+              Flexible(
+                child: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+              ),
             ],
           ),
           if (!enabled && disabledNote != null)

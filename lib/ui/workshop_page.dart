@@ -14,7 +14,8 @@ import '../profile/player_profile.dart';
 import 'crt.dart';
 import 'derby_route.dart';
 import 'derby_button.dart';
-import 'outlined_text.dart';
+import 'layout.dart';
+import 'page_header.dart';
 import 'robot_figure.dart';
 import 'robot_stats_page.dart';
 
@@ -125,97 +126,164 @@ class _WorkshopPageState extends State<WorkshopPage> {
     // being browsed, which shows the part you're looking at.
     int tryOn(UpgradeTrack track) =>
         !_gadgets && track == _slot ? _viewTier : _installed(track);
+    final bay = _RobotBay(
+      look: sprites?.look(tryOn),
+      tryingOn: _gadgets || _viewTier == _installed(_slot)
+          ? null
+          : _slot.partName(_viewTier),
+    );
+    final tabs = _SlotTabs(
+      selected: _slot,
+      installedOf: _installed,
+      onSelect: _selectSlot,
+      gadgetsSelected: _gadgets,
+      gadgetsOwned: Gadget.values
+          .where((g) => _profile.gadgetLevel(g) > 0)
+          .length,
+      onGadgets: _openGadgets,
+    );
+    final gadgetList = _GadgetList(profile: _profile, onBuy: _buyGadget);
+    _PartCard card(int tier) => _PartCard(
+      sprite: sprites?.part(_slot, tier),
+      name: _slot.partName(tier),
+      tier: tier,
+      installed: _installed(_slot),
+      selected: tier == _viewTier,
+      onTap: () => _viewPart(tier),
+    );
+    final details = _PartDetails(
+      slot: _slot,
+      tier: _viewTier,
+      installed: _installed(_slot),
+      canBuy: _profile.canBuy(_slot),
+      maxTier: _profile.maxPartTier,
+      onBuy: _buy,
+    );
+    const tiers = Tuning.upgradeMaxLevel + 1;
+
     return Column(
       children: [
-        _Header(
-          scrap: _profile.scrap,
+        PageHeader(
+          title: 'WORKSHOP',
           onBack: () => Navigator.of(context).pop(),
-          onStats: () => Navigator.of(context).push(
-            DerbyRoute<void>(builder: (_) => RobotStatsPage(profile: _profile)),
-          ),
+          trailing: [
+            _StatsButton(
+              onPressed: () => Navigator.of(context).push(
+                DerbyRoute<void>(
+                  builder: (_) => RobotStatsPage(profile: _profile),
+                ),
+              ),
+            ),
+            HeaderCount(
+              icon: Icons.settings,
+              text: '${_profile.scrap}',
+              label: 'Scrap',
+            ),
+          ],
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: _RobotBay(
-                    look: sprites?.look(tryOn),
-                    tryingOn: _gadgets || _viewTier == _installed(_slot)
-                        ? null
-                        : _slot.partName(_viewTier),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 7,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SlotTabs(
-                        selected: _slot,
-                        installedOf: _installed,
-                        onSelect: _selectSlot,
-                        gadgetsSelected: _gadgets,
-                        gadgetsOwned: Gadget.values
-                            .where((g) => _profile.gadgetLevel(g) > 0)
-                            .length,
-                        onGadgets: _openGadgets,
+            child: OrientationSwitch(
+              // Portrait: the bay on top, then tabs, a scrolling strip of
+              // parts and the details, stacked.
+              portrait: (context) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(flex: _gadgets ? 2 : 3, child: bay),
+                  const SizedBox(height: 8),
+                  tabs,
+                  const SizedBox(height: 8),
+                  if (_gadgets)
+                    Expanded(flex: 4, child: gadgetList)
+                  else ...[
+                    SizedBox(
+                      height: 118,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          for (var tier = 0; tier < tiers; tier++)
+                            SizedBox(width: 84, child: card(tier)),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      if (_gadgets)
-                        Expanded(
-                          child: _GadgetList(
-                            profile: _profile,
-                            onBuy: _buyGadget,
-                          ),
-                        )
-                      else ...[
-                        SizedBox(
-                          height: 124,
-                          child: Row(
-                            children: [
-                              for (
-                                var tier = 0;
-                                tier <= Tuning.upgradeMaxLevel;
-                                tier++
-                              )
-                                Expanded(
-                                  child: _PartCard(
-                                    sprite: sprites?.part(_slot, tier),
-                                    name: _slot.partName(tier),
-                                    tier: tier,
-                                    installed: _installed(_slot),
-                                    selected: tier == _viewTier,
-                                    onTap: () => _viewPart(tier),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    details,
+                  ],
+                ],
+              ),
+              // Landscape: the bay on the left, everything else right.
+              landscape: (context) => Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(flex: 4, child: bay),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 7,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        tabs,
                         const SizedBox(height: 8),
-                        Expanded(
-                          child: _PartDetails(
-                            slot: _slot,
-                            tier: _viewTier,
-                            installed: _installed(_slot),
-                            canBuy: _profile.canBuy(_slot),
-                            maxTier: _profile.maxPartTier,
-                            onBuy: _buy,
+                        if (_gadgets)
+                          Expanded(child: gadgetList)
+                        else ...[
+                          // Cards grow with the space, up to 124 px tall.
+                          Flexible(
+                            flex: 5,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 124),
+                              child: Row(
+                                children: [
+                                  for (var tier = 0; tier < tiers; tier++)
+                                    Expanded(child: card(tier)),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          Expanded(flex: 4, child: details),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "All stats" in the header; just the icon on narrow portrait screens.
+class _StatsButton extends StatelessWidget {
+  const _StatsButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    void open() {
+      Sound.play(Sfx.uiClick);
+      onPressed();
+    }
+
+    if (context.isPortrait) {
+      return IconButton(
+        onPressed: open,
+        tooltip: 'All stats',
+        icon: const Icon(Icons.bar_chart, color: Palette.hazard),
+      );
+    }
+    return TextButton.icon(
+      onPressed: open,
+      icon: const Icon(Icons.bar_chart, color: Palette.hazard),
+      label: const Text(
+        'All stats',
+        style: TextStyle(color: Palette.cream, fontWeight: FontWeight.w800),
+      ),
     );
   }
 }
@@ -228,54 +296,6 @@ abstract final class _Garage {
   static const panelEdge = Color(0xFF3A4050);
   static const card = Color(0xFFF3E9DC);
   static const spotlight = Color(0x66FCD98A);
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.scrap,
-    required this.onBack,
-    required this.onStats,
-  });
-
-  final int scrap;
-  final VoidCallback onBack;
-  final VoidCallback onStats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 2, 16, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onBack,
-            tooltip: 'Back',
-            icon: const Icon(Icons.arrow_back, color: Palette.cream, size: 28),
-          ),
-          const OutlinedText('WORKSHOP', fontSize: 28, color: Palette.hazard),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: () {
-              Sound.play(Sfx.uiClick);
-              onStats();
-            },
-            icon: const Icon(Icons.bar_chart, color: Palette.hazard),
-            label: const Text(
-              'All stats',
-              style: TextStyle(
-                color: Palette.cream,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Icon(Icons.settings, color: Palette.hazard, size: 22),
-          const SizedBox(width: 6),
-          OutlinedText('$scrap Scrap', fontSize: 22, color: Palette.cream),
-        ],
-      ),
-    );
-  }
 }
 
 /// The robot standing in a spotlight, with a caption when trying a part on.
@@ -473,19 +493,23 @@ class _SlotTab extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Column(
-            children: [
-              Text(
-                name.toUpperCase(),
-                style: TextStyle(
-                  color: fg,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
+          // Shrinks to fit narrow tabs (portrait phones).
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              children: [
+                Text(
+                  name.toUpperCase(),
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
                 ),
-              ),
-              _TierPips(tier: pips, max: maxPips, color: fg),
-            ],
+                _TierPips(tier: pips, max: maxPips, color: fg),
+              ],
+            ),
           ),
         ),
       ),
@@ -631,26 +655,29 @@ class _PartCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (state == _CardState.forSale)
-                    const Icon(
-                      Icons.settings,
-                      size: 11,
-                      color: Palette.rustShadow,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (state == _CardState.forSale)
+                      const Icon(
+                        Icons.settings,
+                        size: 11,
+                        color: Palette.rustShadow,
+                      ),
+                    if (locked)
+                      const Icon(Icons.lock, size: 11, color: Palette.steel),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: labelColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  if (locked)
-                    const Icon(Icons.lock, size: 11, color: Palette.steel),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: labelColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -742,49 +769,63 @@ class _GadgetRow extends StatelessWidget {
     final readout = price == null
         ? gadget.effect(level)
         : '${gadget.effect(level)}  →  ${gadget.effect(level + 1)}';
-    return Row(
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    gadget.name,
-                    style: TextStyle(
-                      color: unlocked ? Palette.cream : Palette.steelLight,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  _TierPips(
-                    tier: level,
-                    max: Tuning.gadgetMaxLevel,
-                    color: unlocked ? Palette.hazard : Palette.steelLight,
-                  ),
-                ],
-              ),
-              Text(
-                gadget.description,
-                style: const TextStyle(color: Palette.steelLight, fontSize: 11),
-              ),
-              Text(
-                readout,
-                style: const TextStyle(
-                  color: Crt.green,
-                  fontFamily: Crt.font,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                gadget.name,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked ? Palette.cream : Palette.steelLight,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: 6),
+            _TierPips(
+              tier: level,
+              max: Tuning.gadgetMaxLevel,
+              color: unlocked ? Palette.hazard : Palette.steelLight,
+            ),
+          ],
+        ),
+        Text(
+          gadget.description,
+          style: const TextStyle(color: Palette.steelLight, fontSize: 11),
+        ),
+        Text(
+          readout,
+          style: const TextStyle(
+            color: Crt.green,
+            fontFamily: Crt.font,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(width: 8),
-        action,
       ],
+    );
+    // Narrow: the action goes under the text.
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth < 400
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                info,
+                const SizedBox(height: 6),
+                Align(alignment: Alignment.centerRight, child: action),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: info),
+                const SizedBox(width: 8),
+                action,
+              ],
+            ),
     );
   }
 }
@@ -853,6 +894,42 @@ class _PartDetails extends StatelessWidget {
         ),
       );
     }
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          slot.partName(tier),
+          style: const TextStyle(
+            color: Palette.cream,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(
+          slot.description,
+          style: const TextStyle(color: Palette.steelLight, fontSize: 12),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Crt.background,
+            border: Border.all(color: Crt.dim, width: 1.5),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            tier == installed ? now : '$now  →  $then',
+            style: const TextStyle(
+              color: Crt.green,
+              fontFamily: Crt.font,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
       decoration: BoxDecoration(
@@ -860,55 +937,35 @@ class _PartDetails extends StatelessWidget {
         border: Border.all(color: _Garage.panelEdge, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+      // Narrow: the action goes under the text. Short: the text scrolls
+      // rather than overflowing.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 340) {
+            final stacked = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  slot.partName(tier),
-                  style: const TextStyle(
-                    color: Palette.cream,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  slot.description,
-                  style: const TextStyle(
-                    color: Palette.steelLight,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Crt.background,
-                    border: Border.all(color: Crt.dim, width: 1.5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    tier == installed ? now : '$now  →  $then',
-                    style: const TextStyle(
-                      color: Crt.green,
-                      fontFamily: Crt.font,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+                info,
+                const SizedBox(height: 8),
+                Center(child: action),
               ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          action,
-        ],
+            );
+            // Scrolls only when given a fixed height (landscape).
+            return constraints.hasBoundedHeight
+                ? SingleChildScrollView(child: stacked)
+                : stacked;
+          }
+          return Row(
+            children: [
+              Expanded(
+                child: Center(child: SingleChildScrollView(child: info)),
+              ),
+              const SizedBox(width: 10),
+              action,
+            ],
+          );
+        },
       ),
     );
   }
