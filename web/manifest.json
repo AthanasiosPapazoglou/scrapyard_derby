@@ -1,11 +1,11 @@
 {
-    "name": "scrapyard_derby",
-    "short_name": "scrapyard_derby",
+    "name": "Scrapyard Derby",
+    "short_name": "Scrapyard Derby",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#15426B",
     "theme_color": "#15426B",
-    "description": "A new Flutter project.",
+    "description": "One thumb, one junkyard robot, one very long hill.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
