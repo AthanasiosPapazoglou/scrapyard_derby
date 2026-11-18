@@ -690,6 +690,31 @@ abstract final class Tuning {
   /// bumps count less.
   static const List<double> levelerSpans = [1.0, 2.0, 3.0];
 
+  // ---------------------------------------------------------------- Tutorial
+  // The guided first run (lib/game/coach.dart): level 1, until played once.
+
+  /// Game speed while the coach waits for the first hold (in the air).
+  static const double coachHoldSlow = 0.12;
+
+  /// Seconds (real time) of holding that count as "got it".
+  static const double coachHoldTime = 0.5;
+
+  /// Game speed while the Landing Sight shows during the "land on both
+  /// feet" step, so there is time to read it.
+  static const double coachSightSlow = 0.45;
+
+  /// Landings after which the "land on both feet" step moves on even
+  /// without a clean one (no getting stuck).
+  static const int coachLandTries = 5;
+
+  /// Seconds (real time) the energy and damage cards stay up.
+  static const double coachEnergyTime = 5;
+  static const double coachDamageTime = 4;
+
+  /// How fast the game eases into and out of the coach's slow-downs
+  /// (per second; higher = snappier).
+  static const double coachSlowEase = 6;
+
   // ---------------------------------------------------------------- Background
   /// Parallax layers of distant scrap heaps, far to near: how much each
   /// moves with the camera (0 = not at all, 1 = like the ground).

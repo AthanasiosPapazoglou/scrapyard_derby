@@ -47,6 +47,7 @@ class PlayerProfile extends ChangeNotifier {
     this._hapticsOn = Tuning.hapticsEnabled,
     this._showDebugInfo = false,
     this._showLandingSight = true,
+    this._firstRunCoached = false,
   }) : _levelBest = Map.of(levelBest),
        _upgradeLevels = Map.of(upgradeLevels),
        _gadgetLevels = Map.of(gadgetLevels);
@@ -55,7 +56,9 @@ class PlayerProfile extends ChangeNotifier {
   /// v2: best distance per level (v1 had one best, now level 1's).
   /// v3 (1.1.0): the Landing Sight gadget is built in; saves that bought
   /// it get the scrap back ([Tuning.retiredGadgetPrices]).
-  static const int jsonVersion = 3;
+  /// v4 (1.1.2): tutorial flags; saves from before count as coached if
+  /// they have played a run.
+  static const int jsonVersion = 4;
 
   static const double defaultMusicVolume = 0.7;
   static const double defaultSfxVolume = 0.8;
@@ -69,6 +72,7 @@ class PlayerProfile extends ChangeNotifier {
   bool _hapticsOn;
   bool _showDebugInfo;
   bool _showLandingSight;
+  bool _firstRunCoached;
 
   /// Best distance on [level], in meters (0 = never played).
   double bestOn(int level) => _levelBest[level] ?? 0;
@@ -278,6 +282,17 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// True once the guided first run (lib/game/coach.dart) has been played
+  /// or skipped. Settings > How to play sets it back to false.
+  bool get firstRunCoached => _firstRunCoached;
+  set firstRunCoached(bool value) {
+    if (value == _firstRunCoached) {
+      return;
+    }
+    _firstRunCoached = value;
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------- JSON
 
   Map<String, Object?> toJson() => {
@@ -295,6 +310,7 @@ class PlayerProfile extends ChangeNotifier {
       'showDebugInfo': _showDebugInfo,
       'showLandingSight': _showLandingSight,
     },
+    'tutorial': {'firstRun': _firstRunCoached},
   };
 
   /// Reads saved data. Missing, unknown or wrongly typed values fall back to
@@ -305,6 +321,8 @@ class PlayerProfile extends ChangeNotifier {
     final upgrades = json['upgrades'];
     final levelBest = json['levelBest'];
     final gadgets = json['gadgets'];
+    final tutorial = json['tutorial'];
+    final t = tutorial is Map ? tutorial : const {};
     final gadgetLevels = <String, int>{
       if (gadgets is Map)
         for (final MapEntry(:key, :value) in gadgets.entries)
@@ -340,6 +358,11 @@ class PlayerProfile extends ChangeNotifier {
       hapticsOn: _bool(s['hapticsOn'], Tuning.hapticsEnabled),
       showDebugInfo: _bool(s['showDebugInfo'], false),
       showLandingSight: _bool(s['showLandingSight'], true),
+      // Saves from before the tutorial: whoever has played knows how.
+      firstRunCoached: _bool(
+        t['firstRun'],
+        levelBest is Map && levelBest.isNotEmpty || json['bestDistance'] is num,
+      ),
     );
   }
 
