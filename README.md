@@ -35,6 +35,9 @@ Your robot is dropped onto a steep, bumpy hill of scrap and starts **spinning cl
 - 🎯 **Not sure how you'll land?** The built-in **Landing Sight** shows it just before touchdown: a gauge beside the robot
   and a marker on the ground, green for clean, amber for one foot, red for a crash. (Settings can hide it.)
 
+New here? Your first run on **Rust Hollow** is guided: the game slows almost to a stop until you try each move,
+and each menu page points out what matters the first time you open it. **Settings → How to play** replays it all.
+
 The feel is deliberately calm and floaty: the whole game runs a little slowed down, the jumps are tall,
 and the camera zooms out to keep both the robot and the ground in view, drawing the robot bigger the higher it flies
 so it never shrinks to a speck.
@@ -118,8 +121,12 @@ standard-library Python scripts in [`art/`](art/):
 | `make_parts.py` | all 30 Workshop parts (vector SVGs, drawn around their joint pivots) |
 | `make_sfx.py` | retro synth sound effects: landings, limb breaks, the rocket |
 | `make_music.py` | seven music loops (one for the menus, one per level), seamless and deterministic |
+| `make_icon.py` | the app icon: the scrap robot's head peeking over the dusk hill (Android adaptive, iOS, web) |
 
 The scenery (sky, parallax scrap heaps, dirt, weather particles) is drawn in code, one colour theme per level.
+
+The game opens on the **Thanos Productions** creator splash (a pixel-art badge and wordmark, also generated),
+which lives in its own private package shared by every Thanos Productions app.
 
 ## Run it
 
@@ -128,6 +135,8 @@ which is rebuilt and published automatically on every push to `main`
 (see [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml)).
 
 To run it yourself you'll need [Flutter](https://docs.flutter.dev/get-started/install) (Dart 3) and a phone, emulator, simulator or browser.
+The creator splash comes from a private package (`thanos_productions`), so `flutter pub get` needs read access to it;
+without that, the game can't be built.
 
 ```bash
 flutter pub get
@@ -145,6 +154,7 @@ flutter test                                     # unit, widget and headless-phy
 flutter test tool/simulate_runs_test.dart        # balance report: bots of different skill
 flutter test tool/progression_report_test.dart   # every level × tier × skill (slow)
 flutter test tool/head_flight_report_test.dart --timeout none   # how far the launched head flies
+flutter test tool/render_icons_test.dart         # app icon SVGs -> every platform's PNGs
 ```
 
 The balance tools play full runs of the real game, physics and all, with an autopilot
@@ -157,6 +167,7 @@ python3 art/make_style_test.py art assets/robot
 python3 art/make_parts.py
 python3 art/make_sfx.py
 python3 art/make_music.py
+python3 art/make_icon.py && flutter test tool/render_icons_test.dart
 ```
 
 ## Under the hood
@@ -177,7 +188,8 @@ python3 art/make_music.py
 
 ## Status
 
-**In development (version 1.1.1).** Fully playable: six levels, stars, Workshop, gadgets, generated art and music.
+**In development (version 1.1.2).** Fully playable: six levels, stars, Workshop, gadgets, generated art and music.
+1.1.2 added the Thanos Productions creator splash, a guided first run with tips on every page, and a real app icon.
 1.1.1 brought a tighter camera, a clearer landing marker, a head launch that flies true,
 part spec sheets with a new stat per slot, and a rebalance so every level is a little meaner than the last.
 Next up: an Android build checked on a real phone, then store prep.

@@ -1052,7 +1052,7 @@ developer.
 
 | # | Question | Default |
 |---|---|---|
-| D37 | Splash home | Its own **private** GitHub repo `thanos_productions` (a Flutter package), local copy next to this project (`../thanos_productions`). Apps add it as a git dependency (SSH URL; local `pub get` uses the developer's own GitHub access). Until the repo exists, this game uses a path dependency on the branch only (CI runs on `main` only). |
+| D37 | Splash home | Its own **private** GitHub repo `thanos_productions` (a Flutter package), local copy next to this project (`../thanos_productions`). Apps add it as a git dependency on its HTTPS URL with a version tag (local `pub get` uses the developer's own GitHub login from the keychain; CI loads a read-only deploy key and rewrites github.com HTTPS URLs to SSH). |
 | D38 | Splash look | The developer's pixel-art GitHub avatar itself, pixel for pixel (22 × 22), in a pixel badge with an ink border and stepped corners, over a two-line "THANOS / PRODUCTIONS" wordmark in a matching chunky pixel font (ink outline, drop shade, highlight; yellow / white). Generated as Dart pixel data by a stdlib Python script in the package (no fonts, no image files). (First try was a cartoon redraw; the developer asked for the avatar itself.) |
 | D39 | Splash motion | ~2.6 s: badge pops in with a squash-and-stretch bounce, a stepped shine sweeps across it and the glasses sparkle, THANOS letters hop in by whole pixels, PRODUCTIONS hops in, a short hold, fade to the app. Tap to skip. One soft synth "ding" (generated), respects the app's mute. Shown on every cold start. Works in portrait and landscape. |
 | D40 | No white flash | Native launch screens (Android, iOS, web) use the splash's background colour, so the OS splash hands over to the Flutter splash seamlessly. Set by hand, no extra package. |
@@ -1176,9 +1176,29 @@ developer.
   the robot, list scrolled to gadgets). Level select tour covered by
   tests only.
 
-### X6 — Private dependency in CI, docs, version  ☐
-- Developer creates the private `thanos_productions` repo and a read-only
-  deploy key (exact commands given); switch the game to the git
-  dependency; `deploy-web.yml` loads the key from a repo secret
-  (`webfactory/ssh-agent`, free). README (splash, tutorial, icon),
-  version D43.
+### X6 — Private dependency in CI, docs, version  ☑
+- Done: the developer pushed the package to the private repo
+  `AthanasiosPapazoglou/thanos_productions` (404 when signed out) with
+  tag `v0.1.0`; the game depends on it by HTTPS URL + `ref: v0.1.0`
+  (resolved 331c71b). `deploy-web.yml` loads the secret
+  `THANOS_PRODUCTIONS_DEPLOY_KEY` with `webfactory/ssh-agent@v0.9.0`
+  (free, standard runner) and rewrites `https://github.com/` to SSH
+  before `flutter pub get`. README: creator splash, guided first run /
+  How to play, `make_icon.py` and the icon render tool, status 1.1.2.
+  Version 1.1.2+4. Analyze clean, 244 tests, `flutter build web` with
+  the workflow's flags passes locally.
+- Developer added a read-only deploy key on `thanos_productions` and its
+  private half as the `THANOS_PRODUCTIONS_DEPLOY_KEY` secret on
+  `scrapyard_derby` (Nov 18). Not proven until the first web build on
+  `main`: check the Actions tab after the merge.
+- Updating the brand kit later: commit and tag a new version in
+  `thanos_productions` (e.g. `v0.2.0`), then bump `ref:` here.
+
+## Block 5 status (Nov 18, 2026)
+
+All 6 steps done on branch `v1.1.2` (version 1.1.2+4). Open:
+- Merging `v1.1.2` into `main` publishes the web build (developer's
+  call); the first run proves the deploy key works.
+- Not checked on a device: Android (launcher icon, Android 12+ splash,
+  splash ding), the web tab icon. Developer playtest of the guided first
+  run and tours, both orientations.

@@ -6,6 +6,8 @@
 #
 # One-time setup on GitHub: Settings -> Pages -> Build and deployment ->
 # Source: "GitHub Actions". It can also be run by hand from the Actions tab.
+# Since 1.1.2 it also needs the THANOS_PRODUCTIONS_DEPLOY_KEY secret (see
+# the "Load the brand kit deploy key" step).
 name: Deploy web build to GitHub Pages
 
 on:
@@ -36,6 +38,19 @@ jobs:
           channel: stable
           flutter-version: 3.47.9
           cache: true
+
+      # The Thanos Productions splash is a private package
+      # (github.com/AthanasiosPapazoglou/thanos_productions). A read-only
+      # deploy key on that repo, stored here as the secret
+      # THANOS_PRODUCTIONS_DEPLOY_KEY, lets pub fetch it: the key is
+      # loaded into an SSH agent and github.com HTTPS URLs go over SSH.
+      - name: Load the brand kit deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.THANOS_PRODUCTIONS_DEPLOY_KEY }}
+
+      - name: Fetch private packages over SSH
+        run: git config --global url."git@github.com:".insteadOf "https://github.com/"
 
       - name: Get packages
         run: flutter pub get
