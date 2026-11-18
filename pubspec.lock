@@ -768,9 +768,11 @@ packages:
   thanos_productions:
     dependency: "direct main"
     description:
-      path: "../thanos_productions"
-      relative: true
-    source: path
+      path: "."
+      ref: "v0.1.0"
+      resolved-ref: "331c71bb5f356c22c11a30cda5579bb7984e361c"
+      url: "https://github.com/AthanasiosPapazoglou/thanos_productions.git"
+    source: git
     version: "0.1.0"
   typed_data:
     dependency: transitive
