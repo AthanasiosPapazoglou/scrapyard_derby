@@ -198,6 +198,43 @@ void main() {
     });
   });
 
+  group('tutorial flag', () {
+    test('a new player has not had the guided first run', () {
+      expect(PlayerProfile().firstRunCoached, isFalse);
+      expect(PlayerProfile.fromJson(const {}).firstRunCoached, isFalse);
+    });
+
+    test('it is saved and loaded', () {
+      final p = PlayerProfile()..firstRunCoached = true;
+      final back = PlayerProfile.fromJson(p.toJson());
+      expect(back.firstRunCoached, isTrue);
+      back.firstRunCoached = false;
+      expect(PlayerProfile.fromJson(back.toJson()).firstRunCoached, isFalse);
+    });
+
+    test('older saves that have played count as coached', () {
+      expect(
+        PlayerProfile.fromJson(const {
+          'version': 3,
+          'levelBest': {'1': 420.0},
+        }).firstRunCoached,
+        isTrue,
+      );
+      expect(
+        PlayerProfile.fromJson(const {'version': 1, 'bestDistance': 300.0})
+            .firstRunCoached,
+        isTrue,
+      );
+      expect(
+        PlayerProfile.fromJson(const {
+          'version': 3,
+          'levelBest': <String, Object?>{},
+        }).firstRunCoached,
+        isFalse,
+      );
+    });
+  });
+
   group('ProfileStore', () {
     test('saves on every change and loads it back', () async {
       SharedPreferences.setMockInitialValues({});

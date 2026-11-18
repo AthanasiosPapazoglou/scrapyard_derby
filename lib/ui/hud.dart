@@ -6,6 +6,7 @@ import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
+import 'coach_card.dart';
 import 'debug_overlay.dart';
 import 'hud_buttons.dart';
 import 'layout.dart';
@@ -132,6 +133,11 @@ class Hud extends StatelessWidget {
                   ),
                 ),
               ),
+              // The tutorial (first run on level 1).
+              if (info.coach case final card? when info.result == null)
+                Positioned.fill(
+                  child: CoachOverlay(card: card, onSkip: game.skipTutorial),
+                ),
               if (info.result case final result?)
                 Center(
                   child: FittedBox(

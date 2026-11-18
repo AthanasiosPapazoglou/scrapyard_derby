@@ -14,6 +14,7 @@ import 'damage.dart';
 import 'effects.dart';
 import 'hill.dart';
 import 'landing.dart';
+import 'coach.dart';
 import 'landing_sight.dart';
 import 'levels.dart';
 import 'palette.dart';
@@ -86,6 +87,7 @@ class HudInfo {
     this.starsPassed = 0,
     this.comboSteps = 0,
     this.comboMax = 0,
+    this.coach,
     this.result,
   });
 
@@ -122,6 +124,9 @@ class HudInfo {
   /// can reach (0 = no Combo Coil).
   final int comboSteps;
   final int comboMax;
+
+  /// The tutorial card to show (first run only; null = none).
+  final CoachCard? coach;
 
   /// Set once the run is over.
   final RunResult? result;
@@ -187,7 +192,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     await world.add(
       Hill(hillGeometry, focusX: _focusX, theme: theme)..priority = 1,
     );
-    await world.add(LandingSight());
+    await world.add(_sight);
+    _coach = _newCoach();
     // A flag at each star distance (distance is measured from the start).
     final targets = Levels.of(level).starDistances;
     for (var i = 0; i < targets.length; i++) {
@@ -199,6 +205,28 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
         ),
       );
     }
+  }
+
+  final LandingSight _sight = LandingSight();
+
+  /// The guided first run (level 1, until played once; never for bots).
+  Coach? _coach;
+  Coach? get coach => _coach;
+
+  Coach? _newCoach() => level == 1 && !profile.firstRunCoached
+      ? Coach(onFinished: () => profile.firstRunCoached = true)
+      : null;
+
+  /// Ends the tutorial (its Skip button).
+  void skipTutorial() {
+    _coach?.skip();
+    _publishHud();
+  }
+
+  /// The coach's slow-down, when it is running for a person.
+  double get _coachFactor {
+    final coach = _coach;
+    return coach == null || autopilot != null ? 1 : coach.timeScale;
   }
 
   /// Where the hill should be built: around the robot.
@@ -240,6 +268,10 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
+    // A fresh run starts the tutorial over, unless it was finished.
+    if (_coach != null && !_coach!.finished) {
+      _coach = _newCoach();
+    }
     hud.value = HudInfo(bestDistance: profile.bestOn(level));
   }
 
@@ -248,7 +280,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// stuck timer) still gets real time, so the camera stays smooth.
   @override
   void updateTree(double dt) =>
-      super.updateTree(dt * Tuning.gameSpeed * _slowMoFactor);
+      super.updateTree(dt * Tuning.gameSpeed * _slowMoFactor * _coachFactor);
 
   /// Slows the game right after the head launch, easing back to normal
   /// (see [Tuning.headLaunchSlowMo]).
@@ -289,7 +321,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       playerHolds = pilot.decide(
         robot.flightState,
         hillGeometry,
-        dt: dt * Tuning.gameSpeed * _slowMoFactor,
+        dt: dt * Tuning.gameSpeed * _slowMoFactor * _coachFactor,
         onGround: robot.isOnGround,
         stats: robot.stats,
       );
@@ -309,11 +341,44 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       _checkStarsPassed();
       _checkRunEnd(dt);
     }
+    _updateCoach(dt, playerHolds);
     _updateCamera(dt);
 
     _hudTimer += dt;
     if (_hudTimer >= 0.1) {
       _hudTimer = 0;
+      _publishHud();
+    }
+  }
+
+  /// Feeds the tutorial what happened this frame; republishes the HUD when
+  /// its card changes.
+  void _updateCoach(double dt, bool playerHolds) {
+    final coach = _coach;
+    if (coach == null || coach.finished || autopilot != null) {
+      return;
+    }
+    final before = coach.card;
+    final stats = robot.runStats;
+    final clean = stats.landingsOf(LandingType.clean);
+    final bad =
+        stats.landingsOf(LandingType.oneFoot) +
+        stats.landingsOf(LandingType.crash);
+    coach.update(
+      dt,
+      CoachInput(
+        hasTouchedDown: robot.hasTouchedDown,
+        onGround: robot.isOnGround,
+        playerHolding: playerHolds,
+        landings: clean + bad,
+        cleanLandings: clean,
+        badLandings: bad,
+        sightShowing: _sight.showing,
+        headLaunched: robot.headLaunched,
+        runOver: _result != null,
+      ),
+    );
+    if (coach.card != before) {
       _publishHud();
     }
   }
@@ -430,6 +495,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       starsPassed: _starsPassed,
       comboSteps: robot.comboSteps,
       comboMax: robot.stats.comboCoilSteps,
+      coach: autopilot == null ? _coach?.card : null,
       result: _result,
     );
   }

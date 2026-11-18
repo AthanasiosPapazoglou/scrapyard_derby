@@ -21,6 +21,9 @@ class LandingSight extends Component with HasGameReference<DerbyGame> {
   LandingSight() : super(priority: 6);
 
   LandingPrediction? _prediction;
+
+  /// True while the sight is on screen (the tutorial slows down for it).
+  bool get showing => _prediction != null;
   LandingType _type = LandingType.clean;
   double _slope = 0;
   Offset _robotAt = Offset.zero;

@@ -1124,9 +1124,31 @@ developer.
 - Simulator (iPhone 17 Pro Max): home screen shows the icon and the full
   name. Android launcher and the web tab not checked here.
 
-### X4 — Guided first run  ☐
-- D41 in-game part: coach cards driven by real game events, slow-down
-  until done, skippable, saved as seen. Tests with the headless simulator.
+### X4 — Guided first run  ☑
+- `lib/game/coach.dart`: plain logic fed a `CoachInput` each frame (real
+  time) by `DerbyGame._updateCoach`; the game runs at
+  `gameSpeed × slow-mo × coach.timeScale`. Steps: drop → hold (game at
+  ×0.12 in the air until the player holds 0.5 s) → release → land on both
+  feet (×0.45 while the Landing Sight shows; moves on after a clean
+  landing or 5 landings) → energy (5 s, points at the bar). Event cards:
+  first bad landing (points at the status panel, 4 s; not before the
+  hold lesson) and head launch. The run's end or Skip finishes it.
+  Numbers in tuning (Tutorial section).
+- Only on level 1, only while `PlayerProfile.firstRunCoached` is false,
+  never for bots (no slow-down, no card). Restart starts it over unless
+  finished. Save v4: `tutorial.firstRun`; older saves with any run count
+  as coached.
+- `lib/ui/coach_card.dart`: card (ink panel, hazard border, arrow towards
+  the energy bar or status panel), pulsing "hold" finger, small SKIP
+  TUTORIAL pill; the card ignores touches so holding anywhere still
+  steers. Portrait: low, above the status panel; landscape: right of the
+  status panel (a placement test caught overlaps on small landscape
+  phones).
+- Tests: `coach_test` (steps, slow-downs, fallbacks, event cards, skip,
+  run end, level/flag/bot rules, card placement on 4 phone sizes) and
+  profile flag tests. 232 tests pass.
+- Simulator (iPhone 17 Pro Max): portrait full run (hold, land, OUCH,
+  head launch cards); landscape hold card, finger placement, Skip.
 
 ### X5 — First-visit highlighters + "How to play"  ☐
 - Spotlight overlay widget, cards for Level select / Workshop / Gadgets /
