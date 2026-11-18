@@ -1196,9 +1196,16 @@ developer.
 
 ## Block 5 status (Nov 18, 2026)
 
-All 6 steps done on branch `v1.1.2` (version 1.1.2+4). Open:
-- Merging `v1.1.2` into `main` publishes the web build (developer's
-  call); the first run proves the deploy key works.
+All 6 steps done and merged into `main` (rebase merge, Nov 18;
+version 1.1.2+4).
+- Note: on `main`, commit a712149 is titled "readme update (v1.1.1)"
+  but it is the last **1.1.2** change (X6: private brand-kit
+  dependency, deploy key step, README, version 1.1.2+4). The message was
+  reused by mistake; history was not rewritten.
+- First web build after the merge failed at the deploy-key step (the
+  secret held the wrong text, "error in libcrypto"); the secret was
+  replaced with the private key and the build re-run.
+Open:
 - Not checked on a device: Android (launcher icon, Android 12+ splash,
   splash ding), the web tab icon. Developer playtest of the guided first
   run and tours, both orientations.
