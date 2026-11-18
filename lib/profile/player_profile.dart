@@ -6,6 +6,7 @@ import '../config/tuning.dart';
 import '../game/gadgets.dart';
 import '../game/levels.dart';
 import '../game/robot_stats.dart';
+import 'page_tour.dart';
 
 /// What a finished run changed on its level (see [PlayerProfile.recordRun]).
 @immutable
@@ -48,7 +49,9 @@ class PlayerProfile extends ChangeNotifier {
     this._showDebugInfo = false,
     this._showLandingSight = true,
     this._firstRunCoached = false,
-  }) : _levelBest = Map.of(levelBest),
+    Set<PageTour> toursSeen = const {},
+  }) : _toursSeen = Set.of(toursSeen),
+       _levelBest = Map.of(levelBest),
        _upgradeLevels = Map.of(upgradeLevels),
        _gadgetLevels = Map.of(gadgetLevels);
 
@@ -73,6 +76,7 @@ class PlayerProfile extends ChangeNotifier {
   bool _showDebugInfo;
   bool _showLandingSight;
   bool _firstRunCoached;
+  final Set<PageTour> _toursSeen;
 
   /// Best distance on [level], in meters (0 = never played).
   double bestOn(int level) => _levelBest[level] ?? 0;
@@ -293,6 +297,23 @@ class PlayerProfile extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// True once the page's first-visit spotlight tour was shown.
+  bool tourSeen(PageTour tour) => _toursSeen.contains(tour);
+
+  void markTourSeen(PageTour tour) {
+    if (_toursSeen.add(tour)) {
+      notifyListeners();
+    }
+  }
+
+  /// Settings > How to play: the guided first run and every page tour
+  /// play again.
+  void replayTutorials() {
+    _firstRunCoached = false;
+    _toursSeen.clear();
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------- JSON
 
   Map<String, Object?> toJson() => {
@@ -310,7 +331,10 @@ class PlayerProfile extends ChangeNotifier {
       'showDebugInfo': _showDebugInfo,
       'showLandingSight': _showLandingSight,
     },
-    'tutorial': {'firstRun': _firstRunCoached},
+    'tutorial': {
+      'firstRun': _firstRunCoached,
+      'tours': [for (final tour in _toursSeen) tour.id],
+    },
   };
 
   /// Reads saved data. Missing, unknown or wrongly typed values fall back to
@@ -323,6 +347,8 @@ class PlayerProfile extends ChangeNotifier {
     final gadgets = json['gadgets'];
     final tutorial = json['tutorial'];
     final t = tutorial is Map ? tutorial : const {};
+    final hasPlayed =
+        levelBest is Map && levelBest.isNotEmpty || json['bestDistance'] is num;
     final gadgetLevels = <String, int>{
       if (gadgets is Map)
         for (final MapEntry(:key, :value) in gadgets.entries)
@@ -359,10 +385,14 @@ class PlayerProfile extends ChangeNotifier {
       showDebugInfo: _bool(s['showDebugInfo'], false),
       showLandingSight: _bool(s['showLandingSight'], true),
       // Saves from before the tutorial: whoever has played knows how.
-      firstRunCoached: _bool(
-        t['firstRun'],
-        levelBest is Map && levelBest.isNotEmpty || json['bestDistance'] is num,
-      ),
+      firstRunCoached: _bool(t['firstRun'], hasPlayed),
+      toursSeen: switch (t['tours']) {
+        final List<Object?> ids => {
+          for (final id in ids)
+            if (id is String) ?PageTour.byId(id),
+        },
+        _ => hasPlayed ? PageTour.values.toSet() : const {},
+      },
     );
   }
 

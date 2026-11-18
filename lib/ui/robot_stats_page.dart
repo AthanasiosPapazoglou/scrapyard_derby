@@ -7,12 +7,14 @@ import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
 import '../game/stat_sheet.dart';
+import '../profile/page_tour.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
 import 'layout.dart';
 import 'outlined_text.dart';
 import 'page_header.dart';
 import 'robot_figure.dart';
+import 'spotlight_tour.dart';
 
 /// The robot's spec sheet: the robot in its installed parts with an
 /// overall power rank, one card per slot with plain-word gauges (now, the
@@ -32,24 +34,54 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
 
   PlayerProfile get _profile => widget.profile;
 
+  // First-visit tour targets.
+  final _showcaseKey = GlobalKey();
+  final _firstCardKey = GlobalKey();
+  final _gadgetsKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _Garage.floor,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_Garage.wall, _Garage.floor],
+      body: SpotlightTour(
+        tour: PageTour.stats,
+        profile: _profile,
+        steps: [
+          TourStep(
+            target: _showcaseKey,
+            title: 'YOUR ROBOT',
+            text:
+                'Its power rank goes up with every better part you '
+                'install.',
           ),
-        ),
-        child: SafeArea(
-          child: FutureBuilder<RobotSprites>(
-            future: _sprites,
-            builder: (context, snapshot) => ListenableBuilder(
-              listenable: _profile,
-              builder: (context, _) => _layout(snapshot.data),
+          TourStep(
+            target: _firstCardKey,
+            title: 'EVERY STAT',
+            text:
+                'Bars show now, the next part (light) and the best part on '
+                'sale (tick). Long-press a bar for what it means.',
+          ),
+          TourStep(
+            target: _gadgetsKey,
+            title: 'GADGETS',
+            text: 'The helpers you own, and their levels.',
+          ),
+        ],
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_Garage.wall, _Garage.floor],
+            ),
+          ),
+          child: SafeArea(
+            child: FutureBuilder<RobotSprites>(
+              future: _sprites,
+              builder: (context, snapshot) => ListenableBuilder(
+                listenable: _profile,
+                builder: (context, _) => _layout(snapshot.data),
+              ),
             ),
           ),
         ),
@@ -63,12 +95,14 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
       maxPartTier: _profile.maxPartTier,
     );
     final showcase = _Showcase(
+      key: _showcaseKey,
       profile: _profile,
       look: sprites?.look(_profile.tierOf),
     );
     final cards = [
       for (final slot in UpgradeTrack.values)
         _SlotCard(
+          key: slot == UpgradeTrack.values.first ? _firstCardKey : null,
           slot: slot,
           tier: _profile.tierOf(slot),
           sprite: sprites?.part(slot, _profile.tierOf(slot)),
@@ -77,7 +111,7 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
               if (line.slot == slot) line,
           ],
         ),
-      _GadgetBadges(profile: _profile),
+      _GadgetBadges(key: _gadgetsKey, profile: _profile),
     ];
     return Column(
       children: [
@@ -94,13 +128,20 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
         ),
         Expanded(
           child: OrientationSwitch(
-            // Portrait: everything in one scrolling column.
-            portrait: (context) => ListView(
+            // Portrait: everything in one scrolling column. (Built in full,
+            // not lazily, so the first-visit tour can scroll to any card.)
+            portrait: (context) => SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-              children: [
-                SizedBox(height: 330, child: showcase),
-                for (final card in cards) ...[const SizedBox(height: 10), card],
-              ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: 330, child: showcase),
+                  for (final card in cards) ...[
+                    const SizedBox(height: 10),
+                    card,
+                  ],
+                ],
+              ),
             ),
             // Landscape: the robot on the left, the cards scroll on the right.
             landscape: (context) => Padding(
@@ -112,10 +153,16 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 6,
-                    child: ListView.separated(
-                      itemCount: cards.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => cards[i],
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < cards.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 10),
+                            cards[i],
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -143,7 +190,7 @@ abstract final class _Garage {
 /// The robot in a spotlight with its power rank on top and progress chips
 /// below.
 class _Showcase extends StatelessWidget {
-  const _Showcase({required this.profile, required this.look});
+  const _Showcase({super.key, required this.profile, required this.look});
 
   final PlayerProfile profile;
   final RobotLook? look;
@@ -353,6 +400,7 @@ class _Chip extends StatelessWidget {
 /// stat it changes.
 class _SlotCard extends StatelessWidget {
   const _SlotCard({
+    super.key,
     required this.slot,
     required this.tier,
     required this.sprite,
@@ -506,6 +554,7 @@ class _Gauge extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
+                    flex: 2,
                     child: Text(
                       line.label,
                       maxLines: 1,
@@ -517,24 +566,38 @@ class _Gauge extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    line.format(line.now),
-                    style: const TextStyle(
-                      color: Palette.outline,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    next == null ? 'MAX' : '→ ${line.format(next)}',
-                    style: TextStyle(
-                      color: next == null
-                          ? const Color(0xFF2F9E5B)
-                          : Palette.hazardShadow,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                  // The numbers shrink rather than overflow on narrow
+                  // phones (long units like m/s²).
+                  Flexible(
+                    flex: 3,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            line.format(line.now),
+                            style: const TextStyle(
+                              color: Palette.outline,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            next == null ? 'MAX' : '→ ${line.format(next)}',
+                            style: TextStyle(
+                              color: next == null
+                                  ? const Color(0xFF2F9E5B)
+                                  : Palette.hazardShadow,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -630,7 +693,7 @@ class _GaugeBar extends CustomPainter {
 /// Every gadget as a round badge: lit with its level when owned, dim when
 /// on sale but not owned, locked (with the level that opens it) otherwise.
 class _GadgetBadges extends StatelessWidget {
-  const _GadgetBadges({required this.profile});
+  const _GadgetBadges({super.key, required this.profile});
 
   final PlayerProfile profile;
 

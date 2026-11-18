@@ -76,6 +76,26 @@ class SettingsPage extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      _Panel(
+                        title: 'HELP',
+                        children: [
+                          const Text(
+                            'Replay the guided first run and the tips on '
+                            'each page.',
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: DerbyButton(
+                              label: 'How to play',
+                              icon: Icons.school,
+                              onPressed: () =>
+                                  _replayTutorials(context, profile),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                     right: [
                       _Panel(
@@ -124,6 +144,22 @@ class SettingsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Settings > How to play: everything plays again, with a short note.
+void _replayTutorials(BuildContext context, PlayerProfile profile) {
+  profile.replayTutorials();
+  Sound.play(Sfx.uiClick);
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      const SnackBar(
+        content: Text(
+          'The guided run starts on your next Rust Hollow run, and each '
+          'page shows its tips again.',
+        ),
+      ),
+    );
 }
 
 /// Two columns side by side on wide landscape screens, one column (left
