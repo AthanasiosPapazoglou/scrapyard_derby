@@ -1087,10 +1087,25 @@ developer.
   skips, fits 6 phone/tablet sizes both ways. `tool/preview_frames_test`
   renders frames to `build/preview/` (checked portrait and landscape).
 
-### X2 — Splash in the game  ☐
-- Dependency (path on the branch), splash before the main menu, the
-  ding through the game's own volume settings, native launch colours
-  (D40). Simulator: cold start both orientations, no white flash.
+### X2 — Splash in the game  ☑
+- `thanos_productions` as a path dependency (`../thanos_productions`,
+  branch only; X6 switches to the private git repo).
+- `SplashPage` (lib/ui/splash_page.dart) is the app's home on every
+  launch; when the splash ends or is tapped, the music starts and the
+  main menu cross-fades in (`DerbyRoute`).
+- Sound: the menu music waits for the splash (`Sound.startMusic`; sound
+  setup re-checks it, in case the splash ends first). The ding plays
+  through its own player at the sound-effects volume
+  (`Sound.playBrandDing`; silent when effects are off).
+- D40 native launch screens in `#15426B`: Android `colors.xml`, both
+  `launch_background.xml`, `NormalTheme` window backgrounds, and
+  `values(-night)-v31` for the Android 12+ system splash; iOS
+  `LaunchScreen.storyboard`; web `index.html` body and `manifest.json`.
+- Tests: `splash_page_test` (opens on the splash, menu after ~3 s; a tap
+  skips). 213 tests pass.
+- Simulator (iPhone 17 Pro Max): cold start portrait and landscape: blue
+  launch screen, splash, menu; no white flash. The ding isn't audible in
+  a screenshot check; Android not checked yet (no device here).
 
 ### X3 — App icon  ☐
 - D42: icon SVG, PNG render tool, launcher icons for Android / iOS / web,

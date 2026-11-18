@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:thanos_productions/thanos_productions.dart';
 
 import 'game/sound.dart';
 import 'profile/player_profile.dart';
 import 'profile/profile_store.dart';
 import 'ui/main_menu.dart';
+import 'ui/splash_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +27,10 @@ Future<void> main() async {
   runApp(ScrapyardDerbyApp(profile: store.profile));
 }
 
-/// The app shell: a plain Navigator starting at the main menu.
-/// Pages: Menu → Game (with pause and run summary), Workshop, Settings.
+/// The app shell: a plain Navigator starting at the Thanos Productions
+/// creator splash, which hands over to the main menu.
+/// Pages: Splash → Menu → Game (with pause and run summary), Workshop,
+/// Settings.
 class ScrapyardDerbyApp extends StatelessWidget {
   const ScrapyardDerbyApp({super.key, required this.profile});
 
@@ -37,7 +41,8 @@ class ScrapyardDerbyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Scrapyard Derby',
       debugShowCheckedModeBanner: false,
-      home: MainMenu(profile: profile),
+      color: BrandColors.background,
+      home: SplashPage(next: (_) => MainMenu(profile: profile)),
     );
   }
 }

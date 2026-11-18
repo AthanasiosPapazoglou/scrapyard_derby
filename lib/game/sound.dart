@@ -3,6 +3,7 @@ import 'dart:async';
 // flame_audio re-exports audioplayers (AudioPlayer, AudioContext, ...).
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:thanos_productions/thanos_productions.dart';
 
 import '../config/tuning.dart';
 import '../profile/player_profile.dart';
@@ -78,6 +79,13 @@ class Sound {
   String _track = menuMusicPath;
   String? _loadedTrack;
 
+  /// False until [startMusic]: the creator splash plays without music.
+  bool _musicOn = false;
+
+  /// Plays the creator splash's ding (a package asset, outside
+  /// flame_audio's `assets/audio/` folder).
+  AudioPlayer? _ding;
+
   /// True while the music is turned down (head-launch slow motion).
   bool _ducked = false;
   Timer? _duckTimer;
@@ -106,6 +114,8 @@ class Sound {
       // resumes it on return.
       await FlameAudio.bgm.initialize(audioContext: _audioContext());
       profile.addListener(sound._updateMusic);
+      // Also catches a [startMusic] that came before setup finished.
+      sound._musicLevel = null;
       await sound._updateMusic();
     } on Object catch (e) {
       // No sound is better than no game.
@@ -115,7 +125,7 @@ class Sound {
 
   /// Starts, stops or re-levels the music to match the settings.
   Future<void> _updateMusic() async {
-    final volume = _profile.musicVolume;
+    final volume = _musicOn ? _profile.musicVolume : 0.0;
     final level =
         volume * Tuning.musicMix * (_ducked ? Tuning.musicDuckShare : 1);
     if (level == _musicLevel) {
@@ -145,6 +155,44 @@ class Sound {
     } on Object catch (e) {
       debugPrint('Music failed: $e');
     }
+  }
+
+  /// Starts the music (after the creator splash). Until then it stays off.
+  static void startMusic() {
+    final sound = _instance;
+    if (sound == null || sound._musicOn) {
+      return;
+    }
+    sound._musicOn = true;
+    sound._musicLevel = null; // Force an update.
+    unawaited(sound._updateMusic());
+  }
+
+  /// Plays the Thanos Productions splash ding at the sound-effects volume
+  /// (nothing when that is off or sound isn't set up).
+  static void playBrandDing() {
+    final sound = _instance;
+    if (sound == null) {
+      return;
+    }
+    final level = sound._profile.sfxVolume.clamp(0.0, 1.0);
+    if (level <= 0) {
+      return;
+    }
+    final player = sound._ding ??= AudioPlayer()
+      ..audioCache = AudioCache(prefix: '');
+    unawaited(
+      player
+          .play(
+            AssetSource(ThanosBrand.dingAssetKey),
+            volume: level,
+            ctx: _audioContext(),
+          )
+          .then<void>(
+            (_) {},
+            onError: (Object e) => debugPrint('Splash ding failed: $e'),
+          ),
+    );
   }
 
   /// Plays [level]'s music (from the start if it changes). Does nothing
