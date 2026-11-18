@@ -1057,7 +1057,7 @@ developer.
 | D39 | Splash motion | ~2.6 s: badge pops in with a squash-and-stretch bounce, a stepped shine sweeps across it and the glasses sparkle, THANOS letters hop in by whole pixels, PRODUCTIONS hops in, a short hold, fade to the app. Tap to skip. One soft synth "ding" (generated), respects the app's mute. Shown on every cold start. Works in portrait and landscape. |
 | D40 | No white flash | Native launch screens (Android, iOS, web) use the splash's background colour, so the OS splash hands over to the Flutter splash seamlessly. Set by hand, no extra package. |
 | D41 | Tutorial style | Both: a **guided first run** on level 1 (coach cards at key moments; the game slows to a near-stop until the player does the thing: hold to counter-spin, release, land on both feet, the energy bar, the Landing Sight, the limb panel, the head launch) plus **first-visit highlighters** (a spotlight cut-out with a short card) on Level select, Workshop (parts and gadgets tabs) and Robot Stats. "How to play" in Settings replays everything. Seen-flags saved in the profile. |
-| D42 | App icon | The tier-0 robot head (paint can, cyan eye, antenna) peeking up big over a dusk sky with a hazard-stripe band, thick ink outlines. `art/make_icon.py` writes the SVG; a tool test rasterises it to PNG with flutter_svg; `flutter_launcher_icons` (dev dependency) writes Android (adaptive icon with dusk background), iOS and web/favicon. Android label → "Scrapyard Derby". |
+| D42 | App icon | The tier-0 robot head (the game's own paint-can drawing: cyan eye, antenna, grin) big and tilted, peeking over the dirt hill in front of the dusk sky, low sun and scrap heaps. `art/make_icon.py` writes the SVGs; `tool/render_icons_test.dart` renders every PNG itself (flutter_svg + a tiny RGB PNG encoder; no `flutter_launcher_icons`, no new dependency): iOS opaque, Android classic + adaptive layers, web + maskable + favicon. Labels → "Scrapyard Derby". |
 | D43 | Version | `pubspec.yaml` → `1.1.2+4`. |
 
 ## 1.1.2 steps
@@ -1107,9 +1107,22 @@ developer.
   launch screen, splash, menu; no white flash. The ding isn't audible in
   a screenshot check; Android not checked yet (no device here).
 
-### X3 — App icon  ☐
-- D42: icon SVG, PNG render tool, launcher icons for Android / iOS / web,
-  Android label. Check on the Simulator home screen and the web tab.
+### X3 — App icon  ☑
+- `art/make_icon.py` imports `head()` from `make_style_test.py` (same
+  drawing as the sprite) and writes `art/icon/`: `icon.svg`,
+  `adaptive_background.svg` (sky, sun, heaps), `adaptive_foreground.svg`
+  (head + hill shrunk to 0.68 for the mask; the hill reaches far past
+  the edges) and `icon_maskable.svg` (content at 0.8).
+- `tool/render_icons_test.dart` writes every size from the AppIcon set's
+  `Contents.json` (RGB, no alpha, as App Store Connect wants), Android
+  `ic_launcher` (rounded square) + `ic_launcher_background/foreground`
+  per density with `mipmap-anydpi-v26/ic_launcher.xml`, and web
+  `favicon.png`, `Icon-192/512`, `Icon-maskable-192/512`.
+- Names: Android label, iOS `CFBundleName`, web title / app title /
+  manifest name and description → "Scrapyard Derby".
+- Android 12+ system splash now shows this icon on the brand blue (X2).
+- Simulator (iPhone 17 Pro Max): home screen shows the icon and the full
+  name. Android launcher and the web tab not checked here.
 
 ### X4 — Guided first run  ☐
 - D41 in-game part: coach cards driven by real game events, slow-down
