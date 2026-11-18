@@ -39,6 +39,10 @@ dependencies:
   flutter_svg: ^2.4.0
   shared_preferences: ^2.5.6
   flame_audio: ^2.12.2
+  # Thanos Productions brand kit (creator splash). A local path on the
+  # v1.1.2 branch; switched to the private git repo before merging (X6).
+  thanos_productions:
+    path: ../thanos_productions
 
 dev_dependencies:
   flutter_test:
