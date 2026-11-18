@@ -12,6 +12,7 @@ import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
 import '../game/stat_sheet.dart';
 import '../game/sound.dart';
+import '../profile/page_tour.dart';
 import '../profile/player_profile.dart';
 import 'crt.dart';
 import 'derby_route.dart';
@@ -20,6 +21,7 @@ import 'layout.dart';
 import 'page_header.dart';
 import 'robot_figure.dart';
 import 'robot_stats_page.dart';
+import 'spotlight_tour.dart';
 
 /// The garage: swap the robot's parts for better ones with scrap.
 ///
@@ -56,6 +58,13 @@ class _WorkshopPageState extends State<WorkshopPage> {
 
   /// True while the Gadgets tab is open instead of a part slot.
   bool _gadgets = false;
+
+  // First-visit tour targets.
+  final _tabsKey = GlobalKey();
+  final _cardsKey = GlobalKey();
+  final _detailsKey = GlobalKey();
+  final _gadgetsTabKey = GlobalKey();
+  final _gadgetListKey = GlobalKey();
 
   void _openGadgets() {
     Sound.play(Sfx.uiClick);
@@ -102,20 +111,68 @@ class _WorkshopPageState extends State<WorkshopPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _Garage.floor,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_Garage.wall, _Garage.floor],
+      // Two first-visit tours: the parts (on arrival) and the Gadgets tab
+      // (when first opened).
+      body: SpotlightTour(
+        tour: PageTour.gadgets,
+        profile: _profile,
+        active: _gadgets,
+        steps: [
+          TourStep(
+            target: _gadgetListKey,
+            title: 'GADGETS',
+            text:
+                'Helpers for tough hills. Each has 3 levels and opens with '
+                'a level; they work on top of your parts.',
           ),
-        ),
-        child: SafeArea(
-          child: FutureBuilder<RobotSprites>(
-            future: _sprites,
-            builder: (context, snapshot) => ListenableBuilder(
-              listenable: _profile,
-              builder: (context, _) => _layout(snapshot.data),
+        ],
+        child: SpotlightTour(
+          tour: PageTour.workshop,
+          profile: _profile,
+          steps: [
+            TourStep(
+              target: _tabsKey,
+              title: 'FIVE SLOTS',
+              text:
+                  'Legs, arms, body, head and core. Each one changes '
+                  'different stats.',
+            ),
+            TourStep(
+              target: _cardsKey,
+              title: 'SIX PARTS EACH',
+              text:
+                  'Tap a part to try it on. Every level you unlock puts a '
+                  'better one on sale.',
+            ),
+            TourStep(
+              target: _detailsKey,
+              title: 'BUY WITH SCRAP',
+              text:
+                  'Every run pays scrap. Here you see what a part changes, '
+                  'and its price.',
+            ),
+            TourStep(
+              target: _gadgetsTabKey,
+              title: 'GADGETS',
+              text: 'Extra helpers for when a hill gets tough. Take a look!',
+            ),
+          ],
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_Garage.wall, _Garage.floor],
+              ),
+            ),
+            child: SafeArea(
+              child: FutureBuilder<RobotSprites>(
+                future: _sprites,
+                builder: (context, snapshot) => ListenableBuilder(
+                  listenable: _profile,
+                  builder: (context, _) => _layout(snapshot.data),
+                ),
+              ),
             ),
           ),
         ),
@@ -135,6 +192,8 @@ class _WorkshopPageState extends State<WorkshopPage> {
           : _slot.partName(_viewTier),
     );
     final tabs = _SlotTabs(
+      key: _tabsKey,
+      gadgetsKey: _gadgetsTabKey,
       selected: _slot,
       installedOf: _installed,
       onSelect: _selectSlot,
@@ -144,7 +203,11 @@ class _WorkshopPageState extends State<WorkshopPage> {
           .length,
       onGadgets: _openGadgets,
     );
-    final gadgetList = _GadgetList(profile: _profile, onBuy: _buyGadget);
+    final gadgetList = _GadgetList(
+      key: _gadgetListKey,
+      profile: _profile,
+      onBuy: _buyGadget,
+    );
     _PartCard card(int tier) => _PartCard(
       sprite: sprites?.part(_slot, tier),
       name: _slot.partName(tier),
@@ -154,6 +217,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
       onTap: () => _viewPart(tier),
     );
     final details = _PartDetails(
+      key: _detailsKey,
       slot: _slot,
       tier: _viewTier,
       installed: _installed(_slot),
@@ -200,6 +264,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                     Expanded(flex: 4, child: gadgetList)
                   else ...[
                     SizedBox(
+                      key: _cardsKey,
                       height: 118,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
@@ -234,6 +299,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
                             Expanded(child: gadgetList)
                           else ...[
                             SizedBox(
+                              key: _cardsKey,
                               height: math.min(
                                 124,
                                 constraints.maxHeight * 0.36,
@@ -409,7 +475,12 @@ class _SlotTabs extends StatelessWidget {
     required this.gadgetsSelected,
     required this.gadgetsOwned,
     required this.onGadgets,
+    super.key,
+    this.gadgetsKey,
   });
+
+  /// Marks the Gadgets tab (for the first-visit tour).
+  final Key? gadgetsKey;
 
   /// The selected slot; ignored while [gadgetsSelected].
   final UpgradeTrack selected;
@@ -442,6 +513,7 @@ class _SlotTabs extends StatelessWidget {
         Expanded(
           flex: 2,
           child: Padding(
+            key: gadgetsKey,
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: _SlotTab(
               name: 'Gadgets',
@@ -707,7 +779,7 @@ class _PartPainter extends CustomPainter {
 /// The Gadgets tab: one row per gadget with its level, effect now and
 /// next, and the Buy button (or what unlocks it).
 class _GadgetList extends StatelessWidget {
-  const _GadgetList({required this.profile, required this.onBuy});
+  const _GadgetList({super.key, required this.profile, required this.onBuy});
 
   final PlayerProfile profile;
   final ValueChanged<Gadget> onBuy;
@@ -849,6 +921,7 @@ int _levelFor(int tier) {
 /// changes (now → this part), and the action.
 class _PartDetails extends StatelessWidget {
   const _PartDetails({
+    super.key,
     required this.slot,
     required this.tier,
     required this.installed,

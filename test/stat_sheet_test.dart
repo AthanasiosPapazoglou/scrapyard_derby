@@ -113,7 +113,7 @@ void main() {
       finder,
       150,
       scrollable: find.descendant(
-        of: find.byType(ListView),
+        of: find.byType(SingleChildScrollView),
         matching: find.byType(Scrollable),
       ),
     );

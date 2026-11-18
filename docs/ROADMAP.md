@@ -1150,10 +1150,31 @@ developer.
 - Simulator (iPhone 17 Pro Max): portrait full run (hold, land, OUCH,
   head launch cards); landscape hold card, finger placement, Skip.
 
-### X5 — First-visit highlighters + "How to play"  ☐
-- Spotlight overlay widget, cards for Level select / Workshop / Gadgets /
-  Stats, Settings entry to replay, profile flags (save version bump with
-  defaults for old saves).
+### X5 — First-visit highlighters + "How to play"  ☑
+- `lib/ui/spotlight_tour.dart`: `SpotlightTour` wraps a page; after the
+  page fades in it dims everything except a rounded, hazard-outlined
+  hole around each step's target (a `GlobalKey`) and puts a card below,
+  above or beside it, wherever there is room. Tap anywhere for the next
+  step; SKIP ends it; targets in scroll views are scrolled into view;
+  missing targets are skipped; rotation re-measures.
+- Tours (`lib/profile/page_tour.dart`): Level select (first hill, stars),
+  Workshop (slot tabs, part cards, details/buy, Gadgets tab), Gadgets
+  (the list; starts the first time the tab opens), Robot Stats (robot
+  and rank, first stat card, gadgets).
+- Profile: `tutorial.tours` (seen ids) in save v4; `replayTutorials()`;
+  older saves with any run count as toured. Settings: new HELP panel
+  with **How to play** (resets the first run and all tours, shows a
+  short note).
+- Robot Stats lists are no longer lazy (`SingleChildScrollView`) so a
+  tour can scroll to any card; gauge numbers shrink instead of
+  overflowing on small phones (long units like m/s²).
+- Tests: `spotlight_tour_test` (start delay, steps, skip, missing
+  target, seen once, late start, every page's stops, How to play, save
+  round-trip and migration). 244 tests pass.
+- Simulator (iPhone 17 Pro Max): How to play note; Workshop tour and
+  Gadgets tour in portrait; Robot Stats tour in landscape (card beside
+  the robot, list scrolled to gadgets). Level select tour covered by
+  tests only.
 
 ### X6 — Private dependency in CI, docs, version  ☐
 - Developer creates the private `thanos_productions` repo and a read-only

@@ -4,18 +4,31 @@ import '../game/dusk_scene.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
+import '../profile/page_tour.dart';
 import '../profile/player_profile.dart';
 import 'derby_route.dart';
 import 'game_page.dart';
 import 'layout.dart';
 import 'page_header.dart';
+import 'spotlight_tour.dart';
 
 /// Opened with Play: the six levels as cards, with stars, best distance and
 /// star distances. Locked levels say what opens them.
-class LevelSelectPage extends StatelessWidget {
+class LevelSelectPage extends StatefulWidget {
   const LevelSelectPage({super.key, required this.profile});
 
   final PlayerProfile profile;
+
+  @override
+  State<LevelSelectPage> createState() => _LevelSelectPageState();
+}
+
+class _LevelSelectPageState extends State<LevelSelectPage> {
+  PlayerProfile get profile => widget.profile;
+
+  // First-visit tour targets.
+  final _firstLevelKey = GlobalKey();
+  final _starsKey = GlobalKey();
 
   void _play(BuildContext context, int level) {
     Sound.play(Sfx.uiClick);
@@ -30,74 +43,98 @@ class LevelSelectPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Palette.skyTop,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // The menus' happy baseline; the cards show each level's look.
-          CustomPaint(painter: _StillScene(LevelTheme.of(1))),
-          SafeArea(
-            // Rebuilds when a run (from this page) earns stars or unlocks.
-            child: ListenableBuilder(
-              listenable: profile,
-              builder: (context, _) => Column(
-                children: [
-                  PageHeader(
-                    title: 'LEVELS',
-                    onBack: () => Navigator.of(context).pop(),
-                    trailing: [
-                      HeaderCount(
-                        icon: Icons.star,
-                        text:
-                            '${profile.totalStars} / '
-                            '${Levels.count * Levels.maxStars}',
-                      ),
-                      HeaderCount(
-                        icon: Icons.settings,
-                        text: '${profile.scrap}',
-                        label: 'Scrap',
-                      ),
-                    ],
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      // 3 × 2 cards in landscape, 2 × 3 in portrait.
-                      child: Builder(
-                        builder: (context) {
-                          final columns = context.isPortrait ? 2 : 3;
-                          final rows = (Levels.count / columns).ceil();
-                          return Column(
-                            children: [
-                              for (var row = 0; row < rows; row++)
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      for (var col = 1; col <= columns; col++)
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(5),
-                                            child: _LevelCard(
-                                              level: row * columns + col,
-                                              profile: profile,
-                                              onPlay: (level) =>
-                                                  _play(context, level),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: SpotlightTour(
+        tour: PageTour.levels,
+        profile: profile,
+        steps: [
+          TourStep(
+            target: _firstLevelKey,
+            title: 'PICK A HILL',
+            text:
+                'Every level is an endless hill. Reach the first star to '
+                'unlock the next one.',
+          ),
+          TourStep(
+            target: _starsKey,
+            title: 'STARS',
+            text:
+                'Go further for the 2nd and 3rd star. Every star boosts your '
+                'scrap for good.',
           ),
         ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // The menus' happy baseline; the cards show each level's look.
+            CustomPaint(painter: _StillScene(LevelTheme.of(1))),
+            SafeArea(
+              // Rebuilds when a run (from this page) earns stars or unlocks.
+              child: ListenableBuilder(
+                listenable: profile,
+                builder: (context, _) => Column(
+                  children: [
+                    PageHeader(
+                      title: 'LEVELS',
+                      onBack: () => Navigator.of(context).pop(),
+                      trailing: [
+                        HeaderCount(
+                          key: _starsKey,
+                          icon: Icons.star,
+                          text:
+                              '${profile.totalStars} / '
+                              '${Levels.count * Levels.maxStars}',
+                        ),
+                        HeaderCount(
+                          icon: Icons.settings,
+                          text: '${profile.scrap}',
+                          label: 'Scrap',
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        // 3 × 2 cards in landscape, 2 × 3 in portrait.
+                        child: Builder(
+                          builder: (context) {
+                            final columns = context.isPortrait ? 2 : 3;
+                            final rows = (Levels.count / columns).ceil();
+                            return Column(
+                              children: [
+                                for (var row = 0; row < rows; row++)
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        for (var col = 1; col <= columns; col++)
+                                          Expanded(
+                                            child: Padding(
+                                              key: row == 0 && col == 1
+                                                  ? _firstLevelKey
+                                                  : null,
+                                              padding: const EdgeInsets.all(5),
+                                              child: _LevelCard(
+                                                level: row * columns + col,
+                                                profile: profile,
+                                                onPlay: (level) =>
+                                                    _play(context, level),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
