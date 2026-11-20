@@ -127,6 +127,50 @@ void main() {
     },
   );
 
+  test('a player finished behind running rivals: fast-forward, tap to skip, '
+      'race ends once the place is settled', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(), race: 1),
+    );
+    await game.ready();
+    expect(game.fastForward, 1);
+    // The player is out at the very start; the rivals are level with
+    // them, so they can still finish behind: not settled yet.
+    game.player.finish(RunEnd.stuck);
+    expect(game.fastForward, Tuning.raceFastForward);
+    game.onTapDown(createTapDownEvents(game: game));
+    expect(game.fastForward, Tuning.raceFastForwardSkip);
+    var frames = 0;
+    while (game.hud.value.result == null && frames < 60 * 120) {
+      game.update(frame);
+      await game.ready();
+      frames++;
+    }
+    final result = game.hud.value.result!;
+    expect(result.race, 1);
+    expect(result.place, inInclusiveRange(1, 4));
+    expect(result.standings, hasLength(Races.racers));
+    expect(result.standings.indexWhere((s) => s.isPlayer) + 1, result.place);
+    // Settled: back to normal speed, and the HUD has the standings.
+    expect(game.fastForward, 1);
+    expect(game.hud.value.standings, hasLength(Races.racers));
+    expect(game.hud.value.place, result.place);
+    game.world.physicsWorld.destroy();
+  });
+
+  test('Survival has no standings and never fast-forwards', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(firstRunCoached: true)),
+    );
+    await game.ready();
+    game.player.finish(RunEnd.stuck);
+    expect(game.fastForward, 1);
+    game.update(frame);
+    expect(game.hud.value.standings, isEmpty);
+    expect(game.hud.value.place, isNull);
+    game.world.physicsWorld.destroy();
+  });
+
   test('the hill is built around every focus point', () {
     final chunks = chunksAround([0, Tuning.hillChunkLength * 20]);
     for (final x in [0.0, Tuning.hillChunkLength * 20]) {

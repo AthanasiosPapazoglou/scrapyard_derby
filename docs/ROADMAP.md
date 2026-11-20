@@ -1335,12 +1335,43 @@ developer.
   needed). Nit for R3: high in the air the stacked tags can reach the
   distance counter.
 
-### R3 — Race HUD and race end  ☐
-- Standings panel, off-screen markers, place-change callout (D50).
-- Race end rule and fast-forward with skip (D49), as plain tested logic
-  (`race_standings.dart`: order, "place locked?").
-- Tests: standings order with finished and running racers, place-lock
-  cases, fast-forward ends; HUD fits on 4 phone sizes both ways.
+### R3 — Race HUD and race end  ☑
+- `lib/game/race_standings.dart` (plain logic): `Standing` (one racer's
+  line, `Racer.standing`), `RaceStandings.order` (best first, ties keep
+  racer order so a tie counts for the player), `placeOf`, `placeLocked`
+  (player finished and every running rival already ahead), `chaserIndex`
+  (the running rival behind who is closest); `RivalMarker.offScreen`
+  (edge, height clamped to `raceMarkerTop/Bottom`, "+132 m");
+  `PlaceWatcher` → `PlaceCallout` (a new place must hold
+  `raceCalloutDelay` before "2ND!"; quiet during the opening drop and
+  after the finish).
+- Race end (D49): when the player finishes, the race runs on until the
+  place is locked, then `RunResult` gets `place` and final `standings`.
+  Fast-forward = whole game frames back to back
+  (`Tuning.raceFastForward` 4, a tap → `raceFastForwardSkip` 8), so the
+  race plays out exactly as at normal speed; the camera follows the
+  chasing rival and keeps pace. `DerbyGame.fastForward` (1 = off).
+- HUD (`lib/ui/race_hud.dart`, Versus only, ignores taps): standings
+  panel top right (portrait under the distance, landscape under the
+  buttons; place, colour dot, name, distance, flag when finished, YOU in
+  hazard yellow), edge markers (nudged apart on one edge; hidden under
+  the run card), place callout (yellow up, red down), "FINISHING… ×4 /
+  tap to skip" banner. Interim run card stamp: "4TH PLACE".
+- Tests: `race_standings_test` (order with finished and running racers,
+  ties, place-lock cases, chaser, markers, callout delay / flicker /
+  serial); `versus_race_test` (player out at the start → ×4, tap → ×8,
+  race ends with a place matching the standings, back to ×1; Survival
+  never fast-forwards); layout fit "race hud" (long names, 3 markers,
+  callout, banner) on 6 sizes. 294 tests pass.
+- Simulator (iPhone 17 Pro Max): race 1 in portrait (standings, three
+  markers on the right edge, "4TH PLACE" card) and landscape (panel
+  under the buttons, "2ND!" callout). Widened the panel after names
+  were cut off ("RUSTI…"). The fast-forward itself was not seen there
+  (the rivals were always ahead when the player finished); the test
+  covers it.
+- Still open: the interim run card shows Survival stars/best for a race
+  (R4 replaces it); stacked rival tags high in the air can still reach
+  the distance counter (R2 nit).
 
 ### R4 — Race summary and rewards  ☐
 - Run card for Versus: podium (1-4, names, distances, colours), YOU

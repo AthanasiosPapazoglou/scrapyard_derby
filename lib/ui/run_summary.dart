@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../game/derby_game.dart';
 import '../game/landing.dart';
 import '../game/levels.dart';
+import '../game/races.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import 'derby_button.dart';
@@ -375,6 +376,8 @@ class _Score extends StatelessWidget {
   Widget build(BuildContext context) {
     final stamp = switch (result) {
       RunResult(unlockedLevel: final unlocked?) => 'LEVEL $unlocked UNLOCKED!',
+      RunResult(place: final place?) =>
+        '${Races.placeLabel(place).toUpperCase()} PLACE',
       RunResult(isNewBest: true) => 'NEW BEST!',
       _ => null,
     };

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'autopilot.dart';
+import 'race_standings.dart';
 import 'robot.dart';
 
 /// Why a run ended.
@@ -56,6 +57,15 @@ class Racer {
 
   /// Meters covered: final once finished, else live.
   double get distance => finalDistance ?? (robot.isLoaded ? robot.distance : 0);
+
+  /// This racer's line in the standings.
+  Standing get standing => Standing(
+    name: name,
+    color: color,
+    distance: distance,
+    isPlayer: isPlayer,
+    finished: finished,
+  );
 
   /// Marks the run as over at the current distance.
   void finish(RunEnd how) {

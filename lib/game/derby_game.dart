@@ -23,11 +23,13 @@ import 'robot_sprites.dart';
 import 'run_stats.dart';
 import 'scrap_reward.dart';
 import 'sound.dart';
+import 'race_standings.dart';
 import 'races.dart';
 import 'rival_look.dart';
 import 'racer.dart';
 import 'star_flags.dart';
 
+export 'race_standings.dart' show PlaceCallout, RivalMarker, Standing;
 export 'racer.dart' show RunEnd;
 
 /// The outcome of a finished run, for the run summary.
@@ -44,6 +46,8 @@ class RunResult {
     this.starsAfter = 0,
     this.unlockedLevel,
     this.race,
+    this.place,
+    this.standings = const [],
   });
 
   final RunEnd end;
@@ -62,6 +66,12 @@ class RunResult {
 
   /// The Versus race this was (null = a Survival run).
   final int? race;
+
+  /// Versus: the player's final place (1-4) and every racer's final
+  /// line, best first (rivals still racing ahead show their distance at
+  /// the race end).
+  final int? place;
+  final List<Standing> standings;
 
   /// Scrap earned, line by line; already added to the profile.
   final List<ScrapLine> scrap;
@@ -87,6 +97,11 @@ class HudInfo {
     this.comboSteps = 0,
     this.comboMax = 0,
     this.coach,
+    this.standings = const [],
+    this.place,
+    this.callout,
+    this.markers = const [],
+    this.fastForward = 1,
     this.result,
   });
 
@@ -126,6 +141,15 @@ class HudInfo {
 
   /// The tutorial card to show (first run only; null = none).
   final CoachCard? coach;
+
+  /// Versus: live standings (best first), the player's place, a place
+  /// change callout, markers for rivals off screen, and the fast-forward
+  /// speed after the player finished (1 = none).
+  final List<Standing> standings;
+  final int? place;
+  final PlaceCallout? callout;
+  final List<RivalMarker> markers;
+  final int fastForward;
 
   /// Set once the run is over.
   final RunResult? result;
@@ -335,7 +359,14 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   final Set<int> _heldPointers = {};
 
   @override
-  void onTapDown(TapDownEvent event) => _heldPointers.add(event.pointerId);
+  void onTapDown(TapDownEvent event) {
+    _heldPointers.add(event.pointerId);
+    // A tap during the race fast-forward skips faster.
+    if (fastForward > 1 && !_skipFastForward) {
+      _skipFastForward = true;
+      _publishHud();
+    }
+  }
 
   @override
   void onTapUp(TapUpEvent event) => _heldPointers.remove(event.pointerId);
@@ -355,6 +386,8 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _result = null;
     _starsPassed = 0;
     _slowMoLeft = 0;
+    _skipFastForward = false;
+    _places.reset();
     _visibleWidth = Tuning.cameraBaseWidth;
     // A fresh run starts the tutorial over, unless it was finished.
     if (_coach != null && !_coach!.finished) {
@@ -391,13 +424,54 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     return Tuning.headLaunchSlowMo + (1 - Tuning.headLaunchSlowMo) * eased;
   }
 
+  /// Versus: game frames run per screen frame. Above 1 while the player
+  /// has finished but their place isn't settled yet (D49).
+  int get fastForward {
+    if (!isVersus || !player.finished || _result != null) {
+      return 1;
+    }
+    return _skipFastForward
+        ? Tuning.raceFastForwardSkip
+        : Tuning.raceFastForward;
+  }
+
+  bool _skipFastForward = false;
+
+  /// Announces the player's place changes.
+  final PlaceWatcher _places = PlaceWatcher();
+
+  /// Everyone's standing right now, in [racers] order.
+  List<Standing> get _standingsNow => [for (final r in racers) r.standing];
+
   @override
   void update(double dt) {
-    super.update(dt);
-    _slowMoLeft = math.max(0, _slowMoLeft - dt);
-    if (!robot.isLoaded) {
-      return;
+    // Fast-forward runs whole game frames back to back, so the race plays
+    // out exactly as it would at normal speed, only quicker.
+    final frames = fastForward;
+    for (var i = 0; i < frames; i++) {
+      super.update(dt);
+      _slowMoLeft = math.max(0, _slowMoLeft - dt);
+      if (!robot.isLoaded) {
+        return;
+      }
+      _updateRacers(dt);
+      if (fastForward == 1) {
+        break;
+      }
     }
+    // The camera keeps pace with a fast-forwarded race.
+    _updateCamera(dt * frames);
+
+    _hudTimer += dt;
+    if (_hudTimer >= 0.1) {
+      _hudTimer = 0;
+      _publishHud();
+    }
+  }
+
+  /// One game frame for everyone on the hill: steering, star distances,
+  /// finishes, the tutorial, places.
+  void _updateRacers(double dt) {
     // Game-world seconds this frame, for the bots' reaction times.
     final worldDt = dt * Tuning.gameSpeed * _slowMoFactor * _coachFactor;
     var playerHolds = false;
@@ -414,12 +488,26 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       _checkRacerEnd(racer, dt);
     }
     _updateCoach(dt, playerHolds);
-    _updateCamera(dt);
+    if (isVersus) {
+      _updateRace(dt);
+    }
+  }
 
-    _hudTimer += dt;
-    if (_hudTimer >= 0.1) {
-      _hudTimer = 0;
+  /// Versus: tracks the player's place and ends the race once that place
+  /// can't change any more.
+  void _updateRace(double dt) {
+    final standings = _standingsNow;
+    final before = _places.callout;
+    _places.update(
+      dt,
+      RaceStandings.placeOf(standings),
+      live: robot.hasTouchedDown && !player.finished,
+    );
+    if (_places.callout != before) {
       _publishHud();
+    }
+    if (_result == null && RaceStandings.placeLocked(standings)) {
+      _finishRace(standings);
     }
   }
 
@@ -544,19 +632,9 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// run) and publishes the result for the run summary.
   void _finishRun(RunEnd end) {
     final stats = robot.runStats..distance = player.distance;
-    if (race case final race?) {
-      // Versus: places, rewards and the race card come with roadmap
-      // steps R3 and R4. Nothing is recorded yet (and never as a Survival
-      // best: the gear was the race's, not the Workshop's).
-      _result = RunResult(
-        end: end,
-        distance: stats.distance,
-        isNewBest: false,
-        stats: stats,
-        scrap: const [],
-        level: level,
-        race: race,
-      );
+    if (isVersus) {
+      // The race goes on (fast-forward) until the player's place is
+      // settled; see _updateRace.
       _publishHud();
       return;
     }
@@ -594,12 +672,69 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _publishHud();
   }
 
+  /// Versus: the race is over for the player. Rewards and the race card
+  /// come with roadmap step R4; nothing is recorded yet (and never as a
+  /// Survival best: the gear was the race's, not the Workshop's).
+  void _finishRace(List<Standing> standings) {
+    final stats = robot.runStats..distance = player.distance;
+    _result = RunResult(
+      end: player.end!,
+      distance: stats.distance,
+      isNewBest: false,
+      stats: stats,
+      scrap: const [],
+      level: level,
+      race: race,
+      place: RaceStandings.placeOf(standings),
+      standings: RaceStandings.order(standings),
+    );
+    _publishHud();
+  }
+
+  /// What the camera follows: the player's robot, or during the race
+  /// fast-forward the rival who can still pass the player.
+  Robot get _cameraRobot {
+    if (fastForward > 1) {
+      final chaser = RaceStandings.chaserIndex(_standingsNow);
+      if (chaser != null && racers[chaser].robot.isLoaded) {
+        return racers[chaser].robot;
+      }
+    }
+    return robot;
+  }
+
+  /// Edge markers for running rivals out of view.
+  List<RivalMarker> _markers() {
+    if (!isVersus || size.x <= 0) {
+      return const [];
+    }
+    final followed = _cameraRobot;
+    final halfWidth = _visibleWidth / 2;
+    final halfHeight = halfWidth * size.y / size.x;
+    return [
+      for (final rival in rivals)
+        if (!rival.finished &&
+            rival.robot.isLoaded &&
+            !identical(rival.robot, followed))
+          ?RivalMarker.offScreen(
+            name: rival.name,
+            color: rival.color,
+            dx: rival.robot.position.x - _cameraCenter.x,
+            dy: rival.robot.position.y - _cameraCenter.y,
+            halfWidth: halfWidth,
+            halfHeight: halfHeight,
+            gap: rival.distance - player.distance,
+          ),
+    ];
+  }
+
   /// Smoothly moves and zooms the camera so both the robot (or launched
   /// head) and the ground below it stay on screen (see camera_framing.dart).
   void _updateCamera(double dt) {
     if (size.x <= 0) {
       return;
     }
+    final robot = _cameraRobot;
     final framing = frameRobotAndGround(
       robotPosition: robot.position,
       velocity: robot.velocity,
@@ -642,6 +777,13 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       comboSteps: robot.comboSteps,
       comboMax: robot.stats.comboCoilSteps,
       coach: autopilot == null ? _coach?.card : null,
+      standings: isVersus
+          ? RaceStandings.order(_standingsNow)
+          : const <Standing>[],
+      place: isVersus ? RaceStandings.placeOf(_standingsNow) : null,
+      callout: _places.callout,
+      markers: _markers(),
+      fastForward: fastForward,
       result: _result,
     );
   }

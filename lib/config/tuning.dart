@@ -642,6 +642,22 @@ abstract final class Tuning {
   /// before it is cleared away.
   static const double rivalLingerTime = 4;
 
+  /// When the player finishes before their place is settled, the race
+  /// fast-forwards (this many game frames per screen frame) until it is;
+  /// a tap skips faster.
+  static const int raceFastForward = 4;
+  static const int raceFastForwardSkip = 8;
+
+  /// A new place must hold this long (s) before "2ND!" pops up, and the
+  /// callout stays this long.
+  static const double raceCalloutDelay = 0.4;
+  static const double raceCalloutTime = 1.6;
+
+  /// Off-screen rival markers stay between these heights on the screen
+  /// edge (0 = top, 1 = bottom), clear of the HUD.
+  static const double raceMarkerTop = 0.25;
+  static const double raceMarkerBottom = 0.7;
+
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
   // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every

@@ -79,6 +79,39 @@ Widget _hudWithSummary() {
   );
 }
 
+/// A Versus HUD mid-race: standings with long names, markers on both
+/// edges (two on one side), a place callout and the fast-forward banner.
+Widget _raceHud() {
+  final game = DerbyGame(profile: _midGameProfile(), race: 6);
+  const c = Color(0xFF3AA7A3);
+  game.hud.value = const HudInfo(
+    distance: 3812,
+    standings: [
+      Standing(name: 'Crimson Crank', color: c, distance: 12345),
+      Standing(
+        name: 'YOU',
+        color: c,
+        distance: 3812,
+        isPlayer: true,
+        finished: true,
+      ),
+      Standing(name: 'The Maw', color: c, distance: 3500),
+      Standing(name: 'Onyx', color: c, distance: 120, finished: true),
+    ],
+    place: 2,
+    callout: PlaceCallout(place: 2, improved: false, serial: 1),
+    markers: [
+      RivalMarker(name: 'A', color: c, onRight: true, height: 0.4, gap: 8533),
+      RivalMarker(name: 'B', color: c, onRight: true, height: 0.41, gap: 12),
+      RivalMarker(name: 'C', color: c, onRight: false, height: 0.7, gap: -312),
+    ],
+    fastForward: 4,
+  );
+  return Scaffold(
+    body: Hud(game: game, onMenu: () {}, onPause: () {}),
+  );
+}
+
 final Map<String, Widget Function()> _pages = {
   'main menu': () => MainMenu(profile: _midGameProfile()),
   'mode select': () => ModeSelectPage(profile: _midGameProfile()),
@@ -89,6 +122,7 @@ final Map<String, Widget Function()> _pages = {
   'robot stats': () => RobotStatsPage(profile: _midGameProfile()),
   'settings': () => SettingsPage(profile: _midGameProfile()),
   'run summary': _hudWithSummary,
+  'race hud': _raceHud,
 };
 
 void main() {

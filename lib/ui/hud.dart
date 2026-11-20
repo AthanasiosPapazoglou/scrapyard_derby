@@ -12,6 +12,7 @@ import 'debug_overlay.dart';
 import 'hud_buttons.dart';
 import 'layout.dart';
 import 'outlined_text.dart';
+import 'race_hud.dart';
 import 'run_summary.dart';
 import 'status_panel.dart';
 
@@ -69,6 +70,12 @@ class Hud extends StatelessWidget {
                   ),
                 ),
               ),
+              // Versus: standings, rival markers, place callout,
+              // fast-forward banner.
+              if (game.isVersus)
+                Positioned.fill(
+                  child: RaceHud(info: info, portrait: portrait),
+                ),
               // Pause and Restart; hidden once the run is over (the run
               // card has its own Play again).
               if (info.result == null)
