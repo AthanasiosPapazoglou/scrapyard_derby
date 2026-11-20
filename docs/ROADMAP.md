@@ -1263,19 +1263,36 @@ developer.
 
 ## 1.2.0 steps
 
-### R1 — Modes, race data, saved Versus progress  ☐
-- Rename in UI: level select header and run card say SURVIVAL; main menu
-  PLAY → mode choice page (Survival / Versus cards, `DerbyRoute`).
-- `Tuning.versusRaces` (`RaceTuning`: level hill, gear tiers per slot,
-  gadgets, 3 rivals with name, colour, skill; first-win scrap) and
-  `lib/game/races.dart` (`Races.of`, `count`), like `levels.dart`.
-- `PlayerProfile`: `bestPlaceOn(race)`, `isRaceUnlocked`, `racesWon`,
-  `recordRace(race, place)` → `RaceRecord` (new best, first win,
-  unlocked race). Save v5 + migration.
-- Versus ladder page (placeholder look): 6 race cards, lock, best place
-  medal; starting a race opens a normal single-robot game for now.
-- Tests: race table sanity (gear tiers rise, skills rise, 3 rivals),
-  profile unlock/record/migration, mode page navigation.
+### R1 — Modes, race data, saved Versus progress  ☑
+- Main menu PLAY → `ModeSelectPage` (`lib/ui/mode_select_page.dart`):
+  SURVIVAL and VERSUS cards (scenery window, one line, progress:
+  "Level N · stars" / "Race N · wins"). Level select header and the run
+  card say SURVIVAL ("SURVIVAL · LEVEL 1 · RUST HOLLOW").
+- `Tuning.versusRaces` (`RaceTuning`: level, partTier, gadgets, 3
+  `RivalTuning` with name, ARGB colour, skill), `versusPlaceBonus`,
+  `versusFirstWinScrap`; `lib/game/races.dart` (`Races.of`, `count`,
+  `racers`, `levelOf`, `tierOf`, `gadgetsOf`, `statsOf`, `placeLabel`).
+- `PlayerProfile`: `bestPlaceOn`, `isRaceUnlocked`, `highestUnlockedRace`,
+  `racesWon`, `recordRace(race, place)` → `RaceRecord` (new best, first
+  win, unlocked race). Save v5 `versus.bestPlace`; bad values dropped;
+  reset clears it; debug unlock-all wins races 1-5.
+- `VersusLadderPage` (`lib/ui/versus_ladder_page.dart`): 6 race cards
+  (hill scenery, best place, "Tier N gear", rival colour dots and names,
+  "Win race N" lock), current race in hazard yellow.
+- Changed from the plan: tapping a race shows a "racing arrives in the
+  next build" note instead of a plain run, because a plain run would
+  record a Survival best with the race gear. R2 starts real races.
+- Shared `StillScene` painter (`lib/ui/still_scene.dart`, moved from the
+  level select) now clips its weather to the window (rain streaks used
+  to spill onto the card text, on the level select too).
+- Tests: `races_test` (one race per hill, 3 rivals, unique names,
+  distinct colours, rising gear and skills, stats from gear, labels),
+  profile Versus group (unlocks, first win once, last race, Survival
+  untouched, JSON/damaged/v4), `mode_select_page_test` (Play → modes →
+  each page; ladder places and locks), layout fit for both new pages on
+  6 sizes. 269 tests pass.
+- Simulator (iPhone 17 Pro Max): menu → PLAY → modes → Versus ladder in
+  portrait and landscape; race tap note.
 
 ### R2 — Many robots in one game  ☐
 - `DerbyGame(mode:, race:)`; a `Racer` (robot, autopilot or player,

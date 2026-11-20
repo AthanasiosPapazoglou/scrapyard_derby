@@ -12,7 +12,7 @@ import '../profile/player_profile.dart';
 import 'derby_route.dart';
 import 'layout.dart';
 import 'derby_button.dart';
-import 'level_select_page.dart';
+import 'mode_select_page.dart';
 import 'outlined_text.dart';
 import 'robot_figure.dart';
 import 'robot_stats_page.dart';
@@ -77,9 +77,7 @@ class _MainMenuState extends State<MainMenu>
 
   void _play() {
     Navigator.of(context).push(
-      DerbyRoute<void>(
-        builder: (_) => LevelSelectPage(profile: widget.profile),
-      ),
+      DerbyRoute<void>(builder: (_) => ModeSelectPage(profile: widget.profile)),
     );
   }
 

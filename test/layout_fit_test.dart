@@ -9,8 +9,10 @@ import 'package:scrapyard_derby/profile/player_profile.dart';
 import 'package:scrapyard_derby/ui/hud.dart';
 import 'package:scrapyard_derby/ui/level_select_page.dart';
 import 'package:scrapyard_derby/ui/main_menu.dart';
+import 'package:scrapyard_derby/ui/mode_select_page.dart';
 import 'package:scrapyard_derby/ui/robot_stats_page.dart';
 import 'package:scrapyard_derby/ui/settings_page.dart';
+import 'package:scrapyard_derby/ui/versus_ladder_page.dart';
 import 'package:scrapyard_derby/ui/workshop_page.dart';
 
 /// Every page must lay out without overflow on phones held either way and
@@ -35,6 +37,7 @@ const Map<String, Set<String>> _knownMisfits = {};
 PlayerProfile _midGameProfile() => PlayerProfile(
   scrap: 12345,
   levelBest: {1: 4400, 2: 2100, 3: 800},
+  raceBestPlace: {1: 1, 2: 3},
   upgradeLevels: {'plating': 2, 'springLegs': 3, 'rocketHead': 1},
   gadgetLevels: {'scrapMagnet': 1, 'autoGyro': 2},
 );
@@ -78,7 +81,9 @@ Widget _hudWithSummary() {
 
 final Map<String, Widget Function()> _pages = {
   'main menu': () => MainMenu(profile: _midGameProfile()),
+  'mode select': () => ModeSelectPage(profile: _midGameProfile()),
   'level select': () => LevelSelectPage(profile: _midGameProfile()),
+  'versus ladder': () => VersusLadderPage(profile: _midGameProfile()),
   'workshop': () => WorkshopPage(profile: _midGameProfile()),
   'workshop gadgets': () => WorkshopPage(profile: _midGameProfile()),
   'robot stats': () => RobotStatsPage(profile: _midGameProfile()),

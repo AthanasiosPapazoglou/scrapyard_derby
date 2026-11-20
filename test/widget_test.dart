@@ -84,7 +84,7 @@ void main() {
     expect(find.text('Play again'), findsOneWidget);
     expect(find.text('Levels'), findsOneWidget);
     // Level and stars; no next level while level 2 is locked.
-    expect(find.text('LEVEL 1 · RUST HOLLOW'), findsOneWidget);
+    expect(find.text('SURVIVAL · LEVEL 1 · RUST HOLLOW'), findsOneWidget);
     expect(find.bySemanticsLabel('1 of 3 stars'), findsOneWidget);
     expect(find.text('Next level'), findsNothing);
     // Run stats and the scrap breakdown.

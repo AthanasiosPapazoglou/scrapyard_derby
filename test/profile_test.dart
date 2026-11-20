@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
 import 'package:scrapyard_derby/game/gadgets.dart';
 import 'package:scrapyard_derby/game/levels.dart';
+import 'package:scrapyard_derby/game/races.dart';
 import 'package:scrapyard_derby/game/robot_stats.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
 import 'package:scrapyard_derby/profile/profile_store.dart';
@@ -255,6 +256,91 @@ void main() {
       SharedPreferences.setMockInitialValues({'player_profile': '{oops'});
       final store = await ProfileStore.load();
       expect(store.profile.toJson(), PlayerProfile().toJson());
+    });
+  });
+
+  group('Versus progress', () {
+    test('race 1 is open; each win opens the next race', () {
+      final p = PlayerProfile();
+      expect(p.isRaceUnlocked(1), isTrue);
+      expect(p.isRaceUnlocked(2), isFalse);
+      expect(p.highestUnlockedRace, 1);
+      expect(p.bestPlaceOn(1), isNull);
+
+      final second = p.recordRace(1, 2);
+      expect(second.isNewBest, isTrue);
+      expect(second.isFirstWin, isFalse);
+      expect(second.unlockedRace, isNull);
+      expect(p.isRaceUnlocked(2), isFalse);
+
+      final win = p.recordRace(1, 1);
+      expect(win.isNewBest, isTrue);
+      expect(win.isFirstWin, isTrue);
+      expect(win.unlockedRace, 2);
+      expect(p.highestUnlockedRace, 2);
+      expect(p.racesWon, 1);
+
+      // Winning again is neither a first win nor a new unlock.
+      final again = p.recordRace(1, 1);
+      expect(again.isNewBest, isFalse);
+      expect(again.isFirstWin, isFalse);
+      expect(again.unlockedRace, isNull);
+
+      // A worse place never lowers the best.
+      expect(p.recordRace(1, 4).isNewBest, isFalse);
+      expect(p.bestPlaceOn(1), 1);
+    });
+
+    test('winning the last race unlocks nothing further', () {
+      final p = PlayerProfile(
+        raceBestPlace: {for (var r = 1; r < Races.count; r++) r: 1},
+      );
+      expect(p.highestUnlockedRace, Races.count);
+      final last = p.recordRace(Races.count, 1);
+      expect(last.isFirstWin, isTrue);
+      expect(last.unlockedRace, isNull);
+      expect(p.racesWon, Races.count);
+    });
+
+    test('Versus does not touch Survival progress', () {
+      final p = PlayerProfile()..recordRace(1, 1);
+      expect(p.bestDistance, 0);
+      expect(p.totalStars, 0);
+      expect(p.highestUnlockedLevel, 1);
+    });
+
+    test('JSON keeps places; bad values and v4 saves are dropped', () {
+      final p = PlayerProfile(raceBestPlace: {1: 1, 2: 3});
+      final json = jsonDecode(jsonEncode(p.toJson())) as Map<String, Object?>;
+      expect(json['version'], 5);
+      expect(PlayerProfile.fromJson(json).bestPlaceOn(2), 3);
+
+      final damaged = PlayerProfile.fromJson(const {
+        'version': 5,
+        'versus': {
+          'bestPlace': {'1': 0, '2': 9, 'x': 1, '3': 'first', '4': 2},
+        },
+      });
+      expect(damaged.bestPlaceOn(1), isNull);
+      expect(damaged.bestPlaceOn(2), isNull);
+      expect(damaged.bestPlaceOn(3), isNull);
+      expect(damaged.bestPlaceOn(4), 2);
+
+      final v4 = PlayerProfile.fromJson(const {
+        'version': 4,
+        'levelBest': {'1': 2000.0},
+      });
+      expect(v4.bestPlaceOn(1), isNull);
+      expect(v4.highestUnlockedRace, 1);
+      expect(v4.bestOn(1), 2000);
+    });
+
+    test('reset clears places; unlock-all opens every race', () {
+      final p = PlayerProfile(raceBestPlace: {1: 1})..resetProgress();
+      expect(p.bestPlaceOn(1), isNull);
+      p.debugUnlockAll(extraScrap: 0);
+      expect(p.highestUnlockedRace, Races.count);
+      expect(p.bestPlaceOn(Races.count), isNull);
     });
   });
 }

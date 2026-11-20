@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../config/tuning.dart';
 import '../game/gadgets.dart';
 import '../game/levels.dart';
+import '../game/races.dart';
 import '../game/robot_stats.dart';
 import 'page_tour.dart';
 
@@ -31,6 +32,25 @@ class RunRecord {
   int get newStars => starsAfter - starsBefore;
 }
 
+/// What a finished Versus race changed (see [PlayerProfile.recordRace]).
+@immutable
+class RaceRecord {
+  const RaceRecord({
+    required this.isNewBest,
+    required this.isFirstWin,
+    required this.unlockedRace,
+  });
+
+  /// A better place than ever before on this race.
+  final bool isNewBest;
+
+  /// The race's first win (pays the one-off first-win scrap).
+  final bool isFirstWin;
+
+  /// The race this result unlocked (its first win), or null.
+  final int? unlockedRace;
+}
+
 /// Everything the game remembers between launches: best distance per
 /// level (stars and unlocks follow from it), scrap, upgrade levels and
 /// settings.
@@ -40,6 +60,7 @@ class RunRecord {
 class PlayerProfile extends ChangeNotifier {
   PlayerProfile({
     Map<int, double> levelBest = const {},
+    Map<int, int> raceBestPlace = const {},
     this._scrap = 0,
     Map<String, int> upgradeLevels = const {},
     Map<String, int> gadgetLevels = const {},
@@ -52,6 +73,7 @@ class PlayerProfile extends ChangeNotifier {
     Set<PageTour> toursSeen = const {},
   }) : _toursSeen = Set.of(toursSeen),
        _levelBest = Map.of(levelBest),
+       _raceBestPlace = Map.of(raceBestPlace),
        _upgradeLevels = Map.of(upgradeLevels),
        _gadgetLevels = Map.of(gadgetLevels);
 
@@ -61,12 +83,14 @@ class PlayerProfile extends ChangeNotifier {
   /// it get the scrap back ([Tuning.retiredGadgetPrices]).
   /// v4 (1.1.2): tutorial flags; saves from before count as coached if
   /// they have played a run.
-  static const int jsonVersion = 4;
+  /// v5 (1.2.0): Versus best place per race; older saves raced nothing.
+  static const int jsonVersion = 5;
 
   static const double defaultMusicVolume = 0.7;
   static const double defaultSfxVolume = 0.8;
 
   final Map<int, double> _levelBest;
+  final Map<int, int> _raceBestPlace;
   int _scrap;
   final Map<String, int> _upgradeLevels;
   final Map<String, int> _gadgetLevels;
@@ -110,6 +134,30 @@ class PlayerProfile extends ChangeNotifier {
   /// The best part tier the Workshop sells right now (set by the furthest
   /// unlocked level).
   int get maxPartTier => Levels.of(highestUnlockedLevel).partTier;
+
+  // ---------------------------------------------------------------- Versus
+
+  /// Best finishing place (1-4) in Versus race [race], or null if never
+  /// raced.
+  int? bestPlaceOn(int race) => _raceBestPlace[race];
+
+  /// Race 1 is always open; every other race opens by winning the race
+  /// before it.
+  bool isRaceUnlocked(int race) =>
+      race == 1 ||
+      (race > 1 && race <= Races.count && bestPlaceOn(race - 1) == 1);
+
+  /// The furthest race the player can run.
+  int get highestUnlockedRace {
+    var race = 1;
+    while (race < Races.count && isRaceUnlocked(race + 1)) {
+      race++;
+    }
+    return race;
+  }
+
+  /// Races won at least once.
+  int get racesWon => _raceBestPlace.values.where((p) => p == 1).length;
 
   /// Extra share of scrap from stars, e.g. 0.12 = +12% (see
   /// [Tuning.scrapBonusPerStar]).
@@ -182,6 +230,24 @@ class PlayerProfile extends ChangeNotifier {
     );
   }
 
+  /// Records a finished Versus race: keeps the best place and reports
+  /// what it changed (new best, first win, unlocks).
+  RaceRecord recordRace(int race, int place) {
+    final before = bestPlaceOn(race);
+    final wasUnlocked = isRaceUnlocked(race + 1);
+    final isNewBest = before == null || place < before;
+    if (isNewBest) {
+      _raceBestPlace[race] = place;
+      notifyListeners();
+    }
+    final unlocks = !wasUnlocked && isRaceUnlocked(race + 1);
+    return RaceRecord(
+      isNewBest: isNewBest,
+      isFirstWin: place == 1 && before != 1,
+      unlockedRace: unlocks ? race + 1 : null,
+    );
+  }
+
   void addScrap(int amount) {
     if (amount == 0) {
       return;
@@ -234,7 +300,8 @@ class PlayerProfile extends ChangeNotifier {
   /// Developer shortcut (Settings, debug builds only): every part at the
   /// top tier, every gadget maxed, every level open (each level before the
   /// last gets at least its first-star distance, so the other stars are
-  /// still to earn) and [extraScrap] more scrap. Better bests are kept.
+  /// still to earn), every Versus race open (each race before the last
+  /// counts as won) and [extraScrap] more scrap. Better bests are kept.
   void debugUnlockAll({int extraScrap = 10000}) {
     for (final track in UpgradeTrack.values) {
       _upgradeLevels[track.id] = Tuning.upgradeMaxLevel;
@@ -246,15 +313,19 @@ class PlayerProfile extends ChangeNotifier {
       final goal = Levels.of(level).starDistances.first;
       _levelBest[level] = math.max(bestOn(level), goal);
     }
+    for (var race = 1; race < Races.count; race++) {
+      _raceBestPlace[race] = 1;
+    }
     _scrap += extraScrap;
     notifyListeners();
   }
 
-  /// Wipes best distances (so stars and unlocks), scrap, upgrades and
-  /// gadgets.
+  /// Wipes best distances (so stars and unlocks), Versus places, scrap,
+  /// upgrades and gadgets.
   /// Settings are kept.
   void resetProgress() {
     _levelBest.clear();
+    _raceBestPlace.clear();
     _scrap = 0;
     _upgradeLevels.clear();
     _gadgetLevels.clear();
@@ -321,6 +392,12 @@ class PlayerProfile extends ChangeNotifier {
     'levelBest': {
       for (final MapEntry(:key, :value) in _levelBest.entries) '$key': value,
     },
+    'versus': {
+      'bestPlace': {
+        for (final MapEntry(:key, :value) in _raceBestPlace.entries)
+          '$key': value,
+      },
+    },
     'scrap': _scrap,
     'upgrades': Map.of(_upgradeLevels),
     'gadgets': Map.of(_gadgetLevels),
@@ -346,6 +423,8 @@ class PlayerProfile extends ChangeNotifier {
     final levelBest = json['levelBest'];
     final gadgets = json['gadgets'];
     final tutorial = json['tutorial'];
+    final versus = json['versus'];
+    final bestPlace = versus is Map ? versus['bestPlace'] : null;
     final t = tutorial is Map ? tutorial : const {};
     final hasPlayed =
         levelBest is Map && levelBest.isNotEmpty || json['bestDistance'] is num;
@@ -371,6 +450,16 @@ class PlayerProfile extends ChangeNotifier {
           for (final MapEntry(:key, :value) in levelBest.entries)
             if (key is String && int.tryParse(key) != null && value is num)
               int.parse(key): value.toDouble(),
+      },
+      raceBestPlace: {
+        if (bestPlace is Map)
+          for (final MapEntry(:key, :value) in bestPlace.entries)
+            if (key is String &&
+                int.tryParse(key) != null &&
+                value is int &&
+                value >= 1 &&
+                value <= Races.racers)
+              int.parse(key): value,
       },
       scrap: math.max(0, _int(json['scrap'], 0)) + refund,
       upgradeLevels: {

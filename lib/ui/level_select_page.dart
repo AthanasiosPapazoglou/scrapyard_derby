@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../game/dusk_scene.dart';
 import '../game/levels.dart';
 import '../game/palette.dart';
 import '../game/sound.dart';
@@ -11,8 +10,9 @@ import 'game_page.dart';
 import 'layout.dart';
 import 'page_header.dart';
 import 'spotlight_tour.dart';
+import 'still_scene.dart';
 
-/// Opened with Play: the six levels as cards, with stars, best distance and
+/// Survival mode (Play → Survival): the six levels as cards, with stars, best distance and
 /// star distances. Locked levels say what opens them.
 class LevelSelectPage extends StatefulWidget {
   const LevelSelectPage({super.key, required this.profile});
@@ -66,7 +66,7 @@ class _LevelSelectPageState extends State<LevelSelectPage> {
           fit: StackFit.expand,
           children: [
             // The menus' happy baseline; the cards show each level's look.
-            CustomPaint(painter: _StillScene(LevelTheme.of(1))),
+            CustomPaint(painter: StillScene(LevelTheme.of(1))),
             SafeArea(
               // Rebuilds when a run (from this page) earns stars or unlocks.
               child: ListenableBuilder(
@@ -74,7 +74,7 @@ class _LevelSelectPageState extends State<LevelSelectPage> {
                 builder: (context, _) => Column(
                   children: [
                     PageHeader(
-                      title: 'LEVELS',
+                      title: 'SURVIVAL',
                       onBack: () => Navigator.of(context).pop(),
                       trailing: [
                         HeaderCount(
@@ -201,14 +201,9 @@ class _LevelCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: ColorFiltered(
-                  colorFilter: unlocked
-                      ? const ColorFilter.mode(
-                          Colors.transparent,
-                          BlendMode.dst,
-                        )
-                      : _greyscale,
+                  colorFilter: unlocked ? noFilter : greyscaleFilter,
                   child: CustomPaint(
-                    painter: _StillScene(
+                    painter: StillScene(
                       LevelTheme.of(level),
                       cameraX: level * 37.0,
                     ),
@@ -290,30 +285,3 @@ class _LevelCard extends StatelessWidget {
     );
   }
 }
-
-/// A level's sky, heaps and weather, standing still. [cameraX] picks the
-/// stretch of heaps shown, so the cards don't all look the same.
-class _StillScene extends CustomPainter {
-  _StillScene(this.theme, {this.cameraX = 0}) : _scene = DuskScene(theme);
-
-  final LevelTheme theme;
-  final double cameraX;
-  final DuskScene _scene;
-
-  @override
-  void paint(Canvas canvas, Size size) =>
-      // A moment into the weather, so rain and sparks are mid-air.
-      _scene.paint(canvas, size, cameraX: cameraX, time: 2.3);
-
-  @override
-  bool shouldRepaint(_StillScene old) =>
-      old.theme != theme || old.cameraX != cameraX;
-}
-
-/// Turns a locked level's scenery grey.
-const ColorFilter _greyscale = ColorFilter.matrix([
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0.2126, 0.7152, 0.0722, 0, 0, //
-  0, 0, 0, 1, 0, //
-]);

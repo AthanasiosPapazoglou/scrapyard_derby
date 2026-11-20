@@ -552,6 +552,76 @@ abstract final class Tuning {
   static const double starFlagClothHeight = 1.5;
   static const double starFlagOutline = 0.15;
 
+  // ---------------------------------------------------------------- Versus
+  // The Versus ladder (1.2.0, docs/ROADMAP.md Block 6): one race per level
+  // hill. The player and 3 rivals race with the same fixed gear; rivals
+  // get harder through their Autopilot skill. Workshop upgrades and
+  // gadgets never apply here. Win (1st place) a race to open the next.
+  // Rival skills are placeholders until the balance step (R6).
+  static const List<RaceTuning> versusRaces = [
+    RaceTuning(
+      level: 1,
+      partTier: 1,
+      rivals: [
+        RivalTuning(name: 'Tinker', color: 0xFF3AA7A3, skill: 0.25),
+        RivalTuning(name: 'Rustina', color: 0xFF8E5BC8, skill: 0.35),
+        RivalTuning(name: 'Bolt Jr.', color: 0xFF6DB24A, skill: 0.45),
+      ],
+    ),
+    RaceTuning(
+      level: 2,
+      partTier: 2,
+      rivals: [
+        RivalTuning(name: 'Sprocket', color: 0xFF3F7FD0, skill: 0.33),
+        RivalTuning(name: 'Clank-9', color: 0xFFD9578B, skill: 0.43),
+        RivalTuning(name: 'Ember', color: 0xFF3AA7A3, skill: 0.52),
+      ],
+    ),
+    RaceTuning(
+      level: 3,
+      partTier: 3,
+      rivals: [
+        RivalTuning(name: 'Rivet', color: 0xFF6DB24A, skill: 0.42),
+        RivalTuning(name: 'Dyna-Mo', color: 0xFF8E5BC8, skill: 0.5),
+        RivalTuning(name: 'Smogtooth', color: 0xFF3F7FD0, skill: 0.6),
+      ],
+    ),
+    RaceTuning(
+      level: 4,
+      partTier: 4,
+      rivals: [
+        RivalTuning(name: 'Gearlock', color: 0xFFD9578B, skill: 0.5),
+        RivalTuning(name: 'Piston Pete', color: 0xFF3AA7A3, skill: 0.6),
+        RivalTuning(name: 'Volt Viper', color: 0xFF6DB24A, skill: 0.7),
+      ],
+    ),
+    RaceTuning(
+      level: 5,
+      partTier: 5,
+      rivals: [
+        RivalTuning(name: 'Slagjaw', color: 0xFF3F7FD0, skill: 0.58),
+        RivalTuning(name: 'Kiln-X', color: 0xFF8E5BC8, skill: 0.68),
+        RivalTuning(name: 'Magma Max', color: 0xFFD9578B, skill: 0.78),
+      ],
+    ),
+    RaceTuning(
+      level: 6,
+      partTier: 5,
+      gadgets: {'comboCoil': 2, 'shockPads': 1},
+      rivals: [
+        RivalTuning(name: 'Onyx', color: 0xFF3AA7A3, skill: 0.7),
+        RivalTuning(name: 'Crimson Crank', color: 0xFF6DB24A, skill: 0.8),
+        RivalTuning(name: 'The Maw', color: 0xFF8E5BC8, skill: 0.88),
+      ],
+    ),
+  ];
+
+  /// Extra share of a race's scrap by finishing place (index 0 = 1st).
+  static const List<double> versusPlaceBonus = [0.6, 0.3, 0.1, 0];
+
+  /// One-off scrap for the first win of a race, times the race number.
+  static const int versusFirstWinScrap = 150;
+
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
   // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every
@@ -760,4 +830,43 @@ class LevelTuning {
   /// Multiplier on all landing damage: later levels are harsher, which
   /// roughly cancels the extra part HP of the tier they unlock.
   final double damageScale;
+}
+
+/// One Versus race's numbers (see [Tuning.versusRaces]).
+class RaceTuning {
+  const RaceTuning({
+    required this.level,
+    required this.partTier,
+    required this.rivals,
+    this.gadgets = const {},
+  });
+
+  /// The Survival level whose hill, scenery, music and damage it uses.
+  final int level;
+
+  /// The race gear: every part slot at this tier (player and rivals).
+  final int partTier;
+
+  /// Gadget levels the race gear comes with, by gadget id.
+  final Map<String, int> gadgets;
+
+  /// The 3 rival robots.
+  final List<RivalTuning> rivals;
+}
+
+/// A rival robot in a Versus race.
+class RivalTuning {
+  const RivalTuning({
+    required this.name,
+    required this.color,
+    required this.skill,
+  });
+
+  final String name;
+
+  /// Paint colour (ARGB), for its tint, name tag and standings row.
+  final int color;
+
+  /// Autopilot skill: 1 near perfect, 0 clumsy (see autopilot.dart).
+  final double skill;
 }
