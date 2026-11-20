@@ -66,7 +66,7 @@ Defaults are in use until the developer changes them.
 | D3 | Shop name in menus | **Workshop** (default) |
 | D4 | Music source | **Generated** by `art/make_music.py` (original composition and synth, like the sound effects). One loop for menu and game for now. |
 | D5 | Sound effects | **Generated** by a script in `art/` (original, retro synth style), like the art |
-| D6 | Rivals | Still open (see CLAUDE.md spec item 7). Not part of this roadmap. |
+| D6 | Rivals | Decided in Block 6 (Versus mode, D44-D53): 3 AI rivals on the same hill, no contact. |
 
 ## Steps
 
@@ -1209,3 +1209,110 @@ Open:
 - Not checked on a device: Android (launcher icon, Android 12+ splash,
   splash ding), the web tab icon. Developer playtest of the guided first
   run and tours, both orientations.
+
+# Block 6: Version 1.2.0 (Versus mode)
+
+Scope change (Nov 20, 2026): a second game mode. The game so far becomes
+**Survival** (unchanged). The new **Versus** mode is a ladder of races:
+the player and 3 rival robots go down the same hill at the same time,
+every robot for itself, ranked live by distance. Each race gives the
+player a fixed robot ("race gear"); Workshop upgrades never apply in
+Versus, so the only way up the ladder is winning each race with the gear
+it hands out. Versus still pays scrap, which buys Survival upgrades.
+Branch `v1.2.0` (from `main`). Same rules: analyze clean, tests pass,
+Simulator check both orientations, commit-and-push command for the
+developer.
+
+## What the request needs (and what the code already gives)
+
+- **No contact between robots:** every robot part already uses collision
+  `Filter(groupIndex: -1)` (`robot_part.dart`), so parts of *any* robots
+  never touch; only the hill does. Rivals are non-interactive for free
+  (a test pins it).
+- **Rival brains:** `Autopilot` (`autopilot.dart`) already plays like a
+  person with a `skill` (noise, reaction, how well it reads bumps). It
+  drives the rivals; "enemies scale with the level" = higher skill (and
+  the same rising gear as the player) per race.
+- **Several robots in one game:** `DerbyGame` assumes one `robot`
+  (spawn, stall timer, run end, hill chunks around `_focusX`, coach).
+  It needs a list of racers, each with its own finish state.
+- **Rival juice:** `Robot` calls `game.effects` (sound, haptics, shake)
+  and `game.startHeadLaunchSlowMo()`. Rivals must stay quiet: small
+  visual effects only, no sound, haptics, shake or slow-mo.
+- **Hill chunks** are built around the player only; a rival far behind
+  or ahead would fall through. Build around every racer still running.
+- **Gear for a race:** `RobotStats.fromLevels(tiers, gadgets:)` and
+  `RobotSprites.look(tierOf)` already take any loadout, not just the
+  profile's.
+
+## 1.2.0 decisions (defaults until the developer changes them)
+
+| # | Question | Default |
+|---|---|---|
+| D44 | Mode names | **Survival** (today's game, levels and stars unchanged) and **Versus**. Main menu PLAY opens a mode choice (two big cards); the level select header says SURVIVAL. |
+| D45 | Ladder | **6 races**, one per level hill (same slope, bumps, damage, scenery, music as that Survival level). Race N+1 unlocks by **winning (1st place)** race N. Versus is open from the start, independent of Survival progress. |
+| D46 | Race gear | Fixed per race, shown before the race: race N = every slot at **tier N** (race 6: tier 5 + Combo Coil 2 + Shock Pads 1). Gadgets the player bought do not apply. The robot wears the race gear's art. Numbers in `Tuning.versusRaces`. |
+| D47 | Rivals | 3 per race, same gear as the player (fair race); difficulty = Autopilot skill. Placeholder skills race 1 → 6: [0.25, 0.35, 0.45] … [0.70, 0.80, 0.88]; R6 balances them. Each rival has an original name and paint colour (e.g. Sprocket, Rustina, Clank-9, Bolt Junior, Dyna-Mo, Gearlock; a set per race), new seed every attempt so rematches differ. |
+| D48 | Rival look | Same sprites tinted in the rival's colour, drawn **behind** the player at ~70% opacity, with a small name tag; so overlaps read as "not touching". Rivals make no sound, haptics, shake or slow-mo; landing sparks/dust stay (smaller). |
+| D49 | How a race ends | Still endless (no finish line). Every racer finishes like a Survival run (head lands / stuck); its distance is final there. Final order = final distances. When the player finishes, the race ends **as soon as the player's place can't change** (every rival still running is already ahead). Otherwise the game fast-forwards (×4, camera on the chasing rival, "FINISHING…", tap to skip = ×8) until it can't. |
+| D50 | Live ranking | Standings panel (top right, under the distance in portrait): 4 rows, place, name, distance, a dot in each robot's colour; finished rows show a flag. Rivals off screen get an edge marker (colour + "+132 m"). A short "2ND!" callout when the player's place changes. |
+| D51 | Rewards | Scrap = Survival formula on the player's distance (level multiplier, star bonus) **+ place bonus** (1st +60%, 2nd +30%, 3rd +10%, 4th +0) **+ one-off +150 × race number** for the first win of each race. Scrap Magnet does not apply (gear is fixed). |
+| D52 | Save | JSON **v5**: `versus.bestPlace` per race (1-4, missing = never raced). Unlocks are derived from it (race N open when race N-1 has bestPlace 1), like stars from best distance. Older saves: nothing raced. |
+| D53 | Tutorial | The guided first run stays Survival only. Versus gets a first-visit tour on the ladder page (race gear, rivals, "win to unlock") and a one-line hint card at the first race start. |
+| D54 | Version | `pubspec.yaml` → `1.2.0+5`. |
+
+## 1.2.0 steps
+
+### R1 — Modes, race data, saved Versus progress  ☐
+- Rename in UI: level select header and run card say SURVIVAL; main menu
+  PLAY → mode choice page (Survival / Versus cards, `DerbyRoute`).
+- `Tuning.versusRaces` (`RaceTuning`: level hill, gear tiers per slot,
+  gadgets, 3 rivals with name, colour, skill; first-win scrap) and
+  `lib/game/races.dart` (`Races.of`, `count`), like `levels.dart`.
+- `PlayerProfile`: `bestPlaceOn(race)`, `isRaceUnlocked`, `racesWon`,
+  `recordRace(race, place)` → `RaceRecord` (new best, first win,
+  unlocked race). Save v5 + migration.
+- Versus ladder page (placeholder look): 6 race cards, lock, best place
+  medal; starting a race opens a normal single-robot game for now.
+- Tests: race table sanity (gear tiers rise, skills rise, 3 rivals),
+  profile unlock/record/migration, mode page navigation.
+
+### R2 — Many robots in one game  ☐
+- `DerbyGame(mode:, race:)`; a `Racer` (robot, autopilot or player,
+  finished distance, stall timer, colour, name). Survival = one racer,
+  Versus = player + 3. The player racer drives camera, HUD, coach.
+- `Robot(quiet:, tint:, opacity:)`: rival robots skip sound / haptics /
+  shake / slow-mo and use smaller effects; `look` tinted.
+- Hill chunks cover every running racer (min..max x); debris and
+  finished rivals are removed once far behind the camera.
+- Tests: headless race with 4 bots runs to the end without anyone
+  falling through; robots overlap without touching (positions match
+  solo runs with the same seed); quiet rivals trigger no sound.
+
+### R3 — Race HUD and race end  ☐
+- Standings panel, off-screen markers, place-change callout (D50).
+- Race end rule and fast-forward with skip (D49), as plain tested logic
+  (`race_standings.dart`: order, "place locked?").
+- Tests: standings order with finished and running racers, place-lock
+  cases, fast-forward ends; HUD fits on 4 phone sizes both ways.
+
+### R4 — Race summary and rewards  ☐
+- Run card for Versus: podium (1-4, names, distances, colours), YOU
+  highlighted, scrap lines (D51), "RACE 3 UNLOCKED!", Retry / Next race /
+  Ladder buttons.
+- `scrapReward` gets place and first-win lines.
+- Tests: scrap lines per place, first win once, unlock shown once.
+
+### R5 — Ladder page, gear preview, polish  ☐
+- Race cards show the race gear on the robot (`RobotFigure` with the
+  race loadout), the 3 rivals (colour chips, names), best medal.
+- Workshop and Robot Stats note "Upgrades apply to Survival".
+- Ladder tour and first race hint (D53). Race-start sound sting.
+- Tests: ladder tour stops, cards fit on small phones both ways.
+
+### R6 — Versus balance, docs, version  ☐
+- `tool/versus_report_test.dart`: many simulated races per rung with a
+  player-bot at skills 0.4 / 0.6 / 0.8. Target: skill 0.6 wins race 1
+  in ~2 of 3 tries and race 6 in ~1 of 4; skill 0.8 wins every race
+  most of the time; skill 0.4 can still win races 1-2. Tune rival skills.
+- README, CLAUDE.md, version 1.2.0+5.

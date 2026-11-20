@@ -26,6 +26,15 @@ Not a single endless level anymore: 6 levels, each still an endless hill but wit
 with its own scenery and darker music. Stars permanently boost scrap. Part tier N is buyable once level N is unlocked,
 and a robot with every slot at tier N should clear level N with normal effort. Extra "gadgets" help weaker players.
 A robot stats screen shows current vs max stats. Details, numbers and steps: `docs/ROADMAP.md`, "Block 2: Progression".
+This level ladder is now the **Survival** mode.
+
+## Versus mode (Nov 2026 scope change, Block 6)
+A second mode: a ladder of 6 races, one per level hill. Each race = the player + 3 AI rivals (`Autopilot`) on the same hill at once,
+every robot for itself, no contact (robots never collide; they just overlap). Live standings by distance. No finish line:
+each racer finishes like a Survival run; the final order is by final distance. Win (1st) a race to unlock the next.
+Each race hands the player fixed "race gear" (same gear as the rivals); Workshop upgrades and gadgets apply only in Survival.
+Rivals get harder per race (skill). Versus pays scrap (distance + place bonus + first-win bonus), spent on Survival upgrades.
+Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0".
 
 ## Mechanics spec
 1. **Spin**: clockwise at a constant speed by default. Holding a finger down is a counter-spin force: the clockwise spin quickly (but not instantly) slows to zero, then builds up counter-clockwise until it reaches the same speed the other way. Releasing returns gradually to full clockwise. No instant flips. Holding is the only correction mechanism.
@@ -37,7 +46,7 @@ A robot stats screen shows current vs max stats. Details, numbers and steps: `do
 4. **Limb loss**: linear, not location-based. Every landing adds to one shared damage total (crash 100 = one whole limb, one foot 35, clean 10). Parts break in a fixed order: left arm, right arm, left leg, right leg (at 100/200/300/400); then the body is left behind at the head launch and the head ends the attempt when it lands. Each part's HP = 1 - damage / its breaking point, so all parts drain together, the next in line fastest. Broken limbs call `joint.destroy()` and stay on the track as debris for a few seconds. A green CRT-style status panel (bottom left) shows each part's HP.
 5. **Run end**: the run ends the moment the launched head first touches the ground (distance measured there), or when the robot gets stuck (too slow for a few seconds). Losing all four limbs does NOT end the run; it leads to the head launch.
 6. **Head launch**: when only torso + head remain, the next landing (or ~0.6 s of sliding on the ground) fires the head like a rocket: along the facing direction, bent strongly away from the ground, with power from speed and landing angle (capped), plus a short rocket burn with a flame. The torso stays behind as debris. The head's first ground contact finishes the attempt; it does not roll on. Broken-off parts are flung away from the robot and fade out, so they never look attached.
-7. **Rivals** (open question, was "4-racer race"): undecided how rivals fit an endless distance game, e.g. AI bots on the same hill, ghost runs, or none. AI would use the same physics and hold based on time-to-ground and angle error, plus per-bot skill noise.
+7. **Rivals** (Versus mode only): 3 AI robots on the same hill, using the same physics and `Autopilot` (holds when that predicts a better landing, with per-bot skill noise). They never collide with the player (shared collision group), make no sound/haptics/shake, and are drawn tinted behind the player.
 8. **Camera**: follows the player and always frames both the robot and the ground right below it: the higher the robot, the further it zooms out, zooming back in as it lands (capped). Slightly wider when fast. Distance counter and energy bar at the top.
 9. **Juice**: sparks on clean landings, dust on one-foot landings and crashes, screen shake (scaled by landing type), scrap bits on limb loss, slow-mo + spark burst + smoke trail on head launch, haptics on landings/limb loss/launch. All numbers in the Juice section of tuning.dart.
 
@@ -75,12 +84,12 @@ A robot stats screen shows current vs max stats. Details, numbers and steps: `do
 ## Phases
 1. **Feel prototype**: done (spin, hold to counter-spin, landings, endless hill, limb loss, head launch, distance, tuning).
 2. **Playable MVP** (now): art style test in game is done. Remaining: main menu, run summary, saved best distance,
-   settings, Android build, rivals decision.
+   settings, Android build (rivals: decided, Versus mode).
 3. **Content and upgrades**: Workshop (scrap currency, part upgrades), sound effects and music, hill variants
    (biomes / difficulty ramping with distance), full art set.
 4. **Launch**: Play closed testing, iOS build, store listings, final name/app IDs/icon, optional online leaderboard.
 
-**Current work plan: `docs/ROADMAP.md`**, Block 5: Version 1.1.2 (Thanos Productions splash, tutorial, app icon), with steps, decisions,
+**Current work plan: `docs/ROADMAP.md`**, Block 6: Version 1.2.0 (Versus mode), with steps, decisions,
 code map and known gotchas. Read it before starting; tick steps off there as they land.
 
 ## Working rules
