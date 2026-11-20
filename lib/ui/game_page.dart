@@ -14,12 +14,15 @@ import 'workshop_page.dart';
 /// One play session: a fresh [DerbyGame] with the HUD on top. Opened from
 /// the menu with Play; "Play again" restarts inside the same game.
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, required this.profile, this.level = 1});
+  const GamePage({super.key, required this.profile, this.level = 1, this.race});
 
   final PlayerProfile profile;
 
-  /// The level to play (1-based).
+  /// The Survival level to play (1-based).
   final int level;
+
+  /// The Versus race to run instead (1-based), or null for Survival.
+  final int? race;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -32,12 +35,13 @@ class _GamePageState extends State<GamePage> {
   late final DerbyGame _game = DerbyGame(
     profile: widget.profile,
     level: widget.level,
+    race: widget.race,
   );
 
   @override
   void initState() {
     super.initState();
-    Sound.musicForLevel(widget.level);
+    Sound.musicForLevel(_game.level);
   }
 
   void _pause() {
@@ -98,11 +102,16 @@ class _GamePageState extends State<GamePage> {
               game: game,
               onMenu: _toMenu,
               onPause: _pause,
-              onWorkshop: _openWorkshop,
-              onNextLevel: _nextLevel,
+              // Versus: the Workshop's upgrades don't count, and the next
+              // race opens from the ladder (R4 adds Next race).
+              onWorkshop: game.isVersus ? null : _openWorkshop,
+              onNextLevel: game.isVersus ? null : _nextLevel,
             ),
-            _pauseKey: (context, game) =>
-                _PauseMenu(onResume: _resume, onMenu: _toMenu),
+            _pauseKey: (context, game) => _PauseMenu(
+              onResume: _resume,
+              onMenu: _toMenu,
+              menuLabel: game.isVersus ? 'Ladder' : 'Levels',
+            ),
           },
           initialActiveOverlays: const [Hud.overlayKey],
         ),
@@ -114,10 +123,15 @@ class _GamePageState extends State<GamePage> {
 /// Dims the frozen game and offers Resume or Menu. Leaving mid-run earns
 /// nothing; only finished runs count.
 class _PauseMenu extends StatelessWidget {
-  const _PauseMenu({required this.onResume, required this.onMenu});
+  const _PauseMenu({
+    required this.onResume,
+    required this.onMenu,
+    required this.menuLabel,
+  });
 
   final VoidCallback onResume;
   final VoidCallback onMenu;
+  final String menuLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +147,7 @@ class _PauseMenu extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DerbyButton(
-                  label: 'Levels',
+                  label: menuLabel,
                   icon: Icons.map,
                   onPressed: onMenu,
                 ),

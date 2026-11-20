@@ -1294,17 +1294,46 @@ developer.
 - Simulator (iPhone 17 Pro Max): menu → PLAY → modes → Versus ladder in
   portrait and landscape; race tap note.
 
-### R2 — Many robots in one game  ☐
-- `DerbyGame(mode:, race:)`; a `Racer` (robot, autopilot or player,
-  finished distance, stall timer, colour, name). Survival = one racer,
-  Versus = player + 3. The player racer drives camera, HUD, coach.
-- `Robot(quiet:, tint:, opacity:)`: rival robots skip sound / haptics /
-  shake / slow-mo and use smaller effects; `look` tinted.
-- Hill chunks cover every running racer (min..max x); debris and
-  finished rivals are removed once far behind the camera.
-- Tests: headless race with 4 bots runs to the end without anyone
-  falling through; robots overlap without touching (positions match
-  solo runs with the same seed); quiet rivals trigger no sound.
+### R2 — Many robots in one game  ☑
+- `lib/game/racer.dart`: `Racer` (name, colour, player or `Autopilot`,
+  robot, stall timer, finish state, final distance); `RunEnd` moved
+  here (re-exported by `derby_game.dart`).
+- `DerbyGame(race:)`: `level` comes from the race; `racers` = player +
+  3 rivals (Survival: player only). `robot` is now the player's robot;
+  `autopilot` drives the player (tools). Every racer is steered, ended
+  (head down / stuck) and frozen on its own; finished rivals are
+  removed after `Tuning.rivalLingerTime`. Race gear for everyone
+  (`Races.statsOf`, art via `Races.tierOf`). No coach and no star flags
+  in Versus; rivals get fresh Autopilot seeds every attempt.
+- Rivals: `Robot(rival: RivalLook)`, priority 4 (player 5). Parts drawn
+  into a layer at `rivalOpacity` 0.7, washed `rivalTint` 0.45 with the
+  rival colour; `RivalTag` name pill above the robot, one
+  `rivalTagStep` higher per rival so tags don't stack on the shared
+  start. `game.rivalEffects = Effects(quiet: true)`: half the particles,
+  no sound, haptics or shake; no head-launch slow-mo from rivals.
+- `Hill(focusXs:)` + `chunksAround`: chunks around every racer still on
+  the hill (separate islands when racers are far apart).
+- Ladder race cards start races (`GamePage(race:)`, level music). HUD:
+  no star progress in Versus; run card says "VERSUS · RACE N"; no
+  Workshop / Next level from a race; pause says "Ladder".
+- Interim until R3/R4: the race ends for the player like a Survival run
+  and shows the old run card with no scrap; nothing is recorded (and
+  never a Survival best). Rivals keep racing under the card.
+- Tests (`versus_race_test`): player + 3 quiet tinted rivals with race
+  gear behind the player, no coach; a full race where every racer
+  finishes far down the hill (none falls through; 4421 / 2560 / 3140 /
+  4713 m in one run); 4 robots dropped on one spot fall together exactly
+  like a solo robot (fails with robot collision switched on, checked);
+  `chunksAround`; Survival has one racer. 274 tests pass.
+- Learned: a long Versus run doesn't match a solo run exactly even with
+  no contact: rivals add hill chunks, which changes Box2D's contact
+  order, and bouncing amplifies float differences. Test non-contact
+  during the opening drop instead.
+- Simulator (iPhone 17 Pro Max, portrait): race 1 from the ladder;
+  tinted see-through rivals overlap the player at the start, tags
+  stacked; robots spread out of view within seconds (R3's edge markers
+  needed). Nit for R3: high in the air the stacked tags can reach the
+  distance counter.
 
 ### R3 — Race HUD and race end  ☐
 - Standings panel, off-screen markers, place-change callout (D50).

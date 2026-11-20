@@ -16,7 +16,14 @@ import 'sound.dart';
 /// and sound effects. None of it affects the physics.
 ///
 /// Particles live in the world, in meters, so they move with the scene.
+///
+/// A [quiet] instance (Versus rivals) only shows particles, fewer of them
+/// ([Tuning.rivalParticleShare]): no sound, vibration or screen shake.
 class Effects extends Component with HasGameReference<DerbyGame> {
+  Effects({this.quiet = false});
+
+  final bool quiet;
+
   final math.Random _random = math.Random();
 
   /// Current screen shake strength in meters; fades out over time.
@@ -26,7 +33,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// A landing at [point] on ground facing [normal] (unit, pointing up).
   void landing(LandingType type, Vector2 point, Vector2 normal) {
-    Sound.play(Sfx.forLanding(type));
+    _sound(Sfx.forLanding(type));
     switch (type) {
       case LandingType.clean:
         _burst(
@@ -66,7 +73,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// A limb broke off at [point].
   void limbLost(Vector2 point) {
-    Sound.play(Sfx.limbBreak);
+    _sound(Sfx.limbBreak);
     _burst(
       point,
       Vector2(0, -1),
@@ -84,7 +91,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// The head was fired off from [point], flying along [direction].
   void headLaunch(Vector2 point, Vector2 direction) {
-    Sound.play(Sfx.rocketLaunch);
+    _sound(Sfx.rocketLaunch);
     _burst(
       point,
       -direction,
@@ -103,7 +110,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// The spin energy tank just filled up, around [point] (the torso).
   void energyFull(Vector2 point) {
-    Sound.play(Sfx.energyFull);
+    _sound(Sfx.energyFull);
     _burst(
       point,
       Vector2(0, -1),
@@ -120,7 +127,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// A clean landing with a full tank at [point]: the "super bounce".
   void superBounce(Vector2 point, Vector2 normal) {
-    Sound.play(Sfx.superBounce);
+    _sound(Sfx.superBounce);
     _burst(
       point,
       normal,
@@ -139,7 +146,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
 
   /// The launched head hit the ground at [point]: the attempt is over.
   void headLanded(Vector2 point) {
-    Sound.play(Sfx.headDown);
+    _sound(Sfx.headDown);
     _dust(point, Vector2(0, -1), Tuning.dustCount * 2);
     _addShake(Tuning.shakeCrash);
     _haptic(HapticFeedback.heavyImpact);
@@ -176,15 +183,29 @@ class Effects extends Component with HasGameReference<DerbyGame> {
     return offset;
   }
 
-  void _addShake(double amount) => _shake = math.max(_shake, amount);
+  void _addShake(double amount) {
+    if (!quiet) {
+      _shake = math.max(_shake, amount);
+    }
+  }
 
   // ---------------------------------------------------------------- Helpers
 
+  void _sound(Sfx sfx) {
+    if (!quiet) {
+      Sound.play(sfx);
+    }
+  }
+
   void _haptic(Future<void> Function() feedback) {
-    if (game.profile.hapticsOn) {
+    if (!quiet && game.profile.hapticsOn) {
       unawaited(feedback());
     }
   }
+
+  /// [count] particles, fewer for a quiet (rival) instance.
+  int _scaled(int count) =>
+      quiet ? math.max(1, (count * Tuning.rivalParticleShare).round()) : count;
 
   /// Random value between -[range] and +[range].
   double _spread(double range) => (_random.nextDouble() * 2 - 1) * range;
@@ -206,7 +227,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
     _spawn(
       point,
       Particle.generate(
-        count: count,
+        count: _scaled(count),
         lifespan: lifetime,
         generator: (i) {
           final angle = baseAngle + _spread(spread);
@@ -232,7 +253,7 @@ class Effects extends Component with HasGameReference<DerbyGame> {
     _spawn(
       point,
       Particle.generate(
-        count: count,
+        count: _scaled(count),
         lifespan: Tuning.dustLifetime,
         generator: (i) {
           final side = i.isEven ? 1.0 : -1.0;

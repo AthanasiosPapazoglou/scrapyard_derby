@@ -23,17 +23,12 @@ import 'robot_sprites.dart';
 import 'run_stats.dart';
 import 'scrap_reward.dart';
 import 'sound.dart';
+import 'races.dart';
+import 'rival_look.dart';
+import 'racer.dart';
 import 'star_flags.dart';
 
-/// Why a run ended.
-enum RunEnd {
-  headDown('HEAD DOWN'),
-  stuck('STUCK');
-
-  const RunEnd(this.label);
-
-  final String label;
-}
+export 'racer.dart' show RunEnd;
 
 /// The outcome of a finished run, for the run summary.
 @immutable
@@ -48,6 +43,7 @@ class RunResult {
     this.starsBefore = 0,
     this.starsAfter = 0,
     this.unlockedLevel,
+    this.race,
   });
 
   final RunEnd end;
@@ -63,6 +59,9 @@ class RunResult {
   final int starsBefore;
   final int starsAfter;
   final int? unlockedLevel;
+
+  /// The Versus race this was (null = a Survival run).
+  final int? race;
 
   /// Scrap earned, line by line; already added to the profile.
   final List<ScrapLine> scrap;
@@ -132,25 +131,70 @@ class HudInfo {
   final RunResult? result;
 }
 
-/// The game: one level's endless hill, one robot, a following camera, hold
-/// to counter-spin. The run lasts until the robot breaks down or gets stuck.
+/// The game: one level's endless hill, the player's robot, a following
+/// camera, hold to counter-spin. The run lasts until the robot breaks down
+/// or gets stuck.
+///
+/// Survival: the player's robot alone, with the Workshop's parts. Versus
+/// ([race] set): the player and 3 rival robots driven by [Autopilot]s race
+/// down the same hill with the race's gear. Robots never touch each other
+/// (every part shares one collision group, see robot_part.dart).
 class DerbyGame extends Forge2DGame with TapCallbacks {
-  DerbyGame({required this.profile, this.level = 1})
-    : hillGeometry = HillGeometry(level: level),
+  DerbyGame({required this.profile, int level = 1, this.race})
+    : level = race == null ? level : Races.of(race).level,
+      hillGeometry = HillGeometry(
+        level: race == null ? level : Races.of(race).level,
+      ),
       super(gravity: Vector2(0, Tuning.gravity));
 
-  /// The level being played (1-based, see [Tuning.levels]).
+  /// The level being played (1-based, see [Tuning.levels]). In Versus, the
+  /// level whose hill the race runs on.
   final int level;
+
+  /// The Versus race being run (1-based, see [Tuning.versusRaces]), or
+  /// null for Survival.
+  final int? race;
+
+  bool get isVersus => race != null;
 
   /// Saved player data; the best distance is recorded here at run end.
   final PlayerProfile profile;
 
   /// When set, a bot plays instead of the player's finger (used by the
-  /// balance simulator in `tool/`; could drive AI rivals later).
-  Autopilot? autopilot;
+  /// balance simulator in `tool/`).
+  Autopilot? get autopilot => player.autopilot;
+  set autopilot(Autopilot? pilot) => player.autopilot = pilot;
 
   final HillGeometry hillGeometry;
-  late Robot robot;
+
+  /// Everyone on the hill: the player first, then the rivals (Versus).
+  late final List<Racer> racers = [
+    Racer(name: 'YOU', color: Palette.rust, isPlayer: true),
+    if (race case final race?)
+      for (final rival in Races.of(race).rivals)
+        Racer(
+          name: rival.name,
+          color: Color(rival.color),
+          isPlayer: false,
+          autopilot: Autopilot(
+            skill: rival.skill,
+            seed: _seeds.nextInt(1 << 30),
+          ),
+        ),
+  ];
+
+  /// New seeds for the rivals' judgement every attempt, so rematches
+  /// differ.
+  final math.Random _seeds = math.Random();
+
+  /// The player's racer.
+  Racer get player => racers.first;
+
+  /// The rival racers (empty in Survival).
+  Iterable<Racer> get rivals => racers.skip(1);
+
+  /// The player's robot.
+  Robot get robot => player.robot;
 
   /// Updated a few times per second for the Flutter overlays.
   late final ValueNotifier<HudInfo> hud = ValueNotifier(
@@ -162,7 +206,6 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   RunResult? _result;
   int _starsPassed = 0;
-  double _stallTime = 0;
   double _hudTimer = 0;
   double _visibleWidth = Tuning.cameraBaseWidth;
 
@@ -188,12 +231,16 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     camera.backdrop.add(Background(theme));
     _sprites = await RobotSprites.load();
     await world.add(effects);
-    _spawnRobot();
+    await world.add(rivalEffects);
+    _spawnRobots();
     await world.add(
-      Hill(hillGeometry, focusX: _focusX, theme: theme)..priority = 1,
+      Hill(hillGeometry, focusXs: _focusXs, theme: theme)..priority = 1,
     );
     await world.add(_sight);
     _coach = _newCoach();
+    if (isVersus) {
+      return;
+    }
     // A flag at each star distance (distance is measured from the start).
     final targets = Levels.of(level).starDistances;
     for (var i = 0; i < targets.length; i++) {
@@ -213,7 +260,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   Coach? _coach;
   Coach? get coach => _coach;
 
-  Coach? _newCoach() => level == 1 && !profile.firstRunCoached
+  Coach? _newCoach() => !isVersus && level == 1 && !profile.firstRunCoached
       ? Coach(onFinished: () => profile.firstRunCoached = true)
       : null;
 
@@ -229,20 +276,58 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     return coach == null || autopilot != null ? 1 : coach.timeScale;
   }
 
-  /// Where the hill should be built: around the robot.
-  double _focusX() => robot.isLoaded ? robot.position.x : robot.start.x;
+  /// Where the hill should be built: around the player and every rival
+  /// still on the hill.
+  Iterable<double> _focusXs() sync* {
+    for (final racer in racers) {
+      if (!racer.isPlayer && racer.finishedFor > Tuning.rivalLingerTime) {
+        continue;
+      }
+      final robot = racer.robot;
+      yield robot.isLoaded ? robot.position.x : robot.start.x;
+    }
+  }
 
-  void _spawnRobot() {
-    // Priority 5: drawn in front of the hill (1), behind particles (6).
-    // Upgrades bought in the Workshop apply from the next robot on.
-    robot = Robot(
-      hill: hillGeometry,
-      look: _sprites?.look(profile.tierOf),
-      stats: profile.robotStats,
-    )..priority = 5;
-    world.add(robot);
+  /// Effects for rival robots: particles only, smaller, no sound,
+  /// vibration or screen shake.
+  final Effects rivalEffects = Effects(quiet: true);
+
+  void _spawnRobots() {
+    for (final racer in racers) {
+      racer.reset(_newRobot(racer));
+      world.add(racer.robot);
+    }
     _cameraCenter = robot.start.clone();
     camera.viewfinder.position = _cameraCenter.clone();
+  }
+
+  Robot _newRobot(Racer racer) {
+    final race = this.race;
+    // Survival: the Workshop's parts (upgrades apply from the next robot
+    // on). Versus: everyone gets the race's gear.
+    final look = race == null
+        ? _sprites?.look(profile.tierOf)
+        : _sprites?.look((track) => Races.tierOf(race, track));
+    final stats = race == null ? profile.robotStats : Races.statsOf(race);
+    if (racer.isPlayer) {
+      // Priority 5: drawn in front of the hill (1) and the rivals (4),
+      // behind particles (6).
+      return Robot(hill: hillGeometry, look: look, stats: stats)..priority = 5;
+    }
+    racer.autopilot = Autopilot(
+      skill: racer.autopilot?.skill ?? 0.5,
+      seed: _seeds.nextInt(1 << 30),
+    );
+    return Robot(
+      hill: hillGeometry,
+      look: look,
+      stats: stats,
+      rival: RivalLook(
+        name: racer.name,
+        color: racer.color,
+        index: racers.indexOf(racer) - 1,
+      ),
+    )..priority = 4;
   }
 
   /// Fingers currently touching the screen. Holding any finger down applies
@@ -261,11 +346,14 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   /// Starts a new run with a fresh robot at the top of the hill.
   void restart() {
-    robot.removeFromParent();
-    _spawnRobot();
+    for (final racer in racers) {
+      if (racer.robot.isMounted || racer.robot.isLoading) {
+        racer.robot.removeFromParent();
+      }
+    }
+    _spawnRobots();
     _result = null;
     _starsPassed = 0;
-    _stallTime = 0;
     _slowMoLeft = 0;
     _visibleWidth = Tuning.cameraBaseWidth;
     // A fresh run starts the tutorial over, unless it was finished.
@@ -310,36 +398,20 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (!robot.isLoaded) {
       return;
     }
-    final pilot = autopilot;
-    final bool playerHolds;
-    if (pilot == null) {
-      playerHolds = _heldPointers.isNotEmpty;
-    } else if (robot.headLaunched) {
-      // Nothing left to steer (and the torso may already be removed).
-      playerHolds = false;
-    } else {
-      playerHolds = pilot.decide(
-        robot.flightState,
-        hillGeometry,
-        dt: dt * Tuning.gameSpeed * _slowMoFactor * _coachFactor,
-        onGround: robot.isOnGround,
-        stats: robot.stats,
-      );
+    // Game-world seconds this frame, for the bots' reaction times.
+    final worldDt = dt * Tuning.gameSpeed * _slowMoFactor * _coachFactor;
+    var playerHolds = false;
+    for (final racer in racers) {
+      final holds = _steer(racer, dt, worldDt);
+      if (racer.isPlayer) {
+        playerHolds = holds;
+      }
     }
-    // Auto-Gyro gadget: helps whoever plays when they aren't holding.
-    final wantsHold =
-        playerHolds ||
-        (!robot.headLaunched &&
-            !robot.isOnGround &&
-            autoGyroWantsHold(
-              robot.flightState,
-              hillGeometry,
-              stats: robot.stats,
-            ));
-    robot.holding = _result == null && wantsHold;
     if (_result == null) {
       _checkStarsPassed();
-      _checkRunEnd(dt);
+    }
+    for (final racer in racers) {
+      _checkRacerEnd(racer, dt);
     }
     _updateCoach(dt, playerHolds);
     _updateCamera(dt);
@@ -349,6 +421,43 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       _hudTimer = 0;
       _publishHud();
     }
+  }
+
+  /// Sets [racer]'s hold for this frame (finger or bot, plus the
+  /// Auto-Gyro gadget). Returns whether the player (or bot) itself holds.
+  bool _steer(Racer racer, double dt, double worldDt) {
+    final robot = racer.robot;
+    if (!robot.isLoaded || !robot.isMounted) {
+      return false;
+    }
+    final pilot = racer.autopilot;
+    final bool holds;
+    if (racer.finished || robot.headLaunched) {
+      // Nothing left to steer (and the torso may already be removed).
+      holds = false;
+    } else if (pilot == null) {
+      holds = _heldPointers.isNotEmpty;
+    } else {
+      holds = pilot.decide(
+        robot.flightState,
+        hillGeometry,
+        dt: worldDt,
+        onGround: robot.isOnGround,
+        stats: robot.stats,
+      );
+    }
+    // Auto-Gyro gadget: helps whoever plays when they aren't holding.
+    final wantsHold =
+        holds ||
+        (!robot.headLaunched &&
+            !robot.isOnGround &&
+            autoGyroWantsHold(
+              robot.flightState,
+              hillGeometry,
+              stats: robot.stats,
+            ));
+    robot.holding = !racer.finished && wantsHold;
+    return holds;
   }
 
   /// Feeds the tutorial what happened this frame; republishes the HUD when
@@ -395,17 +504,38 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     }
   }
 
-  void _checkRunEnd(double dt) {
-    _stallTime = robot.speed < Tuning.stallSpeed ? _stallTime + dt : 0;
+  /// Finishes [racer]'s run when its head lands or it gets stuck; clears
+  /// finished rivals away after a while.
+  void _checkRacerEnd(Racer racer, double dt) {
+    final robot = racer.robot;
+    if (racer.finished) {
+      racer.finishedFor += dt;
+      if (!racer.isPlayer &&
+          racer.finishedFor > Tuning.rivalLingerTime &&
+          robot.isMounted) {
+        robot.removeFromParent();
+      }
+      return;
+    }
+    if (!robot.isLoaded || !robot.isMounted) {
+      return;
+    }
+    racer.stallTime = robot.speed < Tuning.stallSpeed
+        ? racer.stallTime + dt
+        : 0;
     final RunEnd? end;
     if (robot.headLanded) {
       end = RunEnd.headDown;
-    } else if (_stallTime >= Tuning.stallTime) {
+    } else if (racer.stallTime >= Tuning.stallTime) {
       end = RunEnd.stuck;
     } else {
       end = null;
     }
-    if (end != null) {
+    if (end == null) {
+      return;
+    }
+    racer.finish(end);
+    if (racer.isPlayer) {
       _finishRun(end);
     }
   }
@@ -413,7 +543,23 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// Records the run in the profile (best distance, stars, scrap; once per
   /// run) and publishes the result for the run summary.
   void _finishRun(RunEnd end) {
-    final stats = robot.runStats..distance = robot.distance;
+    final stats = robot.runStats..distance = player.distance;
+    if (race case final race?) {
+      // Versus: places, rewards and the race card come with roadmap
+      // steps R3 and R4. Nothing is recorded yet (and never as a Survival
+      // best: the gear was the race's, not the Workshop's).
+      _result = RunResult(
+        end: end,
+        distance: stats.distance,
+        isNewBest: false,
+        stats: stats,
+        scrap: const [],
+        level: level,
+        race: race,
+      );
+      _publishHud();
+      return;
+    }
     // The star bonus counts the stars held before this run.
     final starBonus = profile.starScrapBonus;
     final record = profile.recordRun(level, stats.distance);

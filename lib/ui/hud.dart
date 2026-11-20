@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../game/derby_game.dart';
 import '../game/landing.dart';
 import '../game/levels.dart';
+import '../game/races.dart';
 import '../game/palette.dart';
 import '../game/robot_sprites.dart';
 import '../game/robot_stats.dart';
@@ -107,10 +108,11 @@ class Hud extends StatelessWidget {
                           max: info.spinEnergyMax,
                         ),
                       const SizedBox(height: 4),
-                      _StarProgress(
-                        targets: Levels.of(game.level).starDistances,
-                        passed: info.starsPassed,
-                      ),
+                      if (!game.isVersus)
+                        _StarProgress(
+                          targets: Levels.of(game.level).starDistances,
+                          passed: info.starsPassed,
+                        ),
                       // Combo Coil streak, while one is going.
                       if (info.comboMax > 0 &&
                           info.comboSteps > 0 &&
@@ -151,7 +153,15 @@ class Hud extends StatelessWidget {
                         builder: (context, sprites) => RunSummary(
                           head: sprites.data?.part(
                             UpgradeTrack.rocketHead,
-                            game.profile.tierOf(UpgradeTrack.rocketHead),
+                            switch (game.race) {
+                              final race? => Races.tierOf(
+                                race,
+                                UpgradeTrack.rocketHead,
+                              ),
+                              null => game.profile.tierOf(
+                                UpgradeTrack.rocketHead,
+                              ),
+                            },
                           ),
                           result: result,
                           bestDistance: info.bestDistance,
@@ -160,7 +170,8 @@ class Hud extends StatelessWidget {
                           onMenu: onMenu,
                           onWorkshop: onWorkshop,
                           onNextLevel:
-                              game.level < Levels.count &&
+                              !game.isVersus &&
+                                  game.level < Levels.count &&
                                   game.profile.isUnlocked(game.level + 1)
                               ? onNextLevel
                               : null,

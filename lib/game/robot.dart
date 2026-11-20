@@ -7,6 +7,7 @@ import '../config/tuning.dart';
 import 'autopilot.dart';
 import 'damage.dart';
 import 'derby_game.dart';
+import 'effects.dart';
 import 'energy_aura.dart';
 import 'head_launch.dart';
 import 'limb_motion.dart';
@@ -14,6 +15,7 @@ import 'hill.dart';
 import 'landing.dart';
 import 'levels.dart';
 import 'palette.dart';
+import 'rival_look.dart';
 import 'robot_part.dart';
 import 'robot_sprites.dart';
 import 'robot_stats.dart';
@@ -34,7 +36,12 @@ double _rad(double degrees) => degrees * math.pi / 180;
 /// landing type; the robot's velocity changes to match and its limbs take
 /// damage (see landing.dart). Limbs at 0 HP break off and become debris.
 class Robot extends Component with HasGameReference<DerbyGame> {
-  Robot({required HillGeometry hill, this.look, this.stats = RobotStats.base}) {
+  Robot({
+    required HillGeometry hill,
+    this.look,
+    this.stats = RobotStats.base,
+    this.rival,
+  }) {
     // Drop the robot from high above the slope, tilted to match it and not
     // spinning yet, so the first touch-down is a clean landing.
     final x = Tuning.startX;
@@ -53,8 +60,18 @@ class Robot extends Component with HasGameReference<DerbyGame> {
   /// shapes.
   final RobotLook? look;
 
-  /// Effective numbers after Workshop upgrades.
+  /// Effective numbers after Workshop upgrades (or a race's gear).
   final RobotStats stats;
+
+  /// Set for a Versus rival: drawn tinted and see-through with a name
+  /// tag, quiet effects, and no head-launch slow motion.
+  final RivalLook? rival;
+
+  bool get isRival => rival != null;
+
+  /// The effects this robot triggers: the full set for the player, quiet
+  /// ones for rivals.
+  Effects get _fx => isRival ? game.rivalEffects : game.effects;
 
   /// World position of the torso center at the start of the run.
   late final Vector2 start;
@@ -273,6 +290,9 @@ class Robot extends Component with HasGameReference<DerbyGame> {
 
     await addAll(parts);
     await add(_aura);
+    if (rival case final rival?) {
+      await add(RivalTag(this, rival));
+    }
   }
 
   RobotPart _makePart(
@@ -399,7 +419,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
         if (!_announcedFull && isFullCharge(spinEnergy, stats: stats)) {
           _announcedFull = true;
           _aura.flash();
-          game.effects.energyFull(torso.body.worldCenterOfMass);
+          _fx.energyFull(torso.body.worldCenterOfMass);
         }
       }
     }
@@ -486,7 +506,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
           : Tuning.smokeIntervalCoast;
       if (_smokeTimer >= interval) {
         _smokeTimer = 0;
-        game.effects.smokePuff(head.body.worldCenterOfMass);
+        _fx.smokePuff(head.body.worldCenterOfMass);
       }
     }
     if (rocketBurnLeft > 0 && !headLanded) {
@@ -605,7 +625,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
           limb.slot == RobotSlot.leftArm || limb.slot == RobotSlot.leftLeg;
       limb.wiggle.kick(landingKick(type) * (left ? 1 : -0.8));
     }
-    game.effects.landing(type, contactPoint, normal);
+    _fx.landing(type, contactPoint, normal);
 
     // Change the velocity of the whole robot by the same amount, so the
     // parts keep moving together.
@@ -620,7 +640,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     );
     // A clean landing on a full tank: the super bounce.
     if (type == LandingType.clean && isFullCharge(spinEnergy, stats: stats)) {
-      game.effects.superBounce(contactPoint, normal);
+      _fx.superBounce(contactPoint, normal);
     }
     // All gathered energy went into this bounce; the next airtime starts
     // gathering from zero.
@@ -679,7 +699,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     limb.joint?.destroy();
     limb.joint = null;
     runStats.addLimbLost();
-    game.effects.limbLost(limb.body.worldCenterOfMass);
+    _fx.limbLost(limb.body.worldCenterOfMass);
     _makeDebris(limb);
   }
 
@@ -724,8 +744,10 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     rocketBurnLeft = stats.headRocketBurnTime;
     _headFlightTime = 0;
     runStats.headLaunchedAt(head.body.position.x);
-    game.effects.headLaunch(head.body.worldCenterOfMass, _rocketDirection);
-    game.startHeadLaunchSlowMo();
+    _fx.headLaunch(head.body.worldCenterOfMass, _rocketDirection);
+    if (!isRival) {
+      game.startHeadLaunchSlowMo();
+    }
     // Leave the torso where it is; it slows and fades like other debris.
   }
 
@@ -738,7 +760,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     headLanded = true;
     rocketBurnLeft = 0;
     runStats.headLandedAt(head.body.position.x);
-    game.effects.headLanded(head.body.worldCenterOfMass);
+    _fx.headLanded(head.body.worldCenterOfMass);
     head.body
       ..linearVelocity = Vector2.zero()
       ..angularVelocity = 0

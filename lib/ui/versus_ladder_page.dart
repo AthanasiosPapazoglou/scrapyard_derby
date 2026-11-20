@@ -4,6 +4,8 @@ import '../game/palette.dart';
 import '../game/races.dart';
 import '../game/sound.dart';
 import '../profile/player_profile.dart';
+import 'derby_route.dart';
+import 'game_page.dart';
 import 'layout.dart';
 import 'page_header.dart';
 import 'still_scene.dart';
@@ -18,17 +20,11 @@ class VersusLadderPage extends StatelessWidget {
 
   void _race(BuildContext context, int race) {
     Sound.play(Sfx.uiClick);
-    // Racing itself arrives with roadmap step R2. Until then a race card
-    // only says so (a plain run here would record a Survival best with
-    // the race gear).
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('Race $race: racing arrives in the next build.'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    Navigator.of(context).push(
+      DerbyRoute<void>(
+        builder: (_) => GamePage(profile: profile, race: race),
+      ),
+    );
   }
 
   @override

@@ -93,7 +93,7 @@ class HillGeometry {
 
 /// Keeps hill chunks built around the robot: a few ahead, one behind.
 class Hill extends Component {
-  Hill(this.geometry, {required this.focusX, LevelTheme? theme})
+  Hill(this.geometry, {required this.focusXs, LevelTheme? theme})
     : theme = theme ?? LevelTheme.of(geometry.level);
 
   final HillGeometry geometry;
@@ -101,8 +101,9 @@ class Hill extends Component {
   /// Dirt colours of the level.
   final LevelTheme theme;
 
-  /// Returns the x position the hill should be built around.
-  final double Function() focusX;
+  /// Returns the x positions the hill should be built around (the
+  /// player, and the rivals in Versus).
+  final Iterable<double> Function() focusXs;
 
   final Map<int, HillChunk> _chunks = {};
 
@@ -118,20 +119,18 @@ class Hill extends Component {
   }
 
   void _updateChunks() {
-    final center = HillGeometry.chunkIndexAt(focusX());
-    final first = center - Tuning.hillChunksBehind;
-    final last = center + Tuning.hillChunksAhead;
+    final wanted = chunksAround(focusXs());
 
     // Remove chunks that are out of range.
     _chunks.removeWhere((index, chunk) {
-      final outOfRange = index < first || index > last;
+      final outOfRange = !wanted.contains(index);
       if (outOfRange) {
         chunk.removeFromParent();
       }
       return outOfRange;
     });
     // Add the missing ones.
-    for (var index = first; index <= last; index++) {
+    for (final index in wanted) {
       if (!_chunks.containsKey(index)) {
         final chunk = HillChunk(
           geometry.chunkPoints(index),
@@ -144,6 +143,18 @@ class Hill extends Component {
     }
   }
 }
+
+/// Chunk indexes to keep built: [Tuning.hillChunksBehind] behind to
+/// [Tuning.hillChunksAhead] ahead of each focus x.
+Set<int> chunksAround(Iterable<double> focusXs) => {
+  for (final x in focusXs)
+    for (
+      var index = HillGeometry.chunkIndexAt(x) - Tuning.hillChunksBehind;
+      index <= HillGeometry.chunkIndexAt(x) + Tuning.hillChunksAhead;
+      index++
+    )
+      index,
+};
 
 /// One static piece of the hill: a chain shape plus its drawing.
 ///

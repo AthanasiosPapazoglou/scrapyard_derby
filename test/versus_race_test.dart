@@ -1,0 +1,156 @@
+import 'package:flame_test/flame_test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:scrapyard_derby/config/tuning.dart';
+import 'package:scrapyard_derby/game/autopilot.dart';
+import 'package:scrapyard_derby/game/derby_game.dart';
+import 'package:scrapyard_derby/game/hill.dart';
+import 'package:scrapyard_derby/game/races.dart';
+import 'package:scrapyard_derby/profile/player_profile.dart';
+
+/// Versus races in full headless runs of the real game: 4 robots on one
+/// hill, physics and all.
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  const frame = 1 / 60;
+
+  /// Plays until every racer has finished (or [maxSeconds]).
+  Future<DerbyGame> race(
+    int race, {
+    Autopilot? pilot,
+    double maxSeconds = 900,
+  }) async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(), race: race),
+    );
+    game.autopilot = pilot;
+    await game.ready();
+    var t = 0.0;
+    while (!game.racers.every((r) => r.finished) && t < maxSeconds) {
+      game.update(frame);
+      await game.ready();
+      t += frame;
+    }
+    return game;
+  }
+
+  test('a race has the player and 3 quiet, tinted rivals', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(), race: 2),
+    );
+    await game.ready();
+    expect(game.isVersus, isTrue);
+    expect(game.level, Races.of(2).level);
+    expect(game.racers, hasLength(Races.racers));
+    expect(game.player.isPlayer, isTrue);
+    expect(game.robot.isRival, isFalse);
+    final names = [for (final r in game.rivals) r.name];
+    expect(names, [for (final r in Races.of(2).rivals) r.name]);
+    for (final rival in game.rivals) {
+      expect(rival.robot.isRival, isTrue);
+      expect(rival.autopilot, isNotNull);
+      // Drawn behind the player.
+      expect(rival.robot.priority, lessThan(game.robot.priority));
+      // Everyone has the race's gear, not the Workshop's.
+      expect(rival.robot.stats.limbMaxHp, Races.statsOf(2).limbMaxHp);
+    }
+    expect(game.robot.stats.limbMaxHp, Races.statsOf(2).limbMaxHp);
+    expect(game.rivalEffects.quiet, isTrue);
+    expect(game.effects.quiet, isFalse);
+    // No tutorial in Versus.
+    expect(game.coach, isNull);
+    game.world.physicsWorld.destroy();
+  });
+
+  test('every racer finishes on the hill; nobody falls through', () async {
+    final game = await race(3, pilot: Autopilot(skill: 0.7, seed: 4));
+    for (final racer in game.racers) {
+      expect(racer.finished, isTrue, reason: racer.name);
+      // Far enough to have crossed several hill chunks, so the hill was
+      // built under every robot, not only the player.
+      expect(
+        racer.distance,
+        greaterThan(Tuning.hillChunkLength * 4),
+        reason: racer.name,
+      );
+    }
+    final result = game.hud.value.result!;
+    expect(result.race, 3);
+    // Versus never records a Survival best.
+    expect(game.profile.bestOn(game.level), 0);
+    game.world.physicsWorld.destroy();
+  }, timeout: const Timeout(Duration(minutes: 5)));
+
+  test(
+    'robots never touch: 4 robots dropped on one spot stay together',
+    () async {
+      // All four robots spawn on exactly the same spot. If their parts could
+      // collide, Box2D would shove the overlapping bodies apart at once.
+      // Instead they fall as one, exactly like a robot dropped alone.
+      final versus = await initializeGame(
+        () => DerbyGame(profile: PlayerProfile(), race: 1),
+      );
+      final solo = await initializeGame(
+        () => DerbyGame(profile: PlayerProfile(firstRunCoached: true)),
+      );
+      await versus.ready();
+      await solo.ready();
+      for (final rival in versus.rivals) {
+        expect(rival.robot.start, versus.robot.start);
+      }
+      final start = versus.robot.position.clone();
+      for (var i = 0; i < 60; i++) {
+        versus.update(frame);
+        solo.update(frame);
+        await versus.ready();
+        await solo.ready();
+      }
+      // Still in the opening drop (no ground contact yet), and moved.
+      expect(versus.robot.hasTouchedDown, isFalse);
+      expect(versus.robot.position.y - start.y, greaterThan(1));
+      for (final racer in versus.racers) {
+        for (final part in racer.robot.parts) {
+          final twin = versus.robot.parts[racer.robot.parts.indexOf(part)];
+          expect(
+            (part.body.position - twin.body.position).length,
+            lessThan(1e-4),
+            reason: '${racer.name} ${part.kind}',
+          );
+        }
+      }
+      expect(
+        (versus.robot.position - solo.robot.position).length,
+        lessThan(1e-4),
+      );
+      versus.world.physicsWorld.destroy();
+      solo.world.physicsWorld.destroy();
+    },
+  );
+
+  test('the hill is built around every focus point', () {
+    final chunks = chunksAround([0, Tuning.hillChunkLength * 20]);
+    for (final x in [0.0, Tuning.hillChunkLength * 20]) {
+      final center = HillGeometry.chunkIndexAt(x);
+      for (
+        var i = center - Tuning.hillChunksBehind;
+        i <= center + Tuning.hillChunksAhead;
+        i++
+      ) {
+        expect(chunks, contains(i));
+      }
+    }
+    // Nothing built in the gap between them.
+    expect(chunks, isNot(contains(HillGeometry.chunkIndexAt(0) + 10)));
+  });
+
+  test('Survival still has only the player', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile()),
+    );
+    await game.ready();
+    expect(game.isVersus, isFalse);
+    expect(game.racers, hasLength(1));
+    expect(game.rivals, isEmpty);
+    game.world.physicsWorld.destroy();
+  });
+}

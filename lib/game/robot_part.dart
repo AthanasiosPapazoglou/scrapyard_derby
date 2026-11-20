@@ -186,6 +186,14 @@ class RobotPart extends BodyComponent with ContactCallbacks {
   }
 
   void _renderSpriteLayers(Canvas canvas, PartSprite art, double opacity) {
+    if (robot.rival case final rival?) {
+      // A Versus rival: see-through and tinted in its colour.
+      canvas.saveLayer(null, rival.layerPaint(opacity: opacity));
+      art.render(canvas);
+      overlay?.render(canvas);
+      canvas.restore();
+      return;
+    }
     if (opacity >= 1) {
       art.render(canvas);
       overlay?.render(canvas);

@@ -622,6 +622,26 @@ abstract final class Tuning {
   /// One-off scrap for the first win of a race, times the race number.
   static const int versusFirstWinScrap = 150;
 
+  /// Rival robots are drawn see-through (this opacity) and tinted with
+  /// their colour (this much of it), behind the player, so overlapping
+  /// robots read as "not touching".
+  static const double rivalOpacity = 0.7;
+  static const double rivalTint = 0.45;
+
+  /// Rival landing sparks and dust use this share of the particles.
+  static const double rivalParticleShare = 0.5;
+
+  /// Rival name tags: height above the robot (m) and text size (m).
+  static const double rivalTagHeight = 2.6;
+  static const double rivalTagTextSize = 0.55;
+
+  /// Each rival's tag sits this much (m) higher than the one before.
+  static const double rivalTagStep = 0.75;
+
+  /// Seconds (real time) a finished rival's wreck stays on the hill
+  /// before it is cleared away.
+  static const double rivalLingerTime = 4;
+
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has
   // [upgradeMaxLevel] levels; level 0 is the plain robot above. Every

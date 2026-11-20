@@ -241,7 +241,7 @@ class _Header extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SURVIVAL · LEVEL ${result.level} · '
+                        '${result.race == null ? 'SURVIVAL · LEVEL ${result.level}' : 'VERSUS · RACE ${result.race}'} · '
                         '${Levels.of(result.level).name.toUpperCase()}',
                         style: const TextStyle(
                           color: Palette.hazard,
