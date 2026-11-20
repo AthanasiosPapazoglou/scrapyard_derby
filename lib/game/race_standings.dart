@@ -177,6 +177,8 @@ class PlaceWatcher {
       _pending = null;
       return;
     }
+    // The announced place is already out of date: take it down at once.
+    _showLeft = 0;
     if (place != _pending) {
       _pending = place;
       _pendingFor = 0;

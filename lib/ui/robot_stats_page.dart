@@ -117,6 +117,7 @@ class _RobotStatsPageState extends State<RobotStatsPage> {
       children: [
         PageHeader(
           title: 'ROBOT STATS',
+          note: 'Upgrades apply to Survival',
           onBack: () => Navigator.of(context).pop(),
           trailing: [
             HeaderCount(

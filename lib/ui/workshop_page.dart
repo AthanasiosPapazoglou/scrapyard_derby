@@ -231,6 +231,7 @@ class _WorkshopPageState extends State<WorkshopPage> {
       children: [
         PageHeader(
           title: 'WORKSHOP',
+          note: 'Upgrades apply to Survival',
           onBack: () => Navigator.of(context).pop(),
           trailing: [
             _StatsButton(

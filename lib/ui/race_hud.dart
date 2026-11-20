@@ -25,10 +25,27 @@ class RaceHud extends StatelessWidget {
             if (info.result == null) ..._markers(box.maxHeight),
             Positioned(
               right: 12,
-              // Portrait: under the distance; landscape: under the buttons.
-              top: portrait ? 140 : 70,
-              child: StandingsPanel(standings: info.standings),
+              // Portrait: bottom right, beside the status panel (up top it
+              // covers the rivals' name tags above the robots); landscape:
+              // under the buttons.
+              top: portrait ? null : 70,
+              bottom: portrait ? 12 : null,
+              // Fades in at the player's first touchdown.
+              child: AnimatedOpacity(
+                opacity: info.standings.isEmpty ? 0 : 1,
+                duration: const Duration(milliseconds: 400),
+                child: info.standings.isEmpty
+                    ? const SizedBox.shrink()
+                    : StandingsPanel(standings: info.standings),
+              ),
             ),
+            if (info.raceHint && info.result == null)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: box.maxHeight * (portrait ? 0.3 : 0.2),
+                child: const Center(child: RaceHintCard()),
+              ),
             if (info.callout case final callout? when info.result == null)
               Positioned(
                 left: 0,
@@ -76,6 +93,46 @@ class RaceHud extends StatelessWidget {
       }
     }
     return widgets;
+  }
+}
+
+/// The first race's one-line hint (D53).
+class RaceHintCard extends StatelessWidget {
+  const RaceHintCard({super.key});
+
+  static const text =
+      'Beat 3 rivals down the hill: when everyone is down, the furthest '
+      'wins. Win to unlock the next race!';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 360),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Palette.outline.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Palette.hazard, width: 2),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.emoji_events, color: Palette.hazard, size: 26),
+          SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Palette.cream,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

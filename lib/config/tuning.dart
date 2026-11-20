@@ -650,13 +650,16 @@ abstract final class Tuning {
 
   /// A new place must hold this long (s) before "2ND!" pops up, and the
   /// callout stays this long.
-  static const double raceCalloutDelay = 0.4;
+  static const double raceCalloutDelay = 0.8;
   static const double raceCalloutTime = 1.6;
 
   /// Off-screen rival markers stay between these heights on the screen
   /// edge (0 = top, 1 = bottom), clear of the HUD.
   static const double raceMarkerTop = 0.25;
   static const double raceMarkerBottom = 0.7;
+
+  /// Seconds (real time) the first race's hint card stays up.
+  static const double raceHintTime = 6;
 
   // ---------------------------------------------------------------- Upgrades
   // Workshop upgrades (see lib/game/robot_stats.dart). Each track has

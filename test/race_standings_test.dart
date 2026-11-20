@@ -145,6 +145,16 @@ void main() {
       expect(watcher.callout, isNull);
     });
 
+    test('a callout goes away as soon as the place changes again', () {
+      final watcher = PlaceWatcher()..update(0.1, 1, live: true);
+      for (var t = 0.0; t <= Tuning.raceCalloutDelay + 0.1; t += 0.1) {
+        watcher.update(0.1, 4, live: true);
+      }
+      expect(watcher.callout!.place, 4);
+      watcher.update(0.1, 2, live: true);
+      expect(watcher.callout, isNull);
+    });
+
     test('robots swapping back and forth make no callout', () {
       final watcher = PlaceWatcher()..update(0.1, 2, live: true);
       for (var i = 0; i < 20; i++) {

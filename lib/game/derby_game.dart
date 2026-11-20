@@ -6,6 +6,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/tuning.dart';
+import '../profile/page_tour.dart';
 import '../profile/player_profile.dart';
 import 'autopilot.dart';
 import 'background.dart';
@@ -109,6 +110,7 @@ class HudInfo {
     this.callout,
     this.markers = const [],
     this.fastForward = 1,
+    this.raceHint = false,
     this.result,
   });
 
@@ -157,6 +159,9 @@ class HudInfo {
   final PlaceCallout? callout;
   final List<RivalMarker> markers;
   final int fastForward;
+
+  /// Show the first race's one-line hint card.
+  final bool raceHint;
 
   /// Set once the run is over.
   final RunResult? result;
@@ -270,6 +275,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     await world.add(_sight);
     _coach = _newCoach();
     if (isVersus) {
+      _startRace();
       return;
     }
     // A flag at each star distance (distance is measured from the start).
@@ -395,6 +401,10 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _slowMoLeft = 0;
     _skipFastForward = false;
     _places.reset();
+    _raceHintLeft = 0;
+    if (isVersus) {
+      _startRace();
+    }
     _visibleWidth = Tuning.cameraBaseWidth;
     // A fresh run starts the tutorial over, unless it was finished.
     if (_coach != null && !_coach!.finished) {
@@ -444,6 +454,19 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
 
   bool _skipFastForward = false;
 
+  /// Seconds (real time) the first race's hint card has left.
+  double _raceHintLeft = 0;
+
+  /// A race (or a retry) begins: the start sting, and the hint card the
+  /// very first time (D53).
+  void _startRace() {
+    Sound.play(Sfx.raceStart);
+    if (autopilot == null && !profile.tourSeen(PageTour.raceHint)) {
+      profile.markTourSeen(PageTour.raceHint);
+      _raceHintLeft = Tuning.raceHintTime;
+    }
+  }
+
   /// Announces the player's place changes.
   final PlaceWatcher _places = PlaceWatcher();
 
@@ -468,6 +491,12 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     }
     // The camera keeps pace with a fast-forwarded race.
     _updateCamera(dt * frames);
+    if (_raceHintLeft > 0) {
+      _raceHintLeft -= dt;
+      if (_raceHintLeft <= 0) {
+        _publishHud();
+      }
+    }
 
     _hudTimer += dt;
     if (_hudTimer >= 0.1) {
@@ -806,13 +835,16 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       comboSteps: robot.comboSteps,
       comboMax: robot.stats.comboCoilSteps,
       coach: autopilot == null ? _coach?.card : null,
-      standings: isVersus
+      // From the player's first touchdown on: during the opening drop
+      // everyone is level, and the panel would cover the rivals' tags.
+      standings: isVersus && robot.hasTouchedDown
           ? RaceStandings.order(_standingsNow)
           : const <Standing>[],
       place: isVersus ? RaceStandings.placeOf(_standingsNow) : null,
       callout: _places.callout,
       markers: _markers(),
       fastForward: fastForward,
+      raceHint: _raceHintLeft > 0,
       result: _result,
     );
   }

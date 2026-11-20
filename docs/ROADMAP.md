@@ -1401,12 +1401,39 @@ developer.
 - Nit for R5: the wider standings panel covers the stacked rival tags
   during the opening drop in portrait.
 
-### R5 — Ladder page, gear preview, polish  ☐
-- Race cards show the race gear on the robot (`RobotFigure` with the
-  race loadout), the 3 rivals (colour chips, names), best medal.
-- Workshop and Robot Stats note "Upgrades apply to Survival".
-- Ladder tour and first race hint (D53). Race-start sound sting.
-- Tests: ladder tour stops, cards fit on small phones both ways.
+### R5 — Ladder page, gear preview, polish  ☑
+- Ladder cards: the robot in the race's gear stands on each hill window
+  (`RobotFigurePainter`, `Races.tierOf`; greyed with the window while
+  locked); best place as a medal (gold / silver / bronze
+  `military_tech`, trophy outline for 4th or not raced); rival colour
+  chips and names as before.
+- Workshop and Robot Stats: `PageHeader(note:)`, "Upgrades apply to
+  Survival" on its own line under the title (inline it squeezed the
+  counts on phones in portrait).
+- Ladder tour (`PageTour.ladder`): RACE GEAR (race 1 card), RIVALS
+  (its rival row), WIN TO UNLOCK (race 2 card). First race hint
+  (`PageTour.raceHint`, `RaceHintCard`): one card for
+  `Tuning.raceHintTime` 6 s at the very first race, never on a retry.
+  Settings > How to play brings both back.
+- Race-start sting: `Sfx.raceStart` (`art/make_sfx.py` `race_start`:
+  two low beeps and a high GO, 0.9 s), on every race start and retry.
+- Changed from D50: the standings panel shows from the player's first
+  touchdown (everyone is level before) and sits **bottom right in
+  portrait**, beside the status panel; up top it covered the rivals'
+  stacked name tags. Landscape keeps it under the buttons.
+- Place callout: a shown callout goes away as soon as the place changes
+  again, and `raceCalloutDelay` is 0.8 s (was 0.4): with robots bunched
+  together it said "4TH!" while the panel already showed 2nd.
+- Tests: ladder tour stops (`spotlight_tour_test`); standings from the
+  first touchdown, hint only at the first race and not on retry
+  (`versus_race_test`); callout taken down on a new place
+  (`race_standings_test`); race HUD with the hint card and every page
+  with the header note fit on 6 sizes. 309 tests pass.
+- Simulator (iPhone 17 Pro Max, portrait): ladder with race-gear robots
+  and the 3-step tour, the first race's hint card, standings bottom
+  right with the tags clear. Not checked there: the Workshop / Stats
+  note (layout test only), landscape, and the sting by ear (the
+  Simulator plays audio, but I can't hear it).
 
 ### R6 — Versus balance, docs, version  ☐
 - `tool/versus_report_test.dart`: many simulated races per rung with a

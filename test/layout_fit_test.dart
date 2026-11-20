@@ -106,6 +106,7 @@ Widget _raceHud() {
       RivalMarker(name: 'C', color: c, onRight: false, height: 0.7, gap: -312),
     ],
     fastForward: 4,
+    raceHint: true,
   );
   return Scaffold(
     body: Hud(game: game, onMenu: () {}, onPause: () {}),

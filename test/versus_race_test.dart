@@ -6,6 +6,7 @@ import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/hill.dart';
 import 'package:scrapyard_derby/game/races.dart';
 import 'package:scrapyard_derby/game/scrap_reward.dart';
+import 'package:scrapyard_derby/profile/page_tour.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
 
 /// Versus races in full headless runs of the real game: 4 robots on one
@@ -152,9 +153,8 @@ void main() {
     expect(result.place, inInclusiveRange(1, 4));
     expect(result.standings, hasLength(Races.racers));
     expect(result.standings.indexWhere((s) => s.isPlayer) + 1, result.place);
-    // Settled: back to normal speed, and the HUD has the standings.
+    // Settled: back to normal speed.
     expect(game.fastForward, 1);
-    expect(game.hud.value.standings, hasLength(Races.racers));
     expect(game.hud.value.place, result.place);
     game.world.physicsWorld.destroy();
   });
@@ -214,6 +214,42 @@ void main() {
       game.world.physicsWorld.destroy();
     },
   );
+
+  test('standings show from the first touchdown; the hint card only at '
+      'the very first race', () async {
+    final profile = PlayerProfile();
+    final game = await initializeGame(
+      () => DerbyGame(profile: profile, race: 1),
+    );
+    await game.ready();
+    // The HUD publishes every 0.1 s.
+    for (var i = 0; i < 10; i++) {
+      game.update(frame);
+    }
+    expect(game.hud.value.raceHint, isTrue);
+    expect(profile.tourSeen(PageTour.raceHint), isTrue);
+    expect(game.hud.value.standings, isEmpty);
+    var t = 0.0;
+    while (!game.robot.hasTouchedDown && t < 20) {
+      game.update(frame);
+      await game.ready();
+      t += frame;
+    }
+    // Let the HUD publish.
+    for (var i = 0; i < 10; i++) {
+      game.update(frame);
+      await game.ready();
+    }
+    expect(game.hud.value.standings, hasLength(Races.racers));
+    // A retry has no hint.
+    game.restart();
+    await game.ready();
+    for (var i = 0; i < 10; i++) {
+      game.update(frame);
+    }
+    expect(game.hud.value.raceHint, isFalse);
+    game.world.physicsWorld.destroy();
+  });
 
   test('Survival has no standings and never fast-forwards', () async {
     final game = await initializeGame(

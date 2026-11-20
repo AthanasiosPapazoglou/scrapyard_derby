@@ -4,7 +4,10 @@ enum PageTour {
   levels('levels'),
   workshop('workshop'),
   gadgets('gadgets'),
-  stats('stats');
+  stats('stats'),
+  // 1.2.0: the Versus ladder page, and the hint card at the first race.
+  ladder('ladder'),
+  raceHint('raceHint');
 
   const PageTour(this.id);
 

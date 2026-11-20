@@ -13,17 +13,21 @@ class PageHeader extends StatelessWidget {
     required this.title,
     required this.onBack,
     this.trailing = const [],
+    this.note,
   });
 
   final String title;
+
+  /// A short line under the title (e.g. "Upgrades apply to Survival").
+  final String? note;
   final VoidCallback onBack;
   final List<Widget> trailing;
 
   @override
   Widget build(BuildContext context) {
     final compact = context.isCompact && context.isPortrait;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 2, 12, 4),
+    final row = Padding(
+      padding: EdgeInsets.fromLTRB(4, 2, 12, note == null ? 4 : 0),
       child: Row(
         children: [
           IconButton(
@@ -48,6 +52,22 @@ class PageHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+    final line = note;
+    if (line == null) {
+      return row;
+    }
+    // On its own line under the title, so it never squeezes the counts.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        row,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(52, 0, 12, 4),
+          child: OutlinedText(line, fontSize: 12, color: Palette.cream),
+        ),
+      ],
     );
   }
 }

@@ -244,6 +244,15 @@ def super_bounce():
     return mix((boing, 0.7, 0), (zap, 0.25, 0.02), (whoosh, 0.45, 0.03), (ting, 0.3, 0.05))
 
 
+def race_start():
+    """A Versus race starts: two low beeps and a high GO, like a start light."""
+    def beep(f, seconds):
+        return envelope(tone(seconds, f, wave_type="square", duty=0.35), attack=0.005, decay_power=0.6)
+    gap = silence(0.12)
+    out = seq(beep(523.25, 0.14), gap, beep(523.25, 0.14), gap, beep(1046.5, 0.4))
+    return lowpass(out, 3800)
+
+
 SOUNDS = {
     "land_clean": land_clean,
     "land_onefoot": land_onefoot,
@@ -258,6 +267,8 @@ SOUNDS = {
     # the earlier files the same bytes.
     "energy_full": energy_full,
     "super_bounce": super_bounce,
+    # Added in 1.2.0.
+    "race_start": race_start,
 }
 
 

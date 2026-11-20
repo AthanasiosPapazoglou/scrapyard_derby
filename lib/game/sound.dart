@@ -22,7 +22,8 @@ enum Sfx {
   uiBuy('ui_buy'),
   newBest('new_best'),
   energyFull('energy_full'),
-  superBounce('super_bounce');
+  superBounce('super_bounce'),
+  raceStart('race_start');
 
   const Sfx(this.file);
 

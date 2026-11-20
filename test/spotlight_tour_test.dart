@@ -6,6 +6,7 @@ import 'package:scrapyard_derby/ui/level_select_page.dart';
 import 'package:scrapyard_derby/ui/robot_stats_page.dart';
 import 'package:scrapyard_derby/ui/settings_page.dart';
 import 'package:scrapyard_derby/ui/spotlight_tour.dart';
+import 'package:scrapyard_derby/ui/versus_ladder_page.dart';
 import 'package:scrapyard_derby/ui/workshop_page.dart';
 
 /// Lets the start delay pass and the hole be measured.
@@ -174,6 +175,17 @@ void main() {
         await tapAnywhere(tester);
       }
       expect(profile.tourSeen(PageTour.stats), isTrue);
+    });
+
+    testWidgets('versus ladder: gear, rivals, unlocking', (tester) async {
+      final profile = PlayerProfile();
+      await open(tester, VersusLadderPage(profile: profile));
+      for (final title in ['RACE GEAR', 'RIVALS', 'WIN TO UNLOCK']) {
+        expect(find.text(title), findsOneWidget, reason: title);
+        await tapAnywhere(tester);
+      }
+      expect(profile.tourSeen(PageTour.ladder), isTrue);
+      expect(find.text('RACE GEAR'), findsNothing);
     });
 
     testWidgets('settings: How to play brings everything back', (tester) async {
