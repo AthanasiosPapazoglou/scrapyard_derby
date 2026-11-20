@@ -5,6 +5,7 @@ import 'package:scrapyard_derby/game/autopilot.dart';
 import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/hill.dart';
 import 'package:scrapyard_derby/game/races.dart';
+import 'package:scrapyard_derby/game/scrap_reward.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
 
 /// Versus races in full headless runs of the real game: 4 robots on one
@@ -157,6 +158,62 @@ void main() {
     expect(game.hud.value.place, result.place);
     game.world.physicsWorld.destroy();
   });
+
+  /// Plays race [race] until the player's place is settled; the rivals
+  /// all drop out at the start, so the player wins.
+  Future<RunResult> win(DerbyGame game) async {
+    for (final rival in game.rivals) {
+      rival.finish(RunEnd.stuck);
+    }
+    for (var i = 0; i < 60; i++) {
+      game.update(frame);
+      await game.ready();
+    }
+    game.player.finish(RunEnd.stuck);
+    game.update(frame);
+    await game.ready();
+    return game.hud.value.result!;
+  }
+
+  test(
+    'a win is recorded and paid; the first-win bonus and unlock once',
+    () async {
+      final profile = PlayerProfile();
+      final game = await initializeGame(
+        () => DerbyGame(profile: profile, race: 1),
+      );
+      await game.ready();
+
+      final first = await win(game);
+      expect(first.place, 1);
+      expect(first.isFirstWin, isTrue);
+      expect(first.unlockedRace, 2);
+      expect(
+        first.scrap,
+        contains(
+          const ScrapLine('First win, race 1', Tuning.versusFirstWinScrap),
+        ),
+      );
+      expect(profile.bestPlaceOn(1), 1);
+      expect(profile.isRaceUnlocked(2), isTrue);
+      expect(profile.scrap, first.scrapEarned);
+      // Never a Survival best.
+      expect(profile.bestOn(game.level), 0);
+
+      game.restart();
+      await game.ready();
+      final second = await win(game);
+      expect(second.place, 1);
+      expect(second.isFirstWin, isFalse);
+      expect(second.unlockedRace, isNull);
+      expect(
+        second.scrap.map((l) => l.label),
+        isNot(contains(startsWith('First'))),
+      );
+      expect(profile.scrap, first.scrapEarned + second.scrapEarned);
+      game.world.physicsWorld.destroy();
+    },
+  );
 
   test('Survival has no standings and never fast-forwards', () async {
     final game = await initializeGame(

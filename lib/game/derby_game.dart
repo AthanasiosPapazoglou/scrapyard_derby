@@ -48,6 +48,8 @@ class RunResult {
     this.race,
     this.place,
     this.standings = const [],
+    this.isFirstWin = false,
+    this.unlockedRace,
   });
 
   final RunEnd end;
@@ -72,6 +74,11 @@ class RunResult {
   /// the race end).
   final int? place;
   final List<Standing> standings;
+
+  /// Versus: this race's first win, and the race it unlocked (null if
+  /// none; shown once, the first time).
+  final bool isFirstWin;
+  final int? unlockedRace;
 
   /// Scrap earned, line by line; already added to the profile.
   final List<ScrapLine> scrap;
@@ -672,21 +679,43 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _publishHud();
   }
 
-  /// Versus: the race is over for the player. Rewards and the race card
-  /// come with roadmap step R4; nothing is recorded yet (and never as a
-  /// Survival best: the gear was the race's, not the Workshop's).
+  /// Versus: the race is over for the player. Records the place (never a
+  /// Survival best: the gear was the race's, not the Workshop's) and pays
+  /// scrap (D51): the Survival formula on the distance, plus the place
+  /// bonus and the first-win bonus. Scrap Magnet doesn't apply.
   void _finishRace(List<Standing> standings) {
+    final race = this.race!;
     final stats = robot.runStats..distance = player.distance;
+    final place = RaceStandings.placeOf(standings);
+    final starBonus = profile.starScrapBonus;
+    final record = profile.recordRace(race, place);
+    final scrap = scrapReward(
+      stats,
+      newBest: false,
+      level: level,
+      starBonus: starBonus,
+      place: place,
+      firstWinRace: record.isFirstWin ? race : null,
+    );
+    profile.addScrap(scrapTotal(scrap));
+    if (place == 1) {
+      Future<void>.delayed(
+        Tuning.newBestSoundDelay,
+        () => Sound.play(Sfx.newBest),
+      );
+    }
     _result = RunResult(
       end: player.end!,
       distance: stats.distance,
       isNewBest: false,
       stats: stats,
-      scrap: const [],
+      scrap: scrap,
       level: level,
       race: race,
-      place: RaceStandings.placeOf(standings),
+      place: place,
       standings: RaceStandings.order(standings),
+      isFirstWin: record.isFirstWin,
+      unlockedRace: record.unlockedRace,
     );
     _publishHud();
   }

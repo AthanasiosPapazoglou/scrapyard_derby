@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../config/tuning.dart';
 import 'landing.dart';
 import 'levels.dart';
+import 'races.dart';
 import 'run_stats.dart';
 
 /// One line of the scrap breakdown on the run summary, e.g. "Distance +41".
@@ -31,8 +32,12 @@ class ScrapLine {
 ///
 /// On top of the run's own lines: the [level]'s multiplier and the
 /// permanent [starBonus] (share, e.g. 0.12) and the Scrap Magnet gadget's
-/// [magnetBonus] each add a share of that subtotal, and every star earned for the first time ([newStars]) pays a
-/// flat bonus.
+/// [magnetBonus] each add a share of that subtotal, and every star earned
+/// for the first time ([newStars]) pays a flat bonus.
+///
+/// Versus races add a share for the finishing [place] (1-4, see
+/// [Tuning.versusPlaceBonus]) and, on a race's first win, a one-off
+/// [Tuning.versusFirstWinScrap] × [firstWinRace].
 List<ScrapLine> scrapReward(
   RunStats stats, {
   required bool newBest,
@@ -40,6 +45,8 @@ List<ScrapLine> scrapReward(
   double starBonus = 0,
   int newStars = 0,
   double magnetBonus = 0,
+  int? place,
+  int? firstWinRace,
 }) {
   final clean = stats.landingsOf(LandingType.clean);
   // A backwards head launch earns nothing (but costs nothing either).
@@ -73,8 +80,24 @@ List<ScrapLine> scrapReward(
       (subtotal * magnetBonus).round(),
     ),
     ScrapLine('New star x$newStars', newStars * Tuning.scrapPerNewStar),
+    if (place != null) _placeLine(place, subtotal),
+    if (firstWinRace != null)
+      ScrapLine(
+        'First win, race $firstWinRace',
+        Tuning.versusFirstWinScrap * firstWinRace,
+      ),
   ];
   return [lines.first, ...lines.skip(1).where((line) => line.amount > 0)];
+}
+
+/// The Versus place bonus: a share of the run's own scrap.
+ScrapLine _placeLine(int place, int subtotal) {
+  final shares = Tuning.versusPlaceBonus;
+  final share = shares[(place - 1).clamp(0, shares.length - 1)];
+  return ScrapLine(
+    '${Races.placeLabel(place)} place +${(share * 100).round()}%',
+    (subtotal * share).round(),
+  );
 }
 
 /// Total of a breakdown from [scrapReward].

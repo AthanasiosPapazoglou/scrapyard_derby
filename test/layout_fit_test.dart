@@ -112,6 +112,54 @@ Widget _raceHud() {
   );
 }
 
+/// A HUD with a finished Versus race, so the race card shows.
+Widget _hudWithRaceSummary() {
+  final game = DerbyGame(profile: _midGameProfile(), race: 6);
+  const c = Color(0xFF3AA7A3);
+  game.hud.value = HudInfo(
+    distance: 12812,
+    result: RunResult(
+      end: RunEnd.stuck,
+      distance: 12812,
+      isNewBest: false,
+      stats: RunStats()
+        ..addLanding(LandingType.clean)
+        ..reportHeight(18.4),
+      scrap: const [
+        ScrapLine('Distance', 1281),
+        ScrapLine('Level 6 x2.5', 1922),
+        ScrapLine('Stars +12%', 154),
+        ScrapLine('1st place +60%', 769),
+        ScrapLine('First win, race 6', 900),
+      ],
+      level: 6,
+      race: 6,
+      place: 1,
+      standings: const [
+        Standing(
+          name: 'YOU',
+          color: c,
+          distance: 12812,
+          isPlayer: true,
+          finished: true,
+        ),
+        Standing(
+          name: 'Crimson Crank',
+          color: c,
+          distance: 12345,
+          finished: true,
+        ),
+        Standing(name: 'The Maw', color: c, distance: 3500, finished: true),
+        Standing(name: 'Onyx', color: c, distance: 120, finished: true),
+      ],
+      isFirstWin: true,
+    ),
+  );
+  return Scaffold(
+    body: Hud(game: game, onMenu: () {}, onNextLevel: () {}),
+  );
+}
+
 final Map<String, Widget Function()> _pages = {
   'main menu': () => MainMenu(profile: _midGameProfile()),
   'mode select': () => ModeSelectPage(profile: _midGameProfile()),
@@ -123,6 +171,7 @@ final Map<String, Widget Function()> _pages = {
   'settings': () => SettingsPage(profile: _midGameProfile()),
   'run summary': _hudWithSummary,
   'race hud': _raceHud,
+  'race summary': _hudWithRaceSummary,
 };
 
 void main() {

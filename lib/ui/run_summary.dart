@@ -18,6 +18,11 @@ import 'scrap_plate.dart';
 /// head), the distance, stars that slam in one by one, a NEW BEST / LEVEL
 /// UNLOCKED stamp, a track strip (star flags, best, the head's flight),
 /// the landing tally and the scrap earned (counting up).
+///
+/// After a Versus race the score and track make way for the podium: the
+/// final order with the player's place, and a RACE UNLOCKED / FIRST WIN
+/// stamp. Buttons: Ladder, Retry and Next race (no Workshop: upgrades
+/// don't apply to races).
 class RunSummary extends StatefulWidget {
   const RunSummary({
     super.key,
@@ -45,7 +50,8 @@ class RunSummary extends StatefulWidget {
   /// Greyed out ("soon") when null.
   final VoidCallback? onWorkshop;
 
-  /// Plays the next level; hidden when null (last level, or still locked).
+  /// Plays the next level (Versus: the next race); hidden when null (the
+  /// last one, or still locked).
   final VoidCallback? onNextLevel;
 
   /// The robot's head art for the header porthole (none while loading).
@@ -85,13 +91,20 @@ class _RunSummaryState extends State<RunSummary>
   Widget build(BuildContext context) {
     final result = widget.result;
     final portrait = context.isPortrait;
-    final score = _Score(
-      result: result,
-      bestDistance: widget.bestDistance,
-      starPhase: (i) =>
-          _phase(0.2 + i * 0.16, 0.45 + i * 0.16, Curves.elasticOut),
-      stampPhase: _phase(0.7, 0.9, Curves.easeOutBack),
-    );
+    final versus = result.race != null;
+    final score = versus
+        ? _Podium(
+            result: result,
+            rowPhase: (i) => _phase(0.1 + i * 0.12, 0.35 + i * 0.12),
+            stampPhase: _phase(0.7, 0.9, Curves.easeOutBack),
+          )
+        : _Score(
+            result: result,
+            bestDistance: widget.bestDistance,
+            starPhase: (i) =>
+                _phase(0.2 + i * 0.16, 0.45 + i * 0.16, Curves.elasticOut),
+            stampPhase: _phase(0.7, 0.9, Curves.easeOutBack),
+          );
     final track = _TrackStrip(
       result: result,
       best: widget.bestDistance,
@@ -110,25 +123,26 @@ class _RunSummaryState extends State<RunSummary>
       children: [
         if (widget.onMenu != null)
           DerbyButton(
-            label: 'Levels',
-            icon: Icons.map,
+            label: versus ? 'Ladder' : 'Levels',
+            icon: versus ? Icons.emoji_events : Icons.map,
             onPressed: widget.onMenu,
           ),
+        if (!versus)
+          DerbyButton(
+            label: 'Workshop',
+            icon: Icons.build,
+            onPressed: widget.onWorkshop,
+            disabledNote: 'SOON',
+          ),
         DerbyButton(
-          label: 'Workshop',
-          icon: Icons.build,
-          onPressed: widget.onWorkshop,
-          disabledNote: 'SOON',
-        ),
-        DerbyButton(
-          label: 'Play again',
+          label: versus ? 'Retry' : 'Play again',
           icon: Icons.replay,
           primary: widget.onNextLevel == null,
           onPressed: widget.onPlayAgain,
         ),
         if (widget.onNextLevel != null)
           DerbyButton(
-            label: 'Next level',
+            label: versus ? 'Next race' : 'Next level',
             icon: Icons.arrow_forward,
             primary: true,
             onPressed: widget.onNextLevel,
@@ -152,8 +166,7 @@ class _RunSummaryState extends State<RunSummary>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         score,
-                        const SizedBox(height: 10),
-                        track,
+                        if (!versus) ...[const SizedBox(height: 10), track],
                         const SizedBox(height: 10),
                         tally,
                         const SizedBox(height: 10),
@@ -175,8 +188,7 @@ class _RunSummaryState extends State<RunSummary>
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        track,
+                        if (!versus) ...[const SizedBox(height: 10), track],
                       ],
                     ),
             ),
@@ -376,8 +388,6 @@ class _Score extends StatelessWidget {
   Widget build(BuildContext context) {
     final stamp = switch (result) {
       RunResult(unlockedLevel: final unlocked?) => 'LEVEL $unlocked UNLOCKED!',
-      RunResult(place: final place?) =>
-        '${Races.placeLabel(place).toUpperCase()} PLACE',
       RunResult(isNewBest: true) => 'NEW BEST!',
       _ => null,
     };
@@ -438,6 +448,147 @@ class _Score extends StatelessWidget {
             child: _Stamp(text: stamp, phase: stampPhase),
           ),
       ],
+    );
+  }
+}
+
+/// Versus: the player's place, big, over the final order (rows slide in
+/// one by one; the player's row is highlighted), and a stamp for a race
+/// unlocked or a first win.
+class _Podium extends StatelessWidget {
+  const _Podium({
+    required this.result,
+    required this.rowPhase,
+    required this.stampPhase,
+  });
+
+  final RunResult result;
+  final Animation<double> Function(int row) rowPhase;
+  final Animation<double> stampPhase;
+
+  @override
+  Widget build(BuildContext context) {
+    final place = result.place ?? Races.racers;
+    final stamp = switch (result) {
+      RunResult(unlockedRace: final unlocked?) => 'RACE $unlocked UNLOCKED!',
+      RunResult(isFirstWin: true) => 'FIRST WIN!',
+      _ => null,
+    };
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'YOU FINISHED',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, letterSpacing: 2.5),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                Races.placeLabel(place).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 46,
+                  fontWeight: FontWeight.w900,
+                  height: 1.05,
+                  color: place == 1 ? Palette.hazardShadow : _ink,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            for (var i = 0; i < result.standings.length; i++)
+              AnimatedBuilder(
+                animation: rowPhase(i),
+                builder: (context, child) => Opacity(
+                  opacity: rowPhase(i).value,
+                  child: Transform.translate(
+                    offset: Offset(24 * (1 - rowPhase(i).value), 0),
+                    child: child,
+                  ),
+                ),
+                child: _PodiumRow(place: i + 1, standing: result.standings[i]),
+              ),
+          ],
+        ),
+        if (stamp != null)
+          Positioned(
+            right: -6,
+            top: 8,
+            child: _Stamp(text: stamp, phase: stampPhase),
+          ),
+      ],
+    );
+  }
+}
+
+/// One racer on the podium: place, colour, name, distance (a flag if it
+/// had finished; rivals still running ahead show where they were).
+class _PodiumRow extends StatelessWidget {
+  const _PodiumRow({required this.place, required this.standing});
+
+  final int place;
+  final Standing standing;
+
+  @override
+  Widget build(BuildContext context) {
+    final you = standing.isPlayer;
+    return Container(
+      margin: const EdgeInsets.only(top: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: you ? Palette.hazard : null,
+        border: Border.all(
+          color: you ? _ink : Palette.steelLight,
+          width: you ? 2 : 1.5,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 34,
+            child: Text(
+              Races.placeLabel(place),
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          Container(
+            width: 11,
+            height: 11,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              color: standing.color,
+              shape: BoxShape.circle,
+              border: Border.all(color: _ink, width: 1.5),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              standing.name.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: you ? FontWeight.w900 : FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            '${standing.distance.toStringAsFixed(0)} m',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          SizedBox(
+            width: 18,
+            child: standing.finished
+                ? const Icon(Icons.flag, size: 14, color: _ink)
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }

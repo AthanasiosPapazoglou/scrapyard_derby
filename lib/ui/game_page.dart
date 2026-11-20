@@ -57,12 +57,15 @@ class _GamePageState extends State<GamePage> {
   /// Back to the level select (the page under this one).
   void _toMenu() => Navigator.of(context).pop();
 
-  /// From the run summary: this page is replaced by the next level's.
+  /// From the run summary: this page is replaced by the next level's (or
+  /// the next race's).
   void _nextLevel() {
+    final race = widget.race;
     Navigator.of(context).pushReplacement(
       DerbyRoute<void>(
-        builder: (_) =>
-            GamePage(profile: widget.profile, level: widget.level + 1),
+        builder: (_) => race == null
+            ? GamePage(profile: widget.profile, level: widget.level + 1)
+            : GamePage(profile: widget.profile, race: race + 1),
       ),
     );
   }
@@ -102,10 +105,9 @@ class _GamePageState extends State<GamePage> {
               game: game,
               onMenu: _toMenu,
               onPause: _pause,
-              // Versus: the Workshop's upgrades don't count, and the next
-              // race opens from the ladder (R4 adds Next race).
+              // Versus: the Workshop's upgrades don't count in races.
               onWorkshop: game.isVersus ? null : _openWorkshop,
-              onNextLevel: game.isVersus ? null : _nextLevel,
+              onNextLevel: _nextLevel,
             ),
             _pauseKey: (context, game) => _PauseMenu(
               onResume: _resume,

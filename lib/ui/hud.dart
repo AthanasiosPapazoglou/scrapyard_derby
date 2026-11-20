@@ -41,8 +41,8 @@ class Hud extends StatelessWidget {
   /// Pauses the run (button hidden when null or once the run is over).
   final VoidCallback? onPause;
 
-  /// Starts the next level from the run summary (shown only when that
-  /// level is unlocked).
+  /// Starts the next level (Versus: the next race) from the run summary
+  /// (shown only when it is unlocked).
   final VoidCallback? onNextLevel;
 
   @override
@@ -176,12 +176,18 @@ class Hud extends StatelessWidget {
                           onPlayAgain: game.restart,
                           onMenu: onMenu,
                           onWorkshop: onWorkshop,
-                          onNextLevel:
-                              !game.isVersus &&
-                                  game.level < Levels.count &&
-                                  game.profile.isUnlocked(game.level + 1)
-                              ? onNextLevel
-                              : null,
+                          onNextLevel: switch (game.race) {
+                            final race? =>
+                              race < Races.count &&
+                                      game.profile.isRaceUnlocked(race + 1)
+                                  ? onNextLevel
+                                  : null,
+                            null =>
+                              game.level < Levels.count &&
+                                      game.profile.isUnlocked(game.level + 1)
+                                  ? onNextLevel
+                                  : null,
+                          },
                         ),
                       ),
                     ),

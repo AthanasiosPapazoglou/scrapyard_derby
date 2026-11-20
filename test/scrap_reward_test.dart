@@ -69,4 +69,42 @@ void main() {
       const ScrapLine('New star x2', 2 * Tuning.scrapPerNewStar),
     ]);
   });
+
+  group('Versus', () {
+    final stats = RunStats()..distance = 1000;
+    final base = (1000 / Tuning.scrapMetersPerScrap).floor();
+
+    test('each place adds its share of the run scrap; 4th adds nothing', () {
+      for (final (place, label, share) in [
+        (1, '1st place +60%', 0.6),
+        (2, '2nd place +30%', 0.3),
+        (3, '3rd place +10%', 0.1),
+      ]) {
+        final lines = scrapReward(stats, newBest: false, place: place);
+        expect(lines, [
+          ScrapLine('Distance', base),
+          ScrapLine(label, (base * share).round()),
+        ]);
+        expect(Tuning.versusPlaceBonus[place - 1], share);
+      }
+      expect(scrapReward(stats, newBest: false, place: 4), [
+        ScrapLine('Distance', base),
+      ]);
+    });
+
+    test('a first win pays a one-off bonus by race number', () {
+      final lines = scrapReward(
+        stats,
+        newBest: false,
+        place: 1,
+        firstWinRace: 3,
+      );
+      expect(
+        lines.last,
+        const ScrapLine('First win, race 3', Tuning.versusFirstWinScrap * 3),
+      );
+      final again = scrapReward(stats, newBest: false, place: 1);
+      expect(again.map((l) => l.label), isNot(contains(startsWith('First'))));
+    });
+  });
 }

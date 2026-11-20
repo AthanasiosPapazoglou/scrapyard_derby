@@ -1373,12 +1373,33 @@ developer.
   (R4 replaces it); stacked rival tags high in the air can still reach
   the distance counter (R2 nit).
 
-### R4 — Race summary and rewards  ☐
-- Run card for Versus: podium (1-4, names, distances, colours), YOU
-  highlighted, scrap lines (D51), "RACE 3 UNLOCKED!", Retry / Next race /
-  Ladder buttons.
-- `scrapReward` gets place and first-win lines.
-- Tests: scrap lines per place, first win once, unlock shown once.
+### R4 — Race summary and rewards  ☑
+- `scrapReward(place:, firstWinRace:)`: "1st place +60%" (share of the
+  run's own scrap, like the star bonus; 4th adds no line) and "First
+  win, race N" (+150 × N). Versus pays the Survival formula on the
+  distance (level multiplier, star bonus), never "New best", no Scrap
+  Magnet.
+- `DerbyGame._finishRace` records `profile.recordRace(race, place)`,
+  adds the scrap, plays the jingle on a win; `RunResult` gets
+  `isFirstWin` and `unlockedRace`.
+- Race card (`RunSummary` when `result.race` is set): "YOU FINISHED
+  2ND" over the podium (4 rows slide in: place, colour dot, name,
+  distance, flag if finished; YOU in hazard yellow), no stars, best or
+  track strip. Stamp "RACE N UNLOCKED!" (first win of races 1-5) or
+  "FIRST WIN!" (race 6). Buttons Ladder / Retry / Next race (when that
+  race is open); no Workshop. `GamePage` opens the next race in place.
+- Tests: scrap lines per place and first win (`scrap_reward_test`);
+  win recorded and paid, first-win bonus and unlock only once, scrap
+  added, no Survival best (`versus_race_test`, rivals dropped out at the
+  start); `race_summary_test` (podium, stamp, buttons, no Workshop or
+  Best; no stamp or Next race on a repeat; FIRST WIN on its own);
+  layout fit "race summary" on 6 sizes. 306 tests pass.
+- Simulator (iPhone 17 Pro Max, portrait): race 1, 4th place card
+  (rivals still racing ahead without flags, +18 scrap added), Retry
+  starts a new race. Not seen there: a win (no stamp / Next race on
+  screen), and the card in landscape (the layout test covers it).
+- Nit for R5: the wider standings panel covers the stacked rival tags
+  during the opening drop in portrait.
 
 ### R5 — Ladder page, gear preview, polish  ☐
 - Race cards show the race gear on the robot (`RobotFigure` with the
