@@ -132,10 +132,12 @@ void main() {
     },
   );
 
-  test('a player finished behind running rivals: fast-forward, tap to skip, '
-      'race ends once the place is settled', () async {
+  test('a player finished behind running rivals: fast-forward until the '
+      'place is settled, faster until every rival is down; the card has '
+      'everyone\'s final distance', () async {
+    final profile = PlayerProfile();
     final game = await initializeGame(
-      () => DerbyGame(profile: PlayerProfile(), race: 1),
+      () => DerbyGame(profile: profile, race: 1),
     );
     await game.ready();
     expect(game.fastForward, 1);
@@ -146,17 +148,31 @@ void main() {
     game.onTapDown(createTapDownEvents(game: game));
     expect(game.fastForward, Tuning.raceFastForwardSkip);
     var frames = 0;
+    var sawSettled = false;
     while (game.hud.value.result == null && frames < 60 * 120) {
       game.update(frame);
       await game.ready();
       frames++;
+      if (game.hud.value.placeSettled && game.hud.value.result == null) {
+        sawSettled = true;
+        // Settled: recorded already, and faster now (the tap still counts).
+        expect(profile.bestPlaceOn(1), isNotNull);
+        expect(game.fastForward, Tuning.raceSettledFastForwardSkip);
+      }
     }
     final result = game.hud.value.result!;
+    expect(sawSettled, isTrue);
     expect(result.race, 1);
     expect(result.place, inInclusiveRange(1, 4));
+    expect(profile.bestPlaceOn(1), result.place);
     expect(result.standings, hasLength(Races.racers));
     expect(result.standings.indexWhere((s) => s.isPlayer) + 1, result.place);
-    // Settled: back to normal speed.
+    // Final distances only: everyone has finished.
+    for (final standing in result.standings) {
+      expect(standing.finished, isTrue, reason: standing.name);
+    }
+    expect(game.racers.every((r) => r.finished), isTrue);
+    // Back to normal speed.
     expect(game.fastForward, 1);
     expect(game.hud.value.place, result.place);
     game.world.physicsWorld.destroy();

@@ -102,6 +102,17 @@ void main() {
       expect(energy, closeTo(0.8, 1e-9));
     });
 
+    test('counter-clockwise turns gather more than clockwise ones', () {
+      const fullTurn = 2 * math.pi;
+      // One turn each way in one second (positive = clockwise).
+      expect(spinEnergyTurns(fullTurn, 1), closeTo(1, 1e-9));
+      expect(
+        spinEnergyTurns(-fullTurn, 1),
+        closeTo(Tuning.reverseSpinEnergyFactor, 1e-9),
+      );
+      expect(Tuning.reverseSpinEnergyFactor, greaterThan(1));
+    });
+
     test('energy is capped, so jumps cannot grow forever', () {
       final energy = addSpinEnergy(0, 1000);
       expect(energy, Tuning.spinEnergyMaxTurns);

@@ -138,6 +138,10 @@ abstract final class Tuning {
   /// speed, jumps ≈ 8 m → ≈ 30 m high.
   static const double spinEnergyMaxTurns = 2.5;
 
+  /// Counter-clockwise turns (made by holding against the robot's own
+  /// spin, harder to do) gather this much more energy than clockwise ones.
+  static const double reverseSpinEnergyFactor = 1.5;
+
   /// Share of the energy bounce each landing type releases. The landing
   /// angle still matters most: a sloppy landing wastes the charge.
   static const double energyReleaseClean = 1.0;
@@ -659,6 +663,12 @@ abstract final class Tuning {
   /// a tap skips faster.
   static const int raceFastForward = 4;
   static const int raceFastForwardSkip = 8;
+
+  /// Once the player's place is settled, the race card still waits for
+  /// every rival's final distance: faster now (a tap: faster still), as
+  /// nothing the player can win or lose is left.
+  static const int raceSettledFastForward = 16;
+  static const int raceSettledFastForwardSkip = 32;
 
   /// A new place must hold this long (s) before "2ND!" pops up, and the
   /// callout stays this long.

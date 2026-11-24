@@ -1490,3 +1490,26 @@ developer.
 - Tests: drop spots at the offsets and apart, distances start at 0;
   darkened art keeps each rival's hue. 311 tests pass. Simulator
   (portrait): all 4 apart and on screen at the start.
+
+### R8 — Feedback: reverse spin energy, final distances on the card  ☑
+- Developer feedback: counter-clockwise (held) spins should give more
+  energy; the race card showed rivals still running with their live
+  distance and should show final distances.
+- `spinEnergyTurns` (landing.dart): counter-clockwise turns count
+  `Tuning.reverseSpinEnergyFactor` 1.5× (all robots, Survival too).
+  `tool/simulate_runs_test.dart`, level 1, before → after: skill 0.7
+  3180 → 3943 m, highest jump 56 → 69 m; skill 0.9 4508 → 4421 m;
+  skill 0.4 1826 → 1429 m (6 seeds, within seed noise). Survival stars
+  and Versus balance not re-run.
+- Race end in two stages: place locked → recorded and paid at once
+  (`_settleRace`), then the race runs on at `raceSettledFastForward`
+  16 (tap: 32), camera on the leading rival still running
+  (`RaceStandings.leaderIndex`), banner "YOU FINISHED 4TH · THE OTHERS
+  FINISH…"; the card (`_finishRace`) appears once every racer is down,
+  every row with a flag.
+- Tests: reverse turns gather more; the fast-forward test now checks
+  the settled stage (recorded, ×32 after the tap) and a card with every
+  racer finished; `leaderIndex`. 312 tests pass.
+- Simulator (portrait, race 1, player out at 454 m with all rivals
+  ahead): settled banner, then the card with final distances (4277 /
+  2645 / 1841 m) about 14 s later with one tap.

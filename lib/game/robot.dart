@@ -438,7 +438,7 @@ class Robot extends Component with HasGameReference<DerbyGame> {
       _airTime += dt;
       if (_hasTouchedDown) {
         _reportJumpHeight();
-        final turns = torso.body.angularVelocity.abs() * dt / (2 * math.pi);
+        final turns = spinEnergyTurns(torso.body.angularVelocity, dt);
         spinEnergy = addSpinEnergy(spinEnergy, turns, stats: stats);
         if (!_announcedFull && isFullCharge(spinEnergy, stats: stats)) {
           _announcedFull = true;

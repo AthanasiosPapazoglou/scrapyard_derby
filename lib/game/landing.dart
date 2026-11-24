@@ -128,6 +128,14 @@ double addSpinEnergy(
   RobotStats stats = RobotStats.base,
 }) => math.min(energy + turns.abs(), stats.spinEnergyMaxTurns);
 
+/// Energy (in turns) gathered by spinning at [angularVelocity] (rad/s,
+/// positive = clockwise) for [dt] seconds. Counter-clockwise turns count
+/// [Tuning.reverseSpinEnergyFactor] times.
+double spinEnergyTurns(double angularVelocity, double dt) {
+  final turns = angularVelocity.abs() * dt / (2 * math.pi);
+  return angularVelocity < 0 ? turns * Tuning.reverseSpinEnergyFactor : turns;
+}
+
 /// Share of the spin energy a landing of [type] releases into its bounce:
 /// all of it on a clean landing, less on sloppy ones.
 double energyRelease(LandingType type) => switch (type) {

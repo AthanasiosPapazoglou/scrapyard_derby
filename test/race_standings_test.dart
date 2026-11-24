@@ -86,6 +86,8 @@ void main() {
       ];
       expect(RaceStandings.placeLocked(racers), isTrue);
       expect(RaceStandings.chaserIndex(racers), isNull);
+      // Once settled, the camera follows the rival out in front.
+      expect(RaceStandings.leaderIndex(racers), 1);
       expect(RaceStandings.placeOf(racers), 3);
     });
   });

@@ -35,14 +35,15 @@ each racer finishes like a Survival run; the final order is by final distance. W
 Each race hands the player fixed "race gear" (same gear as the rivals); Workshop upgrades and gadgets apply only in Survival.
 Rivals get harder per race (skill). Versus pays scrap (distance + place bonus + first-win bonus), spent on Survival upgrades.
 When the player finishes before their place is settled (a running rival behind could still pass), the race fast-forwards
-(whole game frames back to back, camera on the chasing rival, tap to go faster) until it is; then the race card (podium).
+(whole game frames back to back, camera on the chasing rival, tap to go faster) until it is. Then the place is recorded and paid,
+and the race runs on even faster (camera on the leader) until every rival is down, so the race card (podium) shows final distances only.
 Code: `lib/game/racer.dart`, `races.dart`, `race_standings.dart` (plain, tested race rules), `lib/ui/race_hud.dart`,
 `versus_ladder_page.dart`. Balance: `tool/versus_report_test.dart`.
 Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0" (done, version 1.2.0+5).
 
 ## Mechanics spec
 1. **Spin**: clockwise at a constant speed by default. Holding a finger down is a counter-spin force: the clockwise spin quickly (but not instantly) slows to zero, then builds up counter-clockwise until it reaches the same speed the other way. Releasing returns gradually to full clockwise. No instant flips. Holding is the only correction mechanism.
-2. **Spin energy**: every airtime gathers energy from the turns made in the air (either direction), capped (currently 2 turns = +8 m/s bounce, jumps at most ~21 m). On every landing, whatever the type, ALL of it is released into that bounce and the next airtime starts from zero. Shown as an energy bar under the distance.
+2. **Spin energy**: every airtime gathers energy from the turns made in the air (either direction; counter-clockwise turns, made by holding, count 1.5×), capped (currently 2 turns = +8 m/s bounce, jumps at most ~21 m). On every landing, whatever the type, ALL of it is released into that bounce and the next airtime starts from zero. Shown as an energy bar under the distance.
 3. **Landings** (robot angle vs ground normal at contact):
    - Both feet within a tolerance angle: strong bounce along the normal + speed bonus.
    - One foot: weaker bounce, speed loss.
