@@ -34,7 +34,11 @@ every robot for itself, no contact (robots never collide; they just overlap). Li
 each racer finishes like a Survival run; the final order is by final distance. Win (1st) a race to unlock the next.
 Each race hands the player fixed "race gear" (same gear as the rivals); Workshop upgrades and gadgets apply only in Survival.
 Rivals get harder per race (skill). Versus pays scrap (distance + place bonus + first-win bonus), spent on Survival upgrades.
-Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0".
+When the player finishes before their place is settled (a running rival behind could still pass), the race fast-forwards
+(whole game frames back to back, camera on the chasing rival, tap to go faster) until it is; then the race card (podium).
+Code: `lib/game/racer.dart`, `races.dart`, `race_standings.dart` (plain, tested race rules), `lib/ui/race_hud.dart`,
+`versus_ladder_page.dart`. Balance: `tool/versus_report_test.dart`.
+Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0" (done, version 1.2.0+5).
 
 ## Mechanics spec
 1. **Spin**: clockwise at a constant speed by default. Holding a finger down is a counter-spin force: the clockwise spin quickly (but not instantly) slows to zero, then builds up counter-clockwise until it reaches the same speed the other way. Releasing returns gradually to full clockwise. No instant flips. Holding is the only correction mechanism.
@@ -89,8 +93,9 @@ Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0".
    (biomes / difficulty ramping with distance), full art set.
 4. **Launch**: Play closed testing, iOS build, store listings, final name/app IDs/icon, optional online leaderboard.
 
-**Current work plan: `docs/ROADMAP.md`**, Block 6: Version 1.2.0 (Versus mode), with steps, decisions,
-code map and known gotchas. Read it before starting; tick steps off there as they land.
+**Work plan: `docs/ROADMAP.md`**. Block 6 (Version 1.2.0, Versus mode) is the latest block and is done;
+new work starts a new block there, with steps, decisions, code map and known gotchas.
+Read it before starting; tick steps off there as they land.
 
 ## Working rules
 - Keep the code simple and readable; the developer knows Flutter but is new to game dev.

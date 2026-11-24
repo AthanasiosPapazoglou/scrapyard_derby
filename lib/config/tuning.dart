@@ -557,31 +557,36 @@ abstract final class Tuning {
   // hill. The player and 3 rivals race with the same fixed gear; rivals
   // get harder through their Autopilot skill. Workshop upgrades and
   // gadgets never apply here. Win (1st place) a race to open the next.
-  // Rival skills are placeholders until the balance step (R6).
+  // Rival skills balanced in R6 with tool/versus_report_test.dart (24
+  // real races per cell): a skill 0.6 player wins race 1 ~80% of the
+  // time, falling to ~30% by races 5-6; skill 0.8 wins 100% early and
+  // ~2 in 3 at races 5-6; skill 0.4 can win races 1-2 (17-29%). The
+  // strongest rival decides most races: one above ~0.65 beats even a 0.8
+  // player more often than not.
   static const List<RaceTuning> versusRaces = [
     RaceTuning(
       level: 1,
       partTier: 1,
       rivals: [
-        RivalTuning(name: 'Tinker', color: 0xFF3AA7A3, skill: 0.25),
-        RivalTuning(name: 'Rustina', color: 0xFF8E5BC8, skill: 0.35),
-        RivalTuning(name: 'Bolt Jr.', color: 0xFF6DB24A, skill: 0.45),
+        RivalTuning(name: 'Tinker', color: 0xFF3AA7A3, skill: 0.3),
+        RivalTuning(name: 'Rustina', color: 0xFF8E5BC8, skill: 0.4),
+        RivalTuning(name: 'Bolt Jr.', color: 0xFF6DB24A, skill: 0.5),
       ],
     ),
     RaceTuning(
       level: 2,
       partTier: 2,
       rivals: [
-        RivalTuning(name: 'Sprocket', color: 0xFF3F7FD0, skill: 0.33),
-        RivalTuning(name: 'Clank-9', color: 0xFFD9578B, skill: 0.43),
-        RivalTuning(name: 'Ember', color: 0xFF3AA7A3, skill: 0.52),
+        RivalTuning(name: 'Sprocket', color: 0xFF3F7FD0, skill: 0.35),
+        RivalTuning(name: 'Clank-9', color: 0xFFD9578B, skill: 0.45),
+        RivalTuning(name: 'Ember', color: 0xFF3AA7A3, skill: 0.5),
       ],
     ),
     RaceTuning(
       level: 3,
       partTier: 3,
       rivals: [
-        RivalTuning(name: 'Rivet', color: 0xFF6DB24A, skill: 0.42),
+        RivalTuning(name: 'Rivet', color: 0xFF6DB24A, skill: 0.35),
         RivalTuning(name: 'Dyna-Mo', color: 0xFF8E5BC8, skill: 0.5),
         RivalTuning(name: 'Smogtooth', color: 0xFF3F7FD0, skill: 0.6),
       ],
@@ -590,18 +595,18 @@ abstract final class Tuning {
       level: 4,
       partTier: 4,
       rivals: [
-        RivalTuning(name: 'Gearlock', color: 0xFFD9578B, skill: 0.5),
-        RivalTuning(name: 'Piston Pete', color: 0xFF3AA7A3, skill: 0.6),
-        RivalTuning(name: 'Volt Viper', color: 0xFF6DB24A, skill: 0.7),
+        RivalTuning(name: 'Gearlock', color: 0xFFD9578B, skill: 0.4),
+        RivalTuning(name: 'Piston Pete', color: 0xFF3AA7A3, skill: 0.5),
+        RivalTuning(name: 'Volt Viper', color: 0xFF6DB24A, skill: 0.6),
       ],
     ),
     RaceTuning(
       level: 5,
       partTier: 5,
       rivals: [
-        RivalTuning(name: 'Slagjaw', color: 0xFF3F7FD0, skill: 0.58),
-        RivalTuning(name: 'Kiln-X', color: 0xFF8E5BC8, skill: 0.68),
-        RivalTuning(name: 'Magma Max', color: 0xFFD9578B, skill: 0.78),
+        RivalTuning(name: 'Slagjaw', color: 0xFF3F7FD0, skill: 0.45),
+        RivalTuning(name: 'Kiln-X', color: 0xFF8E5BC8, skill: 0.55),
+        RivalTuning(name: 'Magma Max', color: 0xFFD9578B, skill: 0.6),
       ],
     ),
     RaceTuning(
@@ -609,9 +614,9 @@ abstract final class Tuning {
       partTier: 5,
       gadgets: {'comboCoil': 2, 'shockPads': 1},
       rivals: [
-        RivalTuning(name: 'Onyx', color: 0xFF3AA7A3, skill: 0.7),
-        RivalTuning(name: 'Crimson Crank', color: 0xFF6DB24A, skill: 0.8),
-        RivalTuning(name: 'The Maw', color: 0xFF8E5BC8, skill: 0.88),
+        RivalTuning(name: 'Onyx', color: 0xFF3AA7A3, skill: 0.5),
+        RivalTuning(name: 'Crimson Crank', color: 0xFF6DB24A, skill: 0.6),
+        RivalTuning(name: 'The Maw', color: 0xFF8E5BC8, skill: 0.65),
       ],
     ),
   ];
@@ -628,6 +633,10 @@ abstract final class Tuning {
   static const double rivalOpacity = 0.7;
   static const double rivalTint = 0.45;
 
+  /// Rival art is darkened to this share of its brightness before the
+  /// tint, so the player's own robot stands out.
+  static const double rivalDarken = 0.55;
+
   /// Rival landing sparks and dust use this share of the particles.
   static const double rivalParticleShare = 0.5;
 
@@ -635,12 +644,15 @@ abstract final class Tuning {
   static const double rivalTagHeight = 2.6;
   static const double rivalTagTextSize = 0.55;
 
-  /// Each rival's tag sits this much (m) higher than the one before.
-  static const double rivalTagStep = 0.75;
-
   /// Seconds (real time) a finished rival's wreck stays on the hill
   /// before it is cleared away.
   static const double rivalLingerTime = 4;
+
+  /// Where each rival is dropped, in meters sideways from the player's
+  /// drop point (rival 1, 2, 3), so the 4 robots don't start on top of
+  /// each other. Every robot's distance counts from its own drop
+  /// spot, so a spot ahead is no head start.
+  static const List<double> rivalStartOffsets = [-4, 3, 6];
 
   /// When the player finishes before their place is settled, the race
   /// fast-forwards (this many game frames per screen frame) until it is;

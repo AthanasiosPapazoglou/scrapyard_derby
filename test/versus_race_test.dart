@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scrapyard_derby/config/tuning.dart';
@@ -5,6 +7,7 @@ import 'package:scrapyard_derby/game/autopilot.dart';
 import 'package:scrapyard_derby/game/derby_game.dart';
 import 'package:scrapyard_derby/game/hill.dart';
 import 'package:scrapyard_derby/game/races.dart';
+import 'package:scrapyard_derby/game/rival_look.dart';
 import 'package:scrapyard_derby/game/scrap_reward.dart';
 import 'package:scrapyard_derby/profile/page_tour.dart';
 import 'package:scrapyard_derby/profile/player_profile.dart';
@@ -90,7 +93,7 @@ void main() {
       // collide, Box2D would shove the overlapping bodies apart at once.
       // Instead they fall as one, exactly like a robot dropped alone.
       final versus = await initializeGame(
-        () => DerbyGame(profile: PlayerProfile(), race: 1),
+        () => DerbyGame(profile: PlayerProfile(), race: 1, spreadStart: false),
       );
       final solo = await initializeGame(
         () => DerbyGame(profile: PlayerProfile(firstRunCoached: true)),
@@ -262,6 +265,58 @@ void main() {
     expect(game.hud.value.standings, isEmpty);
     expect(game.hud.value.place, isNull);
     game.world.physicsWorld.destroy();
+  });
+
+  test('rivals are dropped at their own spots; distance counts from '
+      'each robot\'s own spot', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(), race: 1),
+    );
+    await game.ready();
+    final xs = [for (final r in game.racers) r.robot.start.x];
+    // At the tuned offsets from the player, in the air.
+    for (var i = 0; i < Tuning.rivalStartOffsets.length; i++) {
+      expect(xs[i + 1] - xs[0], closeTo(Tuning.rivalStartOffsets[i], 0.15));
+    }
+    // Well apart: no two robots start on top of each other.
+    final sorted = [...xs]..sort();
+    for (var i = 1; i < sorted.length; i++) {
+      expect(sorted[i] - sorted[i - 1], greaterThanOrEqualTo(2.9));
+    }
+    for (final racer in game.racers) {
+      expect(racer.distance, 0, reason: racer.name);
+    }
+    game.world.physicsWorld.destroy();
+  });
+
+  test('rival art is darkened: even white comes out well below white', () {
+    for (var race = 1; race <= Races.count; race++) {
+      for (final rival in Races.of(race).rivals) {
+        final m = RivalLook(
+          name: rival.name,
+          color: Color(rival.color),
+        ).tintMatrix;
+        // A white pixel (255, 255, 255) through the matrix.
+        final out = [
+          for (var row = 0; row < 3; row++)
+            255 * m[row * 5 + row] + m[row * 5 + 4],
+        ];
+        final brightness = out.reduce((a, b) => a + b) / 3;
+        expect(brightness, lessThan(255 * 0.75), reason: rival.name);
+        // Still the rival's own hue: its strongest channel stays strongest.
+        final c = Color(rival.color);
+        final strongest = [
+          c.r,
+          c.g,
+          c.b,
+        ].indexOf([c.r, c.g, c.b].reduce((a, b) => a > b ? a : b));
+        expect(
+          out.indexOf(out.reduce((a, b) => a > b ? a : b)),
+          strongest,
+          reason: rival.name,
+        );
+      }
+    }
   });
 
   test('the hill is built around every focus point', () {

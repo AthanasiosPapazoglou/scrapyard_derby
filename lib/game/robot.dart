@@ -41,19 +41,43 @@ class Robot extends Component with HasGameReference<DerbyGame> {
     this.look,
     this.stats = RobotStats.base,
     this.rival,
+    double startX = Tuning.startX,
   }) {
     // Drop the robot from high above the slope, tilted to match it and not
     // spinning yet, so the first touch-down is a clean landing.
-    final x = Tuning.startX;
-    final angle = hill.slopeAngleAt(x);
-    startRotation = Rot.fromAngle(angle);
-    final groundNormal = Vector2(math.sin(angle), -math.cos(angle));
-    final feetBelowTorso =
-        leftHipPivot.y + _m(Tuning.footCenterY + Tuning.footHalfHeight);
+    startRotation = Rot.fromAngle(hill.slopeAngleAt(startX));
     _feetBelowTorso = feetBelowTorso;
-    start =
-        Vector2(x, hill.heightAt(x)) +
+    start = dropPoint(hill, startX);
+  }
+
+  /// Feet to torso center (m), straight down in the torso's frame.
+  static final double feetBelowTorso =
+      leftHipPivot.y + _m(Tuning.footCenterY + Tuning.footHalfHeight);
+
+  /// Where the torso starts for a drop onto ground point [x]: high above
+  /// the slope along its normal (so x shifts a little with the slope).
+  static Vector2 dropPoint(HillGeometry hill, double x) {
+    final angle = hill.slopeAngleAt(x);
+    final groundNormal = Vector2(math.sin(angle), -math.cos(angle));
+    return Vector2(x, hill.heightAt(x)) +
         groundNormal * (feetBelowTorso + Tuning.startDropHeight);
+  }
+
+  /// The ground point whose [dropPoint] is closest to [airX]: tries
+  /// ground points 5 cm apart (on a bumpy slope the drop tilts back and
+  /// forth, so there's no simple formula).
+  static double groundXForDrop(HillGeometry hill, double airX) {
+    final reach = feetBelowTorso + Tuning.startDropHeight;
+    var best = airX;
+    var bestMiss = double.infinity;
+    for (var x = airX - reach; x <= airX + reach; x += 0.05) {
+      final miss = (dropPoint(hill, x).x - airX).abs();
+      if (miss < bestMiss) {
+        best = x;
+        bestMiss = miss;
+      }
+    }
+    return best;
   }
 
   /// Artwork for the installed parts; null draws the plain placeholder

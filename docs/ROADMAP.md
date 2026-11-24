@@ -1435,9 +1435,58 @@ developer.
   note (layout test only), landscape, and the sting by ear (the
   Simulator plays audio, but I can't hear it).
 
-### R6 — Versus balance, docs, version  ☐
-- `tool/versus_report_test.dart`: many simulated races per rung with a
-  player-bot at skills 0.4 / 0.6 / 0.8. Target: skill 0.6 wins race 1
-  in ~2 of 3 tries and race 6 in ~1 of 4; skill 0.8 wins every race
-  most of the time; skill 0.4 can still win races 1-2. Tune rival skills.
-- README, CLAUDE.md, version 1.2.0+5.
+### R6 — Versus balance, docs, version  ☑
+- `tool/versus_report_test.dart` (`--timeout none`, ~3.5 min + ~3 min):
+  part 1 plays races where all 4 robots are bots from a skill grid
+  (0.15-0.9 in 0.05 steps, 20 rounds = 80 races per rung, the race's
+  gear) and saves finishing distances per race and skill to
+  `build/versus_samples.json`; win chances for any rival skills follow
+  from those (no contact, so finishes are independent), so rival skills
+  can be tried offline. Part 2 plays real races at the Tuning skills.
+  `--dart-define=SAMPLES_ONLY=true` / `CHECK_ONLY=true` run one part.
+- Learned: the placeholder skills made race 1 a sure thing (0.6 won
+  100%) and races 5-6 nearly hopeless (0.6: 3-6%, 0.8: 25-45%). The
+  strongest rival decides most races; harder hills squeeze the gap
+  between skills (on Obsidian Maw 0.6 and 0.9 bots finish within ~15%
+  of each other), so later rungs need only small skill steps. Seed
+  noise is big: 12 races per cell swung race 2 from 25% to 58%; check
+  with 24+ races and fresh seeds.
+- New rival skills (race 1 → 6): [0.3, 0.4, 0.5], [0.35, 0.45, 0.5],
+  [0.35, 0.5, 0.6], [0.4, 0.5, 0.6], [0.45, 0.55, 0.6],
+  [0.5, 0.6, 0.65]. Real races, 24 per cell (wins %):
+
+  | Race | p0.4 | p0.6 | p0.8 |
+  |---|---|---|---|
+  | 1 | 17 | 79 | 100 |
+  | 2 | 29 | 58 | 100 |
+  | 3 | 0 | 46 | 83 |
+  | 4 | 4 | 33 | 83 |
+  | 5 | 0 | 29 | 67 |
+  | 6 | 4 | 29 | 67 |
+
+  On target for 0.6 (2 in 3 → 1 in 4) and 0.4 (wins races 1-2). 0.8
+  wins most of the time, ~2 in 3 at the top.
+- README: Versus section, tools, status 1.2.0. CLAUDE.md: race end,
+  code map, block done. `pubspec.yaml` → `1.2.0+5`. 309 tests pass.
+- Not done: a Versus screenshot for the README (none taken yet), a
+  real-person playtest of the new numbers.
+
+### R7 — Feedback: spread start, darker rivals  ☑
+- Developer feedback: the 4 robots dropped on one spot cluttered the
+  start; rivals should look darker so the player's robot stands out.
+- Rivals now drop at their own spots, `Tuning.rivalStartOffsets`
+  [-4, 3, 6] m sideways from the player's drop point (measured in the
+  air: on a bumpy slope the drop tilts along the ground normal, so
+  ground offsets bunched them up again; `Robot.dropPoint` /
+  `groundXForDrop` scan for the ground spot). Every robot's distance
+  counts from its own spot, so a spot ahead is no head start. Wider
+  offsets (±6-10 m) put robots off screen once the camera zooms in.
+- Rival art is darkened (`Tuning.rivalDarken` 0.55) before the colour
+  tint (one colour matrix, `RivalLook.tintMatrix`). Name tags no
+  longer step up per rival (that was for the shared start spot and now
+  put a tag on the neighbour).
+- `DerbyGame(spreadStart: false)` (tests only) keeps the shared spot
+  for the "robots never touch" test.
+- Tests: drop spots at the offsets and apart, distances start at 0;
+  darkened art keeps each rival's hue. 311 tests pass. Simulator
+  (portrait): all 4 apart and on screen at the start.

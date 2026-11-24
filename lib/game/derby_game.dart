@@ -176,12 +176,16 @@ class HudInfo {
 /// down the same hill with the race's gear. Robots never touch each other
 /// (every part shares one collision group, see robot_part.dart).
 class DerbyGame extends Forge2DGame with TapCallbacks {
-  DerbyGame({required this.profile, int level = 1, this.race})
-    : level = race == null ? level : Races.of(race).level,
-      hillGeometry = HillGeometry(
-        level: race == null ? level : Races.of(race).level,
-      ),
-      super(gravity: Vector2(0, Tuning.gravity));
+  DerbyGame({
+    required this.profile,
+    int level = 1,
+    this.race,
+    @visibleForTesting this.spreadStart = true,
+  }) : level = race == null ? level : Races.of(race).level,
+       hillGeometry = HillGeometry(
+         level: race == null ? level : Races.of(race).level,
+       ),
+       super(gravity: Vector2(0, Tuning.gravity));
 
   /// The level being played (1-based, see [Tuning.levels]). In Versus, the
   /// level whose hill the race runs on.
@@ -192,6 +196,11 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   final int? race;
 
   bool get isVersus => race != null;
+
+  /// Rivals are dropped at their own spots ([Tuning.rivalStartOffsets]);
+  /// false drops every robot on the player's spot (a test checks they
+  /// still never touch).
+  final bool spreadStart;
 
   /// Saved player data; the best distance is recorded here at run end.
   final PlayerProfile profile;
@@ -355,15 +364,22 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       skill: racer.autopilot?.skill ?? 0.5,
       seed: _seeds.nextInt(1 << 30),
     );
+    final index = racers.indexOf(racer) - 1;
+    final offsets = Tuning.rivalStartOffsets;
     return Robot(
       hill: hillGeometry,
       look: look,
       stats: stats,
-      rival: RivalLook(
-        name: racer.name,
-        color: racer.color,
-        index: racers.indexOf(racer) - 1,
-      ),
+      // Spaced by where they start in the air, not on the ground: a
+      // bumpy slope tilts the drop and would bunch them up again.
+      startX: spreadStart
+          ? Robot.groundXForDrop(
+              hillGeometry,
+              Robot.dropPoint(hillGeometry, Tuning.startX).x +
+                  offsets[index % offsets.length],
+            )
+          : Tuning.startX,
+      rival: RivalLook(name: racer.name, color: racer.color),
     )..priority = 4;
   }
 

@@ -70,6 +70,23 @@ Later hills are steeper and bumpier, hit harder, and look and sound darker.
 <img src="docs/images/obsidian-maw.jpg" alt="Obsidian Maw: a black hill with a glowing crimson edge under an eclipse" width="80%">
 </div>
 
+## Versus: race the rivals
+
+Prefer company? **Versus** puts you on the same hill as **three rival robots**, live.
+Six races, one per level hill, from *Tinker* and *Rustina* on Rust Hollow to *The Maw* on Obsidian Maw.
+
+- 🏁 **Same hill, same gear.** Every race hands everyone the same robot, so it's skill against skill.
+  Your Workshop upgrades stay in Survival.
+- 👻 **No contact.** Rivals are see-through, tinted in their colour, and pass right through you.
+- 📊 **Live standings** in the corner, markers on the screen edge for rivals out of view, and a callout when you
+  move up (or drop back).
+- 🏆 **Furthest wins.** There's no finish line: each robot races until it breaks down, like a Survival run.
+  If you go down early, the race fast-forwards until your place is settled.
+- 🔓 **Win to climb.** First place opens the next race. Every race pays scrap for your Survival robot,
+  more the better you place, with a bonus for each first win. Later rivals are sharper.
+
+The game you've read about so far is the **Survival** mode; **Play** asks which one you want.
+
 ## Build a better robot
 
 Every run pays out **scrap**. Spend it in the **Workshop** on five part slots
@@ -119,7 +136,7 @@ standard-library Python scripts in [`art/`](art/):
 |---|---|
 | `make_style_test.py` | the cutout art style and the base robot sprites |
 | `make_parts.py` | all 30 Workshop parts (vector SVGs, drawn around their joint pivots) |
-| `make_sfx.py` | retro synth sound effects: landings, limb breaks, the rocket |
+| `make_sfx.py` | retro synth sound effects: landings, limb breaks, the rocket, the race start |
 | `make_music.py` | seven music loops (one for the menus, one per level), seamless and deterministic |
 | `make_icon.py` | the app icon: the scrap robot's head peeking over the dusk hill (Android adaptive, iOS, web) |
 
@@ -154,6 +171,7 @@ flutter test                                     # unit, widget and headless-phy
 flutter test tool/simulate_runs_test.dart        # balance report: bots of different skill
 flutter test tool/progression_report_test.dart   # every level × tier × skill (slow)
 flutter test tool/head_flight_report_test.dart --timeout none   # how far the launched head flies
+flutter test tool/versus_report_test.dart --timeout none        # Versus: win chances per race and skill (slow)
 flutter test tool/render_icons_test.dart         # app icon SVGs -> every platform's PNGs
 ```
 
@@ -180,15 +198,17 @@ python3 art/make_icon.py && flutter test tool/render_icons_test.dart
 
 | Where | What |
 |---|---|
-| `lib/game/` | game loop, robot, hill, landings, levels, gadgets, effects, sound |
-| `lib/ui/` | menu, level select, HUD, run summary, Workshop, stats, settings |
+| `lib/game/` | game loop, robot, hill, landings, levels, Versus races and standings, gadgets, effects, sound |
+| `lib/ui/` | menu, mode choice, level select, Versus ladder, HUD, run summary, Workshop, stats, settings |
 | `lib/profile/` | saved progress |
 | `art/` | asset generators |
 | `test/`, `tool/` | tests and balance reports |
 
 ## Status
 
-**In development (version 1.1.2).** Fully playable: six levels, stars, Workshop, gadgets, generated art and music.
+**In development (version 1.2.0).** Fully playable: Survival (six levels, stars, Workshop, gadgets) and Versus
+(six races against rival robots), with generated art and music.
+1.2.0 added the Versus mode: live races against three rivals on the same hill, with standings, a race card, and scrap.
 1.1.2 added the Thanos Productions creator splash, a guided first run with tips on every page, and a real app icon.
 1.1.1 brought a tighter camera, a clearer landing marker, a head launch that flies true,
 part spec sheets with a new stat per slot, and a rebalance so every level is a little meaner than the last.
