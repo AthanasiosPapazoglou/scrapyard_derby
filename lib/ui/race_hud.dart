@@ -58,12 +58,7 @@ class RaceHud extends StatelessWidget {
                 left: 0,
                 right: 0,
                 bottom: box.maxHeight * 0.22,
-                child: Center(
-                  child: _FinishingBanner(
-                    speed: info.fastForward,
-                    settledPlace: info.placeSettled ? info.place : null,
-                  ),
-                ),
+                child: Center(child: _FinishingBanner(speed: info.fastForward)),
               ),
           ],
         ),
@@ -285,20 +280,12 @@ class _PlaceCalloutText extends StatelessWidget {
 
 /// Shown while the race fast-forwards after the player finished.
 class _FinishingBanner extends StatelessWidget {
-  const _FinishingBanner({required this.speed, this.settledPlace});
+  const _FinishingBanner({required this.speed});
 
   final int speed;
 
-  /// The player's final place, once settled (the rest of the race only
-  /// fills in the rivals' final distances).
-  final int? settledPlace;
-
   @override
   Widget build(BuildContext context) {
-    final skipped =
-        speed == Tuning.raceFastForwardSkip ||
-        speed == Tuning.raceSettledFastForwardSkip;
-    final place = settledPlace;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
@@ -309,24 +296,13 @@ class _FinishingBanner extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (place != null)
-            Text(
-              'YOU FINISHED ${Races.placeLabel(place).toUpperCase()}',
-              style: const TextStyle(
-                color: Palette.cream,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-              ),
-            ),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.fast_forward, color: Palette.hazard, size: 22),
               const SizedBox(width: 6),
               Text(
-                '${place == null ? 'FINISHING…' : 'THE OTHERS FINISH…'}  '
-                '×$speed',
+                'FINISHING…  ×$speed',
                 style: const TextStyle(
                   color: Palette.hazard,
                   fontSize: 18,
@@ -336,7 +312,7 @@ class _FinishingBanner extends StatelessWidget {
               ),
             ],
           ),
-          if (!skipped)
+          if (speed < Tuning.raceFastForwardSkip)
             const Text(
               'tap to skip',
               style: TextStyle(

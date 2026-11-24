@@ -1513,3 +1513,43 @@ developer.
 - Simulator (portrait, race 1, player out at 454 m with all rivals
   ahead): settled banner, then the card with final distances (4277 /
   2645 / 1841 m) about 14 s later with one tap.
+
+### R9 — Feedback: rival results at once  ☑
+- Developer feedback: watching the rest of the race at ×32 is too long;
+  just work it out and show the rivals' results.
+- The card shows as soon as the player's place is settled (recorded and
+  paid then). Rivals still running are played out behind it
+  (`DerbyGame._resolveRivals`): fixed 1/60 s game frames back to back,
+  up to `Tuning.raceResolveBudget` 8 ms and `raceResolveMaxFrames` 90
+  per screen frame (≈ 45 m of travel; the hill is built 100 m ahead and
+  new pieces load between screen frames). Their podium rows say
+  "racing…" and fill in with final distance and flag as they finish
+  (`RunResult.withStandings`). The settled ×16/×32 stage, its banner
+  and `leaderIndex` are gone.
+- Bug found in the Simulator: two rivals froze at ~1150 m behind the
+  card. The first version stepped by the screen's frame time; a long
+  screen frame became one big physics step and robots tunnelled through
+  the thin hill surface. Fixed step now; and any robot more than
+  `Tuning.fellThroughDepth` 3 m below the surface ends its run (never
+  waits forever). A test with 0.25 s screen frames fails on the old code
+  (Dyna-Mo below the hill at 250 m) and passes now.
+- Simulator: card at once, first row filled in about a second later;
+  after the fix, a full card with final distances (3082 / 2823 /
+  1457 m). How long the last row takes on a real phone is not
+  measured.
+- Versus balance re-run with the 1.5× reverse-spin energy (R8), same
+  rival skills and seeds as R6, 24 real races per cell (wins %, R6 in
+  brackets):
+
+  | Race | p0.4 | p0.6 | p0.8 |
+  |---|---|---|---|
+  | 1 | 17 (17) | 63 (79) | 100 (100) |
+  | 2 | 8 (29) | 63 (58) | 100 (100) |
+  | 3 | 17 (0) | 42 (46) | 100 (83) |
+  | 4 | 25 (4) | 54 (33) | 83 (83) |
+  | 5 | 0 (0) | 21 (29) | 63 (67) |
+  | 6 | 8 (4) | 21 (29) | 58 (67) |
+
+  Still on target (0.6: ~2 in 3 → ~1 in 4–5; 0.4 can win early races;
+  0.8 wins most, ~60% at the top). The shifts are about the size of the
+  seed noise; no retune.

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame_test/flame_test.dart';
@@ -133,8 +134,8 @@ void main() {
   );
 
   test('a player finished behind running rivals: fast-forward until the '
-      'place is settled, faster until every rival is down; the card has '
-      'everyone\'s final distance', () async {
+      'place is settled, then the card at once; rivals still running are '
+      'played out behind it and fill in their final distances', () async {
     final profile = PlayerProfile();
     final game = await initializeGame(
       () => DerbyGame(profile: profile, race: 1),
@@ -148,33 +149,74 @@ void main() {
     game.onTapDown(createTapDownEvents(game: game));
     expect(game.fastForward, Tuning.raceFastForwardSkip);
     var frames = 0;
-    var sawSettled = false;
     while (game.hud.value.result == null && frames < 60 * 120) {
       game.update(frame);
       await game.ready();
       frames++;
-      if (game.hud.value.placeSettled && game.hud.value.result == null) {
-        sawSettled = true;
-        // Settled: recorded already, and faster now (the tap still counts).
-        expect(profile.bestPlaceOn(1), isNotNull);
-        expect(game.fastForward, Tuning.raceSettledFastForwardSkip);
-      }
     }
     final result = game.hud.value.result!;
-    expect(sawSettled, isTrue);
     expect(result.race, 1);
     expect(result.place, inInclusiveRange(1, 4));
+    // Recorded and paid as soon as the card shows.
     expect(profile.bestPlaceOn(1), result.place);
+    expect(profile.scrap, result.scrapEarned);
     expect(result.standings, hasLength(Races.racers));
     expect(result.standings.indexWhere((s) => s.isPlayer) + 1, result.place);
-    // Final distances only: everyone has finished.
-    for (final standing in result.standings) {
+    // Back to normal speed on screen.
+    expect(game.fastForward, 1);
+
+    // Screen frames until every rival is down behind the card.
+    var screenFrames = 0;
+    while (game.resolvingRivals && screenFrames < 60 * 120) {
+      game.update(frame);
+      await game.ready();
+      screenFrames++;
+    }
+    expect(game.resolvingRivals, isFalse);
+    final last = game.hud.value.result!;
+    for (final standing in last.standings) {
       expect(standing.finished, isTrue, reason: standing.name);
     }
-    expect(game.racers.every((r) => r.finished), isTrue);
-    // Back to normal speed.
-    expect(game.fastForward, 1);
-    expect(game.hud.value.place, result.place);
+    // The player's place and reward don't move.
+    expect(last.place, result.place);
+    expect(last.scrapEarned, result.scrapEarned);
+    expect(last.standings.indexWhere((s) => s.isPlayer) + 1, last.place);
+    // Far faster than playing it out at normal speed.
+    final longest = last.standings.map((s) => s.distance).reduce(math.max);
+    expect(screenFrames, lessThan(longest / 2), reason: '$screenFrames');
+    game.world.physicsWorld.destroy();
+  });
+
+  test('rivals played out behind the card stay on the hill, even with '
+      'long screen frames', () async {
+    final game = await initializeGame(
+      () => DerbyGame(profile: PlayerProfile(), race: 3),
+    );
+    await game.ready();
+    game.player.finish(RunEnd.stuck);
+    // Settle at normal frames, then slow, stuttering screen frames.
+    var n = 0;
+    while (game.hud.value.result == null && n < 60 * 120) {
+      game.update(frame);
+      await game.ready();
+      n++;
+    }
+    expect(game.resolvingRivals, isTrue);
+    n = 0;
+    while (game.resolvingRivals && n < 2000) {
+      game.update(0.25);
+      await game.ready();
+      for (final rival in game.rivals.where((r) => !r.finished)) {
+        final p = rival.robot.position;
+        expect(
+          p.y,
+          lessThan(game.hillGeometry.heightAt(p.x) + 1),
+          reason: '${rival.name} below the hill at ${p.x}',
+        );
+      }
+      n++;
+    }
+    expect(game.resolvingRivals, isFalse);
     game.world.physicsWorld.destroy();
   });
 

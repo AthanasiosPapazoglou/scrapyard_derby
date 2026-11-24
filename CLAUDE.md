@@ -36,7 +36,8 @@ Each race hands the player fixed "race gear" (same gear as the rivals); Workshop
 Rivals get harder per race (skill). Versus pays scrap (distance + place bonus + first-win bonus), spent on Survival upgrades.
 When the player finishes before their place is settled (a running rival behind could still pass), the race fast-forwards
 (whole game frames back to back, camera on the chasing rival, tap to go faster) until it is. Then the place is recorded and paid,
-and the race runs on even faster (camera on the leader) until every rival is down, so the race card (podium) shows final distances only.
+and the race card (podium) shows at once; rivals still running are played out behind it in fixed steps (as fast as the
+device allows) and their rows fill in with final distances.
 Code: `lib/game/racer.dart`, `races.dart`, `race_standings.dart` (plain, tested race rules), `lib/ui/race_hud.dart`,
 `versus_ladder_page.dart`. Balance: `tool/versus_report_test.dart`.
 Details, numbers and steps: `docs/ROADMAP.md`, "Block 6: Version 1.2.0" (done, version 1.2.0+5).

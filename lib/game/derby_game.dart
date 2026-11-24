@@ -85,6 +85,25 @@ class RunResult {
   final List<ScrapLine> scrap;
 
   int get scrapEarned => scrapTotal(scrap);
+
+  /// The same result with updated [standings] (rivals finishing behind the
+  /// race card).
+  RunResult withStandings(List<Standing> standings) => RunResult(
+    end: end,
+    distance: distance,
+    isNewBest: isNewBest,
+    stats: stats,
+    scrap: scrap,
+    level: level,
+    starsBefore: starsBefore,
+    starsAfter: starsAfter,
+    unlockedLevel: unlockedLevel,
+    race: race,
+    place: place,
+    standings: standings,
+    isFirstWin: isFirstWin,
+    unlockedRace: unlockedRace,
+  );
 }
 
 /// A snapshot of the numbers the Flutter overlays show.
@@ -110,7 +129,6 @@ class HudInfo {
     this.callout,
     this.markers = const [],
     this.fastForward = 1,
-    this.placeSettled = false,
     this.raceHint = false,
     this.result,
   });
@@ -160,10 +178,6 @@ class HudInfo {
   final PlaceCallout? callout;
   final List<RivalMarker> markers;
   final int fastForward;
-
-  /// The player's place is final; the race goes on for the rivals'
-  /// final distances.
-  final bool placeSettled;
 
   /// Show the first race's one-line hint card.
   final bool raceHint;
@@ -421,7 +435,6 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     _starsPassed = 0;
     _slowMoLeft = 0;
     _skipFastForward = false;
-    _settled = null;
     _places.reset();
     _raceHintLeft = 0;
     if (isVersus) {
@@ -469,20 +482,10 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (!isVersus || !player.finished || _result != null) {
       return 1;
     }
-    // Place settled: only the rivals' final distances are left to see.
-    if (_settled != null) {
-      return _skipFastForward
-          ? Tuning.raceSettledFastForwardSkip
-          : Tuning.raceSettledFastForward;
-    }
     return _skipFastForward
         ? Tuning.raceFastForwardSkip
         : Tuning.raceFastForward;
   }
-
-  /// The player's settled race (place recorded, scrap paid), while the
-  /// rivals still running finish; null before that.
-  _SettledRace? _settled;
 
   bool _skipFastForward = false;
 
@@ -521,6 +524,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
         break;
       }
     }
+    _resolveRivals(dt);
     // The camera keeps pace with a fast-forwarded race.
     _updateCamera(dt * frames);
     if (_raceHintLeft > 0) {
@@ -574,15 +578,44 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     if (_places.callout != before) {
       _publishHud();
     }
-    if (_result != null) {
+    if (_result == null && RaceStandings.placeLocked(standings)) {
+      _finishRace(standings);
+    }
+  }
+
+  /// True while the race card is up and rivals are still running: their
+  /// final distances are being worked out behind the card.
+  bool get resolvingRivals =>
+      isVersus && _result != null && racers.any((r) => !r.finished);
+
+  /// Plays the rest of the race behind the race card, as fast as the
+  /// device allows: whole game frames back to back for up to
+  /// [Tuning.raceResolveBudget] per screen frame (at most
+  /// [Tuning.raceResolveMaxFrames], so no robot outruns the hill being
+  /// built ahead of it). The card's rows fill in as rivals finish.
+  void _resolveRivals(double dt) {
+    if (!resolvingRivals) {
       return;
     }
-    if (_settled == null && RaceStandings.placeLocked(standings)) {
-      _settleRace(standings);
+    // Fixed steps, whatever the screen's frame time: a long screen frame
+    // must not become one big physics step (robots could tunnel through
+    // the thin hill surface).
+    const step = Tuning.raceResolveStep;
+    final clock = Stopwatch()..start();
+    for (var i = 0; i < Tuning.raceResolveMaxFrames; i++) {
+      super.update(step);
+      _updateRacers(step);
+      if (!resolvingRivals || clock.elapsed >= Tuning.raceResolveBudget) {
+        break;
+      }
     }
-    // The race card waits for every final distance.
-    if (_settled case final settled? when racers.every((r) => r.finished)) {
-      _finishRace(settled, standings);
+    final result = _result!;
+    final standings = RaceStandings.order(_standingsNow);
+    final finishedBefore = result.standings.where((s) => s.finished).length;
+    final finishedNow = standings.where((s) => s.finished).length;
+    if (finishedNow != finishedBefore) {
+      _result = result.withStandings(standings);
+      _publishHud();
     }
   }
 
@@ -689,7 +722,11 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     final RunEnd? end;
     if (robot.headLanded) {
       end = RunEnd.headDown;
-    } else if (racer.stallTime >= Tuning.stallTime) {
+    } else if (racer.stallTime >= Tuning.stallTime ||
+        robot.position.y >
+            hillGeometry.heightAt(robot.position.x) + Tuning.fellThroughDepth) {
+      // Stuck, or (should never happen) fallen through the hill: either
+      // way the run is over here, so nothing waits on it forever.
       end = RunEnd.stuck;
     } else {
       end = null;
@@ -751,7 +788,7 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// Survival best: the gear was the race's, not the Workshop's) and pays
   /// scrap (D51): the Survival formula on the distance, plus the place
   /// bonus and the first-win bonus. Scrap Magnet doesn't apply.
-  void _settleRace(List<Standing> standings) {
+  void _finishRace(List<Standing> standings) {
     final race = this.race!;
     final stats = robot.runStats..distance = player.distance;
     final place = RaceStandings.placeOf(standings);
@@ -772,24 +809,20 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
         () => Sound.play(Sfx.newBest),
       );
     }
-    _settled = _SettledRace(place: place, scrap: scrap, record: record);
-    _publishHud();
-  }
-
-  /// Every racer is down: the race card, with everyone's final distance.
-  void _finishRace(_SettledRace settled, List<Standing> standings) {
+    // Rivals still running show as racing until [_resolveRivals] has
+    // their final distances.
     _result = RunResult(
       end: player.end!,
-      distance: player.distance,
+      distance: stats.distance,
       isNewBest: false,
-      stats: robot.runStats,
-      scrap: settled.scrap,
+      stats: stats,
+      scrap: scrap,
       level: level,
       race: race,
-      place: settled.place,
+      place: place,
       standings: RaceStandings.order(standings),
-      isFirstWin: settled.record.isFirstWin,
-      unlockedRace: settled.record.unlockedRace,
+      isFirstWin: record.isFirstWin,
+      unlockedRace: record.unlockedRace,
     );
     _publishHud();
   }
@@ -798,14 +831,9 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
   /// fast-forward the rival who can still pass the player.
   Robot get _cameraRobot {
     if (fastForward > 1) {
-      // Before the place is settled: the rival who could still pass the
-      // player. After: the rival out in front, still going.
-      final standings = _standingsNow;
-      final follow = _settled == null
-          ? RaceStandings.chaserIndex(standings)
-          : RaceStandings.leaderIndex(standings);
-      if (follow != null && racers[follow].robot.isLoaded) {
-        return racers[follow].robot;
+      final chaser = RaceStandings.chaserIndex(_standingsNow);
+      if (chaser != null && racers[chaser].robot.isLoaded) {
+        return racers[chaser].robot;
       }
     }
     return robot;
@@ -894,7 +922,6 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
       callout: _places.callout,
       markers: _markers(),
       fastForward: fastForward,
-      placeSettled: _settled != null,
       raceHint: _raceHintLeft > 0,
       result: _result,
     );
@@ -905,18 +932,4 @@ class DerbyGame extends Forge2DGame with TapCallbacks {
     hud.dispose();
     super.onRemove();
   }
-}
-
-/// A Versus race whose result is settled for the player (place recorded,
-/// scrap paid) while rivals still run for their final distances.
-class _SettledRace {
-  _SettledRace({
-    required this.place,
-    required this.scrap,
-    required this.record,
-  });
-
-  final int place;
-  final List<ScrapLine> scrap;
-  final RaceRecord record;
 }

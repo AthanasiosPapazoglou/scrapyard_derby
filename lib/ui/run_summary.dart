@@ -523,8 +523,8 @@ class _Podium extends StatelessWidget {
   }
 }
 
-/// One racer on the podium: place, colour, name, distance (a flag if it
-/// had finished; rivals still running ahead show where they were).
+/// One racer on the podium: place, colour, name, final distance and a
+/// flag; "racing…" for a rival still being played out behind the card.
 class _PodiumRow extends StatelessWidget {
   const _PodiumRow({required this.place, required this.standing});
 
@@ -574,13 +574,24 @@ class _PodiumRow extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            '${standing.distance.toStringAsFixed(0)} m',
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontFeatures: [FontFeature.tabularFigures()],
+          // A rival still running behind the card fills in a moment later.
+          if (standing.finished)
+            Text(
+              '${standing.distance.toStringAsFixed(0)} m',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            )
+          else
+            const Text(
+              'racing…',
+              style: TextStyle(
+                color: Palette.steel,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
           SizedBox(
             width: 18,
             child: standing.finished

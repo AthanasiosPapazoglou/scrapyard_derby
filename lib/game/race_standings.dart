@@ -73,23 +73,6 @@ abstract final class RaceStandings {
     }
     return best;
   }
-
-  /// The rival still running who is furthest along (the camera follows it
-  /// once the player's place is settled). Its index in [racers], or null
-  /// when every rival has finished.
-  static int? leaderIndex(List<Standing> racers) {
-    int? best;
-    for (var i = 0; i < racers.length; i++) {
-      final r = racers[i];
-      if (r.isPlayer || r.finished) {
-        continue;
-      }
-      if (best == null || r.distance > racers[best].distance) {
-        best = i;
-      }
-    }
-    return best;
-  }
 }
 
 /// A marker on the screen edge for a rival out of view (D50).

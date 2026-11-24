@@ -664,11 +664,21 @@ abstract final class Tuning {
   static const int raceFastForward = 4;
   static const int raceFastForwardSkip = 8;
 
-  /// Once the player's place is settled, the race card still waits for
-  /// every rival's final distance: faster now (a tap: faster still), as
-  /// nothing the player can win or lose is left.
-  static const int raceSettledFastForward = 16;
-  static const int raceSettledFastForwardSkip = 32;
+  /// Once the player's place is settled the race card shows at once;
+  /// rivals still running are played out behind it, as fast as the
+  /// device allows: up to this much time per screen frame, and at most
+  /// this many game frames (≈ 45 m of robot travel; the hill is built
+  /// 100 m ahead, and new pieces load between screen frames).
+  static const Duration raceResolveBudget = Duration(milliseconds: 8);
+  static const int raceResolveMaxFrames = 90;
+
+  /// Game time (s) per frame when playing rivals out behind the card: a
+  /// fixed step, like a normal 60 fps frame.
+  static const double raceResolveStep = 1 / 60;
+
+  /// A robot this far (m) below the hill surface has fallen through it
+  /// (should never happen); its run ends there instead of falling forever.
+  static const double fellThroughDepth = 3;
 
   /// A new place must hold this long (s) before "2ND!" pops up, and the
   /// callout stays this long.
